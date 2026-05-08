@@ -1,0 +1,199 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { Sparkles, Loader2, ShieldAlert, ShieldCheck, AlertTriangle } from 'lucide-react';
+
+const SEV_STYLES = {
+  critical: { bg: '#fee2e2', text: '#dc2626', border: '#fca5a5' },
+  high: { bg: '#fef3c7', text: '#d97706', border: '#fcd34d' },
+  medium: { bg: '#fef9c3', text: '#ca8a04', border: '#fde68a' },
+  low: { bg: '#dcfce7', text: '#16a34a', border: '#86efac' },
+};
+
+export default function HealthRisk() {
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [days, setDays] = useState(7);
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => base44.entities.UserProfile.list(),
+  });
+  const profile = profiles[0] || {};
+
+  const { data: meals = [] } = useQuery({
+    queryKey: ['allMeals'],
+    queryFn: () => base44.entities.Meal.filter({ logged: true }),
+  });
+
+  const analyze = async () => {
+    setLoading(true);
+    setResult(null);
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const recentMeals = meals.filter(m => new Date(m.date) >= cutoff);
+
+    const mealSummary = recentMeals.map(m =>
+      `${m.date} - ${m.name}: ${m.calories}cal, ${m.protein}g protein, ${m.fat}g fat, ${m.carbs}g carbs, ${m.sugar || 0}g sugar, ${m.sodium || 0}mg sodium`
+    ).join('\n');
+
+    const avgCal = recentMeals.length > 0 ? Math.round(recentMeals.reduce((s, m) => s + (m.calories || 0), 0) / Math.max(1, new Set(recentMeals.map(m => m.date)).size)) : 0;
+
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a clinical nutritionist and health risk assessor. Analyze this user's diet over the past ${days} days and identify ALL health risks, both immediate and long-term.
+
+User profile:
+- Age: ${profile.age}, Sex: ${profile.sex}
+- Weight: ${profile.weight}kg, Height: ${profile.height}cm
+- Goal: ${profile.goal}, Diet: ${profile.diet_mode}
+- Daily calorie target: ${profile.calorie_target} kcal
+- Protein target: ${profile.protein_target}g
+
+Food log (past ${days} days):
+${mealSummary || 'No meals logged yet'}
+
+Average daily calories from log: ${avgCal} kcal
+
+Analyze and identify ALL health risks. Be especially critical if:
+- Calories are severely below targets for their age/weight
+- Macros are severely imbalanced
+- The user is young (under 18) and under-eating
+- There are extreme deficiencies
+
+For each risk, rate severity as: critical, high, medium, or low.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          overall_score: { type: 'number', description: '0-100, 100 = very healthy' },
+          overall_verdict: { type: 'string', enum: ['excellent', 'good', 'concerning', 'dangerous'] },
+          summary: { type: 'string' },
+          risks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low'] },
+                description: { type: 'string' },
+                consequence: { type: 'string' },
+                action: { type: 'string' },
+              },
+            },
+          },
+          positive_habits: { type: 'array', items: { type: 'string' } },
+          top_recommendation: { type: 'string' },
+        },
+      },
+    });
+
+    setResult(res);
+    setLoading(false);
+  };
+
+  const verdictConfig = {
+    excellent: { icon: ShieldCheck, color: '#16a34a', bg: '#dcfce7', label: 'Excellent' },
+    good: { icon: ShieldCheck, color: '#ca8a04', bg: '#fef9c3', label: 'Good' },
+    concerning: { icon: AlertTriangle, color: '#d97706', bg: '#fef3c7', label: 'Concerning' },
+    dangerous: { icon: ShieldAlert, color: '#dc2626', bg: '#fee2e2', label: 'Dangerous' },
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-10">
+      <div className="px-5 pt-6 pb-4">
+        <h1 className="text-2xl font-bold text-foreground">Health Risk Analysis</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">AI-powered diet risk assessment</p>
+      </div>
+
+      <div className="px-5 space-y-4">
+        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+          <p className="text-sm font-semibold text-foreground mb-3">Analysis Period</p>
+          <div className="flex gap-2">
+            {[3, 7, 14, 30].map(d => (
+              <button key={d} onClick={() => setDays(d)}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold transition-all"
+                style={{ background: days === d ? '#1a1a1a' : 'hsl(var(--secondary))', color: days === d ? 'white' : 'hsl(var(--foreground))' }}>
+                {d}d
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Analyzing {meals.filter(m => { const c = new Date(); c.setDate(c.getDate() - days); return new Date(m.date) >= c; }).length} meals from the past {days} days</p>
+        </div>
+
+        <button onClick={analyze} disabled={loading}
+          className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+          {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing your health...</> : <><ShieldAlert className="w-5 h-5" /> Analyze Health Risks</>}
+        </button>
+
+        {result && (() => {
+          const vc = verdictConfig[result.overall_verdict] || verdictConfig.good;
+          const VIcon = vc.icon;
+          return (
+            <>
+              {/* Overall score */}
+              <div className="bg-white border border-border rounded-[24px] p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Overall Health Score</p>
+                    <p className="text-4xl font-extrabold text-foreground mt-0.5">{result.overall_score}<span className="text-lg text-muted-foreground">/100</span></p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl" style={{ background: vc.bg }}>
+                    <VIcon className="w-6 h-6" style={{ color: vc.color }} />
+                    <span className="text-xs font-bold" style={{ color: vc.color }}>{vc.label}</span>
+                  </div>
+                </div>
+                <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${result.overall_score}%`, background: result.overall_score >= 70 ? '#6CC5A0' : result.overall_score >= 40 ? '#F5C842' : '#F47C7C' }} />
+                </div>
+                <p className="text-sm text-muted-foreground mt-3">{result.summary}</p>
+              </div>
+
+              {/* Risks */}
+              {(result.risks || []).length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground px-1">Identified Risks</h3>
+                  {result.risks.map((risk, i) => {
+                    const sc = SEV_STYLES[risk.severity] || SEV_STYLES.low;
+                    return (
+                      <div key={i} className="bg-white border rounded-[24px] p-5 shadow-sm" style={{ borderColor: sc.border }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-bold text-foreground">{risk.title}</h4>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: sc.bg, color: sc.text }}>{risk.severity}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{risk.description}</p>
+                        <p className="text-xs mt-1.5"><span className="font-semibold text-foreground">Consequence: </span><span className="text-muted-foreground">{risk.consequence}</span></p>
+                        <p className="text-xs mt-1 font-semibold text-foreground">{risk.action}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Positives */}
+              {(result.positive_habits || []).length > 0 && (
+                <div className="bg-green-50 border border-green-100 rounded-[24px] p-5">
+                  <h3 className="text-sm font-bold text-green-800 mb-2">Positive Habits</h3>
+                  <ul className="space-y-1">
+                    {result.positive_habits.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-green-700">
+                        <span className="mt-0.5">✓</span>{h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.top_recommendation && (
+                <div className="bg-foreground rounded-[24px] p-5">
+                  <p className="text-xs font-bold text-white/60 uppercase tracking-wider mb-1">Top Recommendation</p>
+                  <p className="text-sm text-white font-medium">{result.top_recommendation}</p>
+                </div>
+              )}
+            </>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}

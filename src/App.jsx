@@ -12,9 +12,13 @@ import ScannerHub from './pages/ScannerHub';
 import FoodScanner from './pages/FoodScanner';
 import SkincareScanner from './pages/SkincareScanner';
 import SupplementScanner from './pages/SupplementScanner';
-import Progress from './pages/Progress';
-import Groups from './pages/Groups';
 import Profile from './pages/Profile';
+import WaterTracker from './pages/WaterTracker';
+import SupplementTracker from './pages/SupplementTracker';
+import MealPlanner from './pages/MealPlanner';
+import ShoppingList from './pages/ShoppingList';
+import HealthRisk from './pages/HealthRisk';
+import Settings from './pages/Settings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -40,10 +44,14 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<Home />} />
-        <Route path="/progress" element={<Progress />} />
-        <Route path="/groups" element={<Groups />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/scanner" element={<ScannerHub />} />
+        <Route path="/water" element={<WaterTracker />} />
+        <Route path="/supplements" element={<SupplementTracker />} />
+        <Route path="/meal-planner" element={<MealPlanner />} />
+        <Route path="/shopping" element={<ShoppingList />} />
+        <Route path="/health-risk" element={<HealthRisk />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/food-scanner" element={<FoodScanner />} />

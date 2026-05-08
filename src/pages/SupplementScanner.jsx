@@ -49,16 +49,18 @@ export default function SupplementScanner() {
     setIsAnalyzing(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s1File });
     const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a supplement expert. Look at this image of the FRONT of a supplement bottle. Read all visible text.
+      prompt: `You are a supplement and nutraceutical expert. Look at this image of the FRONT of a supplement bottle. Read ALL visible text carefully.
 
-Return JSON:
-- brand: brand name
-- product_name: product name
-- format: one of "tablet", "capsule", "powder", "gummy", "other"
-- primary_ingredient: main active ingredient
-- confidence: "high", "medium", or "low"
+Return:
+- brand: brand name exactly as shown
+- product_name: full product name exactly as shown
+- format: one of "tablet", "capsule", "softgel", "powder", "gummy", "liquid", "other"
+- primary_ingredient: main active ingredient e.g. "Vitamin D3", "Creatine Monohydrate", "Omega-3"
+- secondary_ingredients: array of other active ingredients visible on front
+- marketing_claims: array of any claims visible e.g. "Third Party Tested", "Non-GMO", "Vegan", "GMP Certified"
+- confidence: "high" (clear readable label), "medium", or "low"
 
-NEVER fail. Always estimate if unclear.`,
+NEVER fail. Always estimate from visual cues if text is not fully clear.`,
       file_urls: [file_url],
       response_json_schema: {
         type: 'object',
@@ -67,6 +69,8 @@ NEVER fail. Always estimate if unclear.`,
           product_name: { type: 'string' },
           format: { type: 'string' },
           primary_ingredient: { type: 'string' },
+          secondary_ingredients: { type: 'array', items: { type: 'string' } },
+          marketing_claims: { type: 'array', items: { type: 'string' } },
           confidence: { type: 'string' },
         },
       },
@@ -90,26 +94,38 @@ NEVER fail. Always estimate if unclear.`,
     setIsAnalyzing(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s2File });
     const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a supplement expert. This is the BACK / ingredient panel of: "${step1Data?.brand} ${step1Data?.product_name}" (primary: ${step1Data?.primary_ingredient}).
+      prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel on the back of: "${step1Data?.brand} ${step1Data?.product_name}" — primary ingredient: ${step1Data?.primary_ingredient}.
 
-Read the supplement facts label and return JSON with:
-- serving_size: string
+Read every single line of the supplement facts label. Return:
+
+- serving_size: e.g. "2 capsules"
 - servings_per_container: number
-- ingredients: array each with: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_note, flag ("none"/"underdosed"/"overdose risk"/"poor form"/"filler")
-- quality_score: 1-100
-- verdict: "YES", "MAYBE", or "NO"
-- verdict_reason: 2 sentences
-- best_time_to_take: string
-- absorption_tip: string
-- warning: string or null
+- estimated_duration: e.g. "30 days" based on servings_per_container and typical daily use
+- ingredients: array for EVERY ingredient listed — for each:
+  - name: exact ingredient name from label
+  - amount: amount per serving with unit e.g. "500mg", "5000 IU"
+  - dri_percent: % Daily Value if listed, else "N/A"
+  - bioavailability: "High", "Medium", or "Low" — based on specific form (e.g. D3 > D2, glycinate > oxide, methylfolate > folic acid)
+  - form_quality: one sentence assessing the specific form quality e.g. "Magnesium glycinate is a superior, highly bioavailable form"
+  - flag: "None", "Underdosed", "Correctly Dosed", "Overdose Risk", "Poor Form", or "Filler"
+- other_ingredients_flags: array of any concerning other ingredients — fillers, artificial colors, titanium dioxide, excess magnesium stearate, artificial sweeteners
+- quality_score: 1-100 overall quality assessment
+- verdict: "YES", "MAYBE", or "NO" — worth buying
+- verdict_reason: 2-3 sentences covering dose vs DRI, ingredient forms, fillers, and value
+- best_time_to_take: specific time e.g. "Morning with breakfast", "Before bed on empty stomach"
+- food_note: "With food" or "Without food" and why — one sentence
+- absorption_tip: one sentence on how to maximize absorption
+- interactions: any warnings or interactions e.g. "Do not combine with blood thinners" — null if none
+- container_supply: e.g. "30-day supply" estimated from servings
 
-NEVER fail. Always estimate if image is unclear.`,
+NEVER fail. Always estimate from visual cues and supplement knowledge if label is partially unclear.`,
       file_urls: [file_url],
       response_json_schema: {
         type: 'object',
         properties: {
           serving_size: { type: 'string' },
           servings_per_container: { type: 'number' },
+          estimated_duration: { type: 'string' },
           ingredients: {
             type: 'array',
             items: {
@@ -119,17 +135,20 @@ NEVER fail. Always estimate if image is unclear.`,
                 amount: { type: 'string' },
                 dri_percent: { type: 'string' },
                 bioavailability: { type: 'string' },
-                form_note: { type: 'string' },
+                form_quality: { type: 'string' },
                 flag: { type: 'string' },
               },
             },
           },
+          other_ingredients_flags: { type: 'array', items: { type: 'string' } },
           quality_score: { type: 'number' },
           verdict: { type: 'string' },
           verdict_reason: { type: 'string' },
           best_time_to_take: { type: 'string' },
+          food_note: { type: 'string' },
           absorption_tip: { type: 'string' },
-          warning: { type: 'string' },
+          interactions: { type: 'string' },
+          container_supply: { type: 'string' },
         },
       },
     });
@@ -144,6 +163,19 @@ NEVER fail. Always estimate if image is unclear.`,
     const vs = VERDICT_STYLES[result.verdict] || VERDICT_STYLES.MAYBE;
     const VIcon = vs.icon;
     const scoreColor = result.quality_score >= 70 ? '#16a34a' : result.quality_score >= 40 ? '#ca8a04' : '#dc2626';
+    const bioColor = (b) => b === 'High' ? '#16a34a' : b === 'Medium' ? '#ca8a04' : '#dc2626';
+    const flagKey = (f) => (f || '').toLowerCase().replace(' ', '_');
+    const getFS = (flag) => {
+      const k = (flag || '').toLowerCase();
+      if (k === 'none') return FLAG_STYLES.none;
+      if (k === 'underdosed') return FLAG_STYLES.underdosed;
+      if (k === 'overdose risk') return FLAG_STYLES['overdose risk'];
+      if (k === 'poor form') return FLAG_STYLES['poor form'];
+      if (k === 'filler') return FLAG_STYLES.filler;
+      if (k === 'correctly dosed') return { bg: '#dcfce7', text: '#16a34a' };
+      return FLAG_STYLES.none;
+    };
+
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center gap-3 px-5 pt-12 pb-4">
@@ -153,14 +185,23 @@ NEVER fail. Always estimate if image is unclear.`,
           <h1 className="text-xl font-bold text-foreground">Supplement Analysis</h1>
         </div>
         <div className="px-5 space-y-4 pb-16">
+
+          {/* Header card */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-xs text-muted-foreground">{result.brand}</p>
                 <h2 className="text-lg font-bold text-foreground mt-0.5">{result.product_name}</h2>
                 <p className="text-xs text-muted-foreground mt-0.5 capitalize">{result.format} · {result.primary_ingredient}</p>
+                {result.marketing_claims?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {result.marketing_claims.map(c => (
+                      <span key={c} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{c}</span>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0 ml-3">
                 <p className="text-xs text-muted-foreground">Quality</p>
                 <p className="text-3xl font-extrabold" style={{ color: scoreColor }}>{result.quality_score}</p>
               </div>
@@ -168,55 +209,87 @@ NEVER fail. Always estimate if image is unclear.`,
             <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold" style={{ background: vs.bg, color: vs.text }}>
               <VIcon className="w-4 h-4" /> Worth buying: {result.verdict}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">{result.verdict_reason}</p>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{result.verdict_reason}</p>
           </div>
+
+          {/* Serving info */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'Serving Size', value: result.serving_size },
+              { label: 'Servings', value: result.servings_per_container },
+              { label: 'Supply', value: result.estimated_duration || result.container_supply || '—' },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-white border border-border rounded-[20px] p-3 shadow-sm text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">{label}</p>
+                <p className="text-xs font-bold text-foreground mt-0.5">{value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* How to take */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm space-y-3">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Best Time to Take</p>
-              <p className="text-sm text-foreground mt-0.5">{result.best_time_to_take}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">How to Take</p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { label: '⏰ Best Time', value: result.best_time_to_take },
+                { label: '🍽️ Food', value: result.food_note },
+                { label: '💡 Absorption', value: result.absorption_tip },
+              ].map(({ label, value }) => value && (
+                <div key={label} className="flex items-start gap-2">
+                  <span className="text-xs font-semibold text-foreground w-24 shrink-0">{label}</span>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{value}</p>
+                </div>
+              ))}
             </div>
-            <div className="h-px bg-border" />
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Absorption Tip</p>
-              <p className="text-sm text-foreground mt-0.5">{result.absorption_tip}</p>
-            </div>
-            {result.warning && (
-              <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: '#fef9c3' }}>
+            {result.interactions && (
+              <div className="flex items-start gap-2 p-3 rounded-xl mt-1" style={{ background: '#fef9c3' }}>
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#ca8a04' }} />
-                <p className="text-xs" style={{ color: '#92400e' }}>{result.warning}</p>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: '#92400e' }}>Interactions & Warnings</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#92400e' }}>{result.interactions}</p>
+                </div>
               </div>
             )}
           </div>
-          <div className="flex gap-3">
-            <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-              <p className="text-xs text-muted-foreground">Serving Size</p>
-              <p className="text-base font-bold text-foreground mt-0.5">{result.serving_size}</p>
+
+          {/* Other ingredients flags */}
+          {result.other_ingredients_flags?.length > 0 && (
+            <div className="bg-orange-50 border border-orange-100 rounded-[20px] p-4">
+              <p className="text-xs font-bold text-orange-700 mb-2">⚠️ Other Ingredients Concerns</p>
+              <ul className="space-y-1">
+                {result.other_ingredients_flags.map((f, i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-orange-700">
+                    <span className="mt-0.5">•</span>{f}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-              <p className="text-xs text-muted-foreground">Servings</p>
-              <p className="text-base font-bold text-foreground mt-0.5">{result.servings_per_container}</p>
-            </div>
-          </div>
+          )}
+
+          {/* Ingredients */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Ingredients</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Supplement Facts</h3>
             <div className="space-y-3">
               {(result.ingredients || []).map((ing, i) => {
-                const fs = FLAG_STYLES[ing.flag] || FLAG_STYLES.none;
-                const bioColor = ing.bioavailability === 'High' ? '#16a34a' : ing.bioavailability === 'Medium' ? '#ca8a04' : '#dc2626';
+                const fs = getFS(ing.flag);
                 return (
                   <div key={i} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground">{ing.name}</p>
-                      {ing.flag && ing.flag !== 'none' && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: fs.bg, color: fs.text }}>{ing.flag}</span>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="text-xs font-bold text-foreground">{ing.name}</p>
+                      {ing.flag && ing.flag.toLowerCase() !== 'none' && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: fs.bg, color: fs.text }}>{ing.flag}</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      <span className="text-xs text-muted-foreground">{ing.amount}</span>
-                      <span className="text-xs text-muted-foreground">DRI: {ing.dri_percent}</span>
-                      <span className="text-xs font-semibold" style={{ color: bioColor }}>{ing.bioavailability} bioavailability</span>
+                    <div className="flex items-center gap-3 mb-1 flex-wrap">
+                      <span className="text-xs font-semibold text-foreground">{ing.amount}</span>
+                      {ing.dri_percent && ing.dri_percent !== 'N/A' && (
+                        <span className="text-xs text-muted-foreground">DRI: {ing.dri_percent}</span>
+                      )}
+                      <span className="text-[10px] font-bold" style={{ color: bioColor(ing.bioavailability) }}>{ing.bioavailability} bioavailability</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{ing.form_note}</p>
+                    {ing.form_quality && (
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">{ing.form_quality}</p>
+                    )}
                   </div>
                 );
               })}

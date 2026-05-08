@@ -90,38 +90,72 @@ NEVER fail. Estimate if unclear.`,
     const { file_url } = await base44.integrations.Core.UploadFile({ file: step2File });
 
     const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a cosmetic ingredient safety expert. This is the ingredient list of: "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type}). 
-      
-IMPORTANT: This is a ${step1Data?.product_type}. Evaluate ingredients appropriately — for example, sulfates in shampoo vs hand soap have different risk profiles. Read every single ingredient visible on the label.
+      prompt: `You are a cosmetic dermatologist and ingredient toxicologist. This is the ingredient list of: "${step1Data?.brand} ${step1Data?.product_name}" — product type: ${step1Data?.product_type}.
 
-Return JSON:
-- safety_score: 1-100 (100 = perfectly safe)
-- ingredients: array with: name, function (1 sentence for this product type), safety_rating ("safe"/"caution"/"avoid"), flags (array from: ["irritant","allergen","comedogenic","hormone disruptor","fragrance","alcohol"])
-- long_term_summary: 2-3 sentences about long-term effects for skin/hair for THIS product type
-- verdict: "recommended" or "not recommended"
-- verdict_reason: one sentence
+Read EVERY SINGLE ingredient visible on the label. Evaluate each appropriately for a ${step1Data?.product_type} (e.g. rinse-off vs leave-on products have different risk profiles).
 
-NEVER fail.`,
+Return:
+- product_type: confirm product type e.g. "Moisturiser", "Serum", "Shampoo", "Cleanser", "Sunscreen"
+- safety_score: 1-100 (100 = perfectly safe for long term use)
+- verdict: "recommended", "use with caution", or "avoid"
+- verdict_reason: two sentences
+- skin_type_suitability: one of "Oily", "Dry", "Combination", "Sensitive", "All Skin Types"
+- eye_area_safe: true or false
+- pregnancy_safe: true or false with brief reason
+- long_term_summary: 3 sentences on what regular use of this product does to skin or hair over time
+- top_beneficial: array of top 3 beneficial ingredient names
+- top_concerning: array of top 3 concerning ingredient names
+- ingredients: array for EVERY ingredient — for each:
+  - name: ingredient name as printed
+  - inci_name: INCI name if different
+  - skin_effect: one sentence on what it does to skin or hair
+  - safety_rating: "Safe", "Caution", or "Avoid"
+  - is_irritant: true/false
+  - is_allergen: true/false
+  - is_comedogenic: true/false
+  - comedogenic_rating: number 0-5 (0 = non-comedogenic, 5 = highly comedogenic)
+  - is_hormone_disruptor: true/false, concern_name e.g. "parabens", "oxybenzone"
+  - has_fragrance: true/false
+  - is_drying_alcohol: true/false (e.g. SD alcohol, denatured alcohol — NOT fatty alcohols)
+  - is_active_beneficial: true/false (e.g. niacinamide, retinol, hyaluronic acid, vitamin C, peptides)
+
+NEVER fail. Read every ingredient even if partially visible.`,
       file_urls: [file_url],
       response_json_schema: {
         type: 'object',
         properties: {
+          product_type: { type: 'string' },
           safety_score: { type: 'number' },
+          verdict: { type: 'string' },
+          verdict_reason: { type: 'string' },
+          skin_type_suitability: { type: 'string' },
+          eye_area_safe: { type: 'boolean' },
+          pregnancy_safe: { type: 'boolean' },
+          pregnancy_note: { type: 'string' },
+          long_term_summary: { type: 'string' },
+          top_beneficial: { type: 'array', items: { type: 'string' } },
+          top_concerning: { type: 'array', items: { type: 'string' } },
           ingredients: {
             type: 'array',
             items: {
               type: 'object',
               properties: {
                 name: { type: 'string' },
-                function: { type: 'string' },
+                inci_name: { type: 'string' },
+                skin_effect: { type: 'string' },
                 safety_rating: { type: 'string' },
-                flags: { type: 'array', items: { type: 'string' } },
+                is_irritant: { type: 'boolean' },
+                is_allergen: { type: 'boolean' },
+                is_comedogenic: { type: 'boolean' },
+                comedogenic_rating: { type: 'number' },
+                is_hormone_disruptor: { type: 'boolean' },
+                hormone_concern: { type: 'string' },
+                has_fragrance: { type: 'boolean' },
+                is_drying_alcohol: { type: 'boolean' },
+                is_active_beneficial: { type: 'boolean' },
               },
             },
           },
-          long_term_summary: { type: 'string' },
-          verdict: { type: 'string' },
-          verdict_reason: { type: 'string' },
         },
       },
     });
@@ -133,6 +167,13 @@ NEVER fail.`,
   // Results
   if (result) {
     const sc = result.safety_score >= 70 ? '#16a34a' : result.safety_score >= 40 ? '#ca8a04' : '#dc2626';
+    const verdictStyle = result.verdict === 'recommended'
+      ? { bg: '#dcfce7', color: '#16a34a', icon: Shield, label: 'Recommended' }
+      : result.verdict === 'use with caution'
+        ? { bg: '#fef9c3', color: '#ca8a04', icon: Shield, label: 'Use With Caution' }
+        : { bg: '#fee2e2', color: '#dc2626', icon: XCircle, label: 'Avoid' };
+    const VIcon = verdictStyle.icon;
+
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center gap-3 px-5 pt-12 pb-4">
@@ -143,8 +184,10 @@ NEVER fail.`,
           <h1 className="text-xl font-bold text-foreground">Skincare Analysis</h1>
         </div>
         <div className="px-5 space-y-4 pb-16">
+
+          {/* Header */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-xs text-muted-foreground">{result.brand} · {result.product_type}</p>
                 <h2 className="text-lg font-bold text-foreground mt-0.5">{result.product_name}</h2>
@@ -154,33 +197,92 @@ NEVER fail.`,
                 <p className="text-3xl font-extrabold" style={{ color: sc }}>{result.safety_score}</p>
               </div>
             </div>
-            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
-              style={{ background: result.verdict === 'recommended' ? '#dcfce7' : '#fee2e2', color: result.verdict === 'recommended' ? '#16a34a' : '#dc2626' }}>
-              {result.verdict === 'recommended' ? <Shield className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-              {result.verdict === 'recommended' ? 'Recommended' : 'Not Recommended'}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
+              style={{ background: verdictStyle.bg, color: verdictStyle.color }}>
+              <VIcon className="w-4 h-4" />
+              {verdictStyle.label}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">{result.verdict_reason}</p>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{result.verdict_reason}</p>
           </div>
+
+          {/* Key facts */}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'Skin Type', value: result.skin_type_suitability || '—' },
+              { label: 'Eye Area Safe', value: result.eye_area_safe ? '✓ Yes' : '✗ No', color: result.eye_area_safe ? '#16a34a' : '#dc2626' },
+              { label: 'Pregnancy Safe', value: result.pregnancy_safe ? '✓ Yes' : '✗ No', color: result.pregnancy_safe ? '#16a34a' : '#dc2626' },
+              { label: 'Ingredients', value: `${result.ingredients?.length || 0} analyzed` },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bg-white border border-border rounded-[20px] p-3 shadow-sm">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+                <p className="text-xs font-bold mt-0.5" style={{ color: color || 'hsl(var(--foreground))' }}>{value}</p>
+              </div>
+            ))}
+          </div>
+          {result.pregnancy_note && (
+            <p className="text-[10px] text-muted-foreground px-1">{result.pregnancy_note}</p>
+          )}
+
+          {/* Highlights */}
+          {(result.top_beneficial?.length > 0 || result.top_concerning?.length > 0) && (
+            <div className="grid grid-cols-2 gap-2">
+              {result.top_beneficial?.length > 0 && (
+                <div className="bg-green-50 border border-green-100 rounded-[20px] p-4">
+                  <p className="text-xs font-bold text-green-700 mb-2">✓ Top Beneficial</p>
+                  {result.top_beneficial.map(b => (
+                    <p key={b} className="text-[10px] text-green-600 mb-0.5">• {b}</p>
+                  ))}
+                </div>
+              )}
+              {result.top_concerning?.length > 0 && (
+                <div className="bg-red-50 border border-red-100 rounded-[20px] p-4">
+                  <p className="text-xs font-bold text-red-700 mb-2">⚠ Top Concerns</p>
+                  {result.top_concerning.map(c => (
+                    <p key={c} className="text-[10px] text-red-600 mb-0.5">• {c}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Long-term effects */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-2">Long-term Effects</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">{result.long_term_summary}</p>
           </div>
+
+          {/* Ingredients */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Ingredients ({result.ingredients?.length || 0})</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Full Ingredient List ({result.ingredients?.length || 0})</h3>
             <div className="space-y-3">
               {(result.ingredients || []).map((ing, i) => {
-                const s = SAFETY_COLORS[ing.safety_rating] || SAFETY_COLORS.safe;
+                const s = SAFETY_COLORS[(ing.safety_rating || '').toLowerCase()] || SAFETY_COLORS.safe;
+                const flags = [
+                  ing.is_irritant && 'Irritant',
+                  ing.is_allergen && 'Allergen',
+                  ing.is_comedogenic && `Comedogenic ${ing.comedogenic_rating > 0 ? `(${ing.comedogenic_rating}/5)` : ''}`,
+                  ing.is_hormone_disruptor && `Hormone Disruptor${ing.hormone_concern ? `: ${ing.hormone_concern}` : ''}`,
+                  ing.has_fragrance && 'Fragrance',
+                  ing.is_drying_alcohol && 'Drying Alcohol',
+                  ing.is_active_beneficial && '✓ Active Ingredient',
+                ].filter(Boolean);
                 return (
                   <div key={i} className="border-b border-border pb-3 last:border-0 last:pb-0">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground">{ing.name}</p>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: s.bg, color: s.text }}>{s.label}</span>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">{ing.name}</p>
+                        {ing.inci_name && ing.inci_name !== ing.name && (
+                          <p className="text-[9px] text-muted-foreground/60">{ing.inci_name}</p>
+                        )}
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: s.bg, color: s.text }}>{s.label}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{ing.function}</p>
-                    {ing.flags?.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{ing.skin_effect}</p>
+                    {flags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {ing.flags.map(f => (
-                          <span key={f} className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: FLAG_COLORS[f] || '#f3f4f6', color: '#555' }}>{f}</span>
+                        {flags.map(f => (
+                          <span key={f} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ background: f.includes('✓') ? '#dcfce7' : f.includes('Hormone') || f.includes('Drying') ? '#fee2e2' : '#f3f4f6', color: f.includes('✓') ? '#16a34a' : f.includes('Hormone') || f.includes('Drying') ? '#dc2626' : '#555' }}>{f}</span>
                         ))}
                       </div>
                     )}

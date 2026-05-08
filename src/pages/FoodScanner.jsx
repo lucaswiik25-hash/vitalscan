@@ -45,13 +45,32 @@ export default function FoodScanner() {
 
     // Step 1: identify the food / barcode number from image
     const call1 = await base44.integrations.Core.InvokeLLM({
-      prompt: `Analyze this food image carefully.
-1. If you can see a barcode, read and return the barcode number as accurately as possible.
-2. Identify the food name, serving size and provide nutritional data.
-3. If it is a nutrition label photo, extract the exact values from the label.
+      prompt: `You are a professional nutritionist and food scientist. Analyze this image carefully.
 
-Return has_barcode=true ONLY if you can actually read a numeric barcode from the image.
-Return the barcode_number as a string of digits if visible.`,
+If you can see a BARCODE on the packaging, read and return the exact barcode number digits.
+If this is a NUTRITION LABEL, extract every value precisely from the label.
+If this is a FOOD PHOTO, identify the food and estimate all values accurately.
+
+Return:
+- name: exact product name or food name including brand if visible
+- confidence: "high" (clear label/barcode), "medium" (recognizable food), "low" (unclear)
+- serving_size: e.g. "1 cup (240ml)" or "100g"
+- calories: total kcal per serving
+- protein: grams
+- carbs: total carbohydrates grams
+- fat: total fat grams
+- saturated_fat: saturated fat grams
+- sugar: total sugars grams
+- fiber: dietary fiber grams
+- sodium: milligrams
+- potassium: milligrams
+- cholesterol: milligrams
+- allergens: array of detected allergens from: milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame
+- has_barcode: true only if you can read actual barcode digits
+- barcode_number: string of barcode digits if visible
+- ingredients_text: full ingredient list text if visible on label
+
+NEVER fail. Always estimate from visual cues if exact values are not readable.`,
       file_urls: [file_url],
       response_json_schema: {
         type: 'object',
@@ -63,12 +82,15 @@ Return the barcode_number as a string of digits if visible.`,
           protein: { type: 'number' },
           carbs: { type: 'number' },
           fat: { type: 'number' },
-          fiber: { type: 'number' },
+          saturated_fat: { type: 'number' },
           sugar: { type: 'number' },
+          fiber: { type: 'number' },
           sodium: { type: 'number' },
+          potassium: { type: 'number' },
+          cholesterol: { type: 'number' },
+          allergens: { type: 'array', items: { type: 'string' } },
           has_barcode: { type: 'boolean' },
           barcode_number: { type: 'string' },
-          allergens: { type: 'array', items: { type: 'string' } },
           ingredients_text: { type: 'string' },
         },
       },
@@ -108,16 +130,33 @@ Return the barcode_number as a string of digits if visible.`,
     setIsAnalyzing(false);
 
     const call2 = await base44.integrations.Core.InvokeLLM({
-      prompt: `Given this food "${call1.name}" with these nutrition values:
-Calories: ${call1.calories}, Protein: ${call1.protein}g, Carbs: ${call1.carbs}g, Fat: ${call1.fat}g, Sugar: ${call1.sugar}g, Sodium: ${call1.sodium}mg
+      prompt: `You are a clinical nutritionist and dermatologist. Analyze this food for diet, body, and appearance impact.
 
-Analyze:
-1. Diet compatibility for a general healthy diet (yes/limit/no with reason)
-2. Bloat risk level (low/medium/high with reason)
-3. Glycemic impact (low/medium/high with reason)
-4. Skin impact: collagen effect, inflammation level, sebum effect, summary
-5. Appearance tip
-6. Health score 1-10`,
+Food: "${enriched.name}"
+Nutrition per serving: ${enriched.calories} kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium, ${enriched.fiber || 0}g fiber
+
+Provide a complete analysis. Return:
+- diet_compatibility: "yes", "limit", or "no" — verdict for a general healthy diet
+- diet_reason: one sentence explaining the verdict
+- bloat_risk: "low", "medium", or "high"
+- bloat_reason: one sentence
+- glycemic_impact: "low", "medium", or "high"
+- glycemic_reason: one sentence
+- collagen_effect: "Positive", "Neutral", or "Negative"
+- inflammation: "Low", "Medium", or "High" — inflammation this food causes
+- sebum_effect: "Increases", "Neutral", or "Reduces"
+- skin_summary: two sentences on what this food does to skin over time with regular consumption
+- appearance_tip: one actionable sentence specific to this exact food
+- tomorrow_face: "Positive", "Neutral", or "Negative" contribution to next-day appearance
+- tomorrow_face_note: one sentence explaining
+- hormone_impact: "Positive", "Neutral", or "Negative"
+- hormone_note: one sentence on testosterone or estrogen effect
+- gut_health: "Positive", "Neutral", or "Negative"
+- gut_note: one sentence reason
+- processing_level: "Whole Food", "Minimally Processed", "Processed", or "Ultra Processed"
+- health_score: number 1-10
+
+NEVER fail. Always provide all fields.`,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -127,16 +166,18 @@ Analyze:
           bloat_reason: { type: 'string' },
           glycemic_impact: { type: 'string', enum: ['low', 'medium', 'high'] },
           glycemic_reason: { type: 'string' },
-          skin_impact: {
-            type: 'object',
-            properties: {
-              collagen_effect: { type: 'string' },
-              inflammation: { type: 'string' },
-              sebum_effect: { type: 'string' },
-              summary: { type: 'string' },
-            },
-          },
+          collagen_effect: { type: 'string' },
+          inflammation: { type: 'string' },
+          sebum_effect: { type: 'string' },
+          skin_summary: { type: 'string' },
           appearance_tip: { type: 'string' },
+          tomorrow_face: { type: 'string' },
+          tomorrow_face_note: { type: 'string' },
+          hormone_impact: { type: 'string' },
+          hormone_note: { type: 'string' },
+          gut_health: { type: 'string' },
+          gut_note: { type: 'string' },
+          processing_level: { type: 'string' },
           health_score: { type: 'number' },
         },
       },

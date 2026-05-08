@@ -1,8 +1,8 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import BottomNav from './BottomNav';
+import SideNav from './SideNav';
 
-const HIDE_NAV_PATHS = ['/onboarding', '/scanner', '/food-scanner', '/skincare-scanner', '/supplement-scanner'];
+const HIDE_NAV_PATHS = ['/onboarding', '/food-scanner', '/skincare-scanner', '/supplement-scanner'];
 
 export default function AppShell() {
   const location = useLocation();
@@ -10,10 +10,10 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-background max-w-lg mx-auto relative">
-      <div className={hideNav ? '' : 'pb-28'}>
+      {!hideNav && <SideNav />}
+      <div className="pl-0">
         <Outlet />
       </div>
-      {!hideNav && <BottomNav />}
     </div>
   );
 }

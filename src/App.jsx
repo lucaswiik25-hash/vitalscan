@@ -10,6 +10,8 @@ import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
 import ScannerHub from './pages/ScannerHub';
 import FoodScanner from './pages/FoodScanner';
+import SkincareScanner from './pages/SkincareScanner';
+import SupplementScanner from './pages/SupplementScanner';
 import Progress from './pages/Progress';
 import Groups from './pages/Groups';
 import Profile from './pages/Profile';
@@ -17,7 +19,6 @@ import Profile from './pages/Profile';
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -26,18 +27,15 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
       navigateToLogin();
       return null;
     }
   }
 
-  // Render the main app
   return (
     <Routes>
       <Route element={<AppShell />}>
@@ -49,14 +47,14 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/food-scanner" element={<FoodScanner />} />
+      <Route path="/skincare-scanner" element={<SkincareScanner />} />
+      <Route path="/supplement-scanner" element={<SupplementScanner />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };
 
-
 function App() {
-
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
@@ -66,7 +64,7 @@ function App() {
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

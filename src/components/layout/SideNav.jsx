@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, BarChart3, Users, User, ScanLine, Leaf, Pill, X, Menu } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, BarChart3, Users, User, X, Plus } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
@@ -9,15 +9,10 @@ const navItems = [
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 
-const scannerItems = [
-  { path: '/food-scanner', icon: ScanLine, label: 'Food Scanner' },
-  { path: '/skincare-scanner', icon: Leaf, label: 'Skincare Analyzer' },
-  { path: '/supplement-scanner', icon: Pill, label: 'Supplement Analyzer' },
-];
-
 export default function SideNav() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -38,6 +33,19 @@ export default function SideNav() {
         <span className="w-1 h-1 rounded-full bg-foreground/40" />
         <span className="w-1 h-1 rounded-full bg-foreground/40" />
         <span className="w-1 h-1 rounded-full bg-foreground/40" />
+      </button>
+
+      {/* Floating + scanner button */}
+      <button
+        onClick={() => navigate('/scanner')}
+        aria-label="Open scanner"
+        className="fixed bottom-8 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+        style={{
+          background: '#1a1a1a',
+          border: '3px solid rgba(255,255,255,0.18)',
+        }}
+      >
+        <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
       </button>
 
       {/* Backdrop */}
@@ -71,7 +79,7 @@ export default function SideNav() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-14 pb-5">
           <div>
-            <span className="text-xl font-bold text-foreground tracking-tight">Cal AI</span>
+            <span className="text-xl font-bold text-foreground tracking-tight">Scanly</span>
             <div className="w-8 h-0.5 rounded-full mt-1" style={{ background: '#6CC5A0' }} />
           </div>
           <button
@@ -113,42 +121,10 @@ export default function SideNav() {
               </Link>
             );
           })}
-
-          {/* Divider */}
-          <div className="mx-2 my-3 h-px" style={{ background: 'rgba(0,0,0,0.07)' }} />
-
-          {scannerItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all"
-                style={{
-                  background: isActive ? 'rgba(108,197,160,0.22)' : 'rgba(0,0,0,0.03)',
-                }}
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background: isActive ? 'rgba(108,197,160,0.28)' : 'rgba(0,0,0,0.06)' }}
-                >
-                  <Icon className="w-4 h-4" style={{ color: isActive ? '#4aad85' : '#888' }} strokeWidth={2} />
-                </div>
-                <span className="text-sm font-medium" style={{ color: isActive ? '#1a1a1a' : '#555' }}>
-                  {item.label}
-                </span>
-                {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: '#6CC5A0' }} />
-                )}
-              </Link>
-            );
-          })}
         </div>
 
         <div className="px-6 pb-10 pt-4">
-          <p className="text-xs text-muted-foreground/40">Cal AI v1.0</p>
+          <p className="text-xs text-muted-foreground/40">Scanly v1.0</p>
         </div>
       </div>
     </>

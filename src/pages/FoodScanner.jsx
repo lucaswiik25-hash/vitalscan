@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, HelpCircle, Zap, ImageIcon, Camera } from 'lucide-react';
+import { X, HelpCircle, Zap, ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 
@@ -11,36 +11,36 @@ const MODES = ['Scan Food', 'Barcode', 'Food Label'];
 export default function FoodScanner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const uploadInputRef = useRef(null);
   const [mode, setMode] = useState(0);
   const [flash, setFlash] = useState(false);
   const [zoom, setZoom] = useState('1x');
   const [capturedImage, setCapturedImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
-  const [showLabelInfo, setShowLabelInfo] = useState(false);
 
-  const handleCapture = () => {
-    fileInputRef.current?.click();
-  };
+  // Auto-trigger camera on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      cameraInputRef.current?.click();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const previewUrl = URL.createObjectURL(file);
     setCapturedImage(previewUrl);
     setIsAnalyzing(true);
 
-    // Upload the file
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-    // Call 1: Basic identification
     const call1 = await base44.integrations.Core.InvokeLLM({
       prompt: `Analyze this food image. Identify the food, estimate serving size and provide nutritional data.
 If this is a packaged product with a barcode visible, note that.
 If this is a nutrition label, extract the exact values from it.
-
 Provide your best estimate for all values. Be specific about the food name.`,
       file_urls: [file_url],
       response_json_schema: {
@@ -66,7 +66,6 @@ Provide your best estimate for all values. Be specific about the food name.`,
     setResult({ ...call1, image_url: file_url, step: 1 });
     setIsAnalyzing(false);
 
-    // Call 2: Deep analysis (auto-triggered)
     const call2 = await base44.integrations.Core.InvokeLLM({
       prompt: `Given this food "${call1.name}" with these nutrition values:
 Calories: ${call1.calories}, Protein: ${call1.protein}g, Carbs: ${call1.carbs}g, Fat: ${call1.fat}g, Sugar: ${call1.sugar}g, Sodium: ${call1.sodium}mg
@@ -77,8 +76,7 @@ Analyze:
 3. Glycemic impact (low/medium/high with reason)
 4. Skin impact: collagen effect, inflammation level, sebum effect, summary
 5. Appearance tip
-6. Health score 1-10
-7. Whether this food makes tomorrow's bloat better or worse`,
+6. Health score 1-10`,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -99,7 +97,6 @@ Analyze:
           },
           appearance_tip: { type: 'string' },
           health_score: { type: 'number' },
-          tomorrow_prediction: { type: 'string' },
         },
       },
     });
@@ -142,13 +139,12 @@ Analyze:
     navigate('/');
   };
 
-  // Show result screen
   if (result) {
     return (
       <FoodScanResult
         result={result}
         onLog={logMeal}
-        onScanAnother={() => { setResult(null); setCapturedImage(null); }}
+        onScanAnother={() => { setResult(null); setCapturedImage(null); cameraInputRef.current?.click(); }}
         onBack={() => navigate(-1)}
       />
     );
@@ -156,21 +152,30 @@ Analyze:
 
   return (
     <div className="min-h-screen bg-black relative flex flex-col">
+      {/* Camera input - auto-triggered */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
+      {/* Upload input - for gallery */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
-      {/* Camera preview / placeholder */}
+      {/* Camera preview */}
       <div className="flex-1 relative">
         {capturedImage ? (
           <img src={capturedImage} className="w-full h-full object-cover absolute inset-0" alt="" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-b from-gray-800 to-gray-900" />
+          <div className="w-full h-full bg-gradient-to-b from-gray-800 to-gray-900 absolute inset-0" />
         )}
 
         {/* Top bar */}
@@ -188,30 +193,25 @@ Analyze:
         {!isAnalyzing && (
           <div className="absolute inset-0 flex items-center justify-center">
             {mode === 1 ? (
-              // Barcode frame: wide horizontal
               <div className="w-[80%] h-[25%] relative">
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-3 border-l-3 border-white rounded-tl-xl" style={{ borderWidth: '3px' }} />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-3 border-r-3 border-white rounded-tr-xl" style={{ borderWidth: '3px' }} />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-3 border-l-3 border-white rounded-bl-xl" style={{ borderWidth: '3px' }} />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-3 border-r-3 border-white rounded-br-xl" style={{ borderWidth: '3px' }} />
+                {['top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-xl', 'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-xl', 'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-xl', 'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-xl'].map((cls, i) => (
+                  <div key={i} className={`absolute w-8 h-8 border-white ${cls}`} />
+                ))}
               </div>
             ) : (
-              // Food scan frame: square
               <div className="w-[75%] aspect-square relative">
-                <div className="absolute top-0 left-0 w-10 h-10 border-t-3 border-l-3 border-white rounded-tl-2xl" style={{ borderWidth: '3px' }} />
-                <div className="absolute top-0 right-0 w-10 h-10 border-t-3 border-r-3 border-white rounded-tr-2xl" style={{ borderWidth: '3px' }} />
-                <div className="absolute bottom-0 left-0 w-10 h-10 border-b-3 border-l-3 border-white rounded-bl-2xl" style={{ borderWidth: '3px' }} />
-                <div className="absolute bottom-0 right-0 w-10 h-10 border-b-3 border-r-3 border-white rounded-br-2xl" style={{ borderWidth: '3px' }} />
+                {['top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl', 'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl', 'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl', 'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl'].map((cls, i) => (
+                  <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
+                ))}
               </div>
             )}
           </div>
         )}
 
-        {/* Analyzing overlay */}
         {isAnalyzing && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
-              <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" style={{ borderWidth: '3px' }} />
+              <div className="w-8 h-8 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
             </div>
             <p className="text-white font-semibold text-lg">Analyzing...</p>
             <p className="text-white/60 text-sm mt-1">Identifying your food</p>
@@ -219,82 +219,39 @@ Analyze:
         )}
       </div>
 
-      {/* Food label info overlay */}
-      {showLabelInfo && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur flex flex-col items-center justify-center z-30 px-8">
-          <img
-            src="https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=300&h=400&fit=crop"
-            alt="Nutrition label"
-            className="w-48 h-60 object-cover rounded-xl mb-6"
-          />
-          <h2 className="text-white text-2xl font-bold text-center">Nutrition Label Scanner</h2>
-          <p className="text-white/60 text-center mt-2">Get nutrition details from any label to track your intake accurately.</p>
-          <button
-            onClick={() => setShowLabelInfo(false)}
-            className="mt-6 bg-white text-black font-semibold px-8 py-3 rounded-full"
-          >
-            Got it
-          </button>
-        </div>
-      )}
-
       {/* Controls */}
       <div className="bg-black px-4 pb-10 pt-4">
-        {/* Zoom */}
         <div className="flex items-center justify-center mb-4">
           <div className="flex bg-white/10 rounded-full p-0.5">
             {['.5x', '1x'].map(z => (
-              <button
-                key={z}
-                onClick={() => setZoom(z)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                  zoom === z ? 'bg-white/20 text-white' : 'text-white/50'
-                }`}
-              >
+              <button key={z} onClick={() => setZoom(z)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${zoom === z ? 'bg-white/20 text-white' : 'text-white/50'}`}>
                 {z}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Mode selector */}
         <div className="flex items-center justify-center gap-2 mb-6">
           {MODES.map((m, i) => (
-            <button
-              key={m}
-              onClick={() => {
-                setMode(i);
-                if (i === 2) setShowLabelInfo(true);
-              }}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all ${
-                mode === i ? 'bg-white text-black' : 'bg-white/10 text-white/60'
-              }`}
-            >
-              <span>{i === 0 ? '📷' : i === 1 ? '📊' : '📋'}</span>
+            <button key={m} onClick={() => setMode(i)}
+              className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all ${mode === i ? 'bg-white text-black' : 'bg-white/10 text-white/60'}`}>
               {m}
             </button>
           ))}
         </div>
 
-        {/* Shutter row */}
         <div className="flex items-center justify-between px-6">
-          <button
-            onClick={() => setFlash(!flash)}
-            className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
-          >
+          <button onClick={() => setFlash(!flash)} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
             <Zap className={`w-5 h-5 ${flash ? 'text-yellow-400' : 'text-white/60'}`} />
           </button>
           <button
-            onClick={handleCapture}
-            className="w-18 h-18 rounded-full bg-white border-4 border-white/30 flex items-center justify-center active:scale-95 transition-transform"
-            style={{ width: 72, height: 72 }}
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-[72px] h-[72px] rounded-full bg-white border-4 border-white/30 flex items-center justify-center active:scale-95 transition-transform"
           >
-            <div className="w-16 h-16 rounded-full bg-white" />
+            <div className="w-[60px] h-[60px] rounded-full bg-white" />
           </button>
-          <button
-            onClick={handleCapture}
-            className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
-          >
+          <button onClick={() => uploadInputRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
             <ImageIcon className="w-5 h-5 text-white/60" />
           </button>
         </div>

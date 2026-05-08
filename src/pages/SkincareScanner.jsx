@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, ImageIcon, ArrowLeft, Shield, XCircle } from 'lucide-react';
+import { X, ImageIcon, ArrowLeft, Shield, XCircle, Zap } from 'lucide-react';
 
 const SAFETY_COLORS = {
   safe: { bg: '#dcfce7', text: '#16a34a', label: 'Safe' },
@@ -20,10 +20,19 @@ const FLAG_COLORS = {
 
 export default function SkincareScanner() {
   const navigate = useNavigate();
-  const fileRef = useRef(null);
+  const cameraRef = useRef(null);
+  const uploadRef = useRef(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Auto-trigger camera on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      cameraRef.current?.click();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -34,7 +43,6 @@ export default function SkincareScanner() {
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
     const res = await base44.integrations.Core.InvokeLLM({
-      model: 'claude_sonnet_4_6',
       prompt: `You are a cosmetic ingredient safety expert. Analyze this image of a skincare or cosmetic product ingredient list. Read every single ingredient visible on the label.
 
 Return a JSON with:
@@ -148,7 +156,8 @@ NEVER fail. If image is partially unclear, analyze what you can and always retur
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
       <div className="flex-1 relative">
         {previewUrl
@@ -159,24 +168,17 @@ NEVER fail. If image is partially unclear, analyze what you can and always retur
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
             <X className="w-5 h-5 text-white" />
           </button>
-          <span className="text-white font-semibold">🧴 Skincare Analyzer</span>
+          <span className="text-white font-semibold">Skincare Analyzer</span>
           <div className="w-10" />
         </div>
 
         {!isAnalyzing && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-[75%] aspect-[3/4] relative">
-              {[
-                'top-0 left-0 border-t-2 border-l-2 rounded-tl-2xl',
-                'top-0 right-0 border-t-2 border-r-2 rounded-tr-2xl',
-                'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-2xl',
-                'bottom-0 right-0 border-b-2 border-r-2 rounded-br-2xl',
-              ].map((cls, i) => (
+              {['top-0 left-0 border-t-2 border-l-2 rounded-tl-2xl', 'top-0 right-0 border-t-2 border-r-2 rounded-tr-2xl', 'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-2xl', 'bottom-0 right-0 border-b-2 border-r-2 rounded-br-2xl'].map((cls, i) => (
                 <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
               ))}
-              <p className="absolute -bottom-8 left-0 right-0 text-center text-white/60 text-xs">
-                Point at the ingredient list
-              </p>
+              <p className="absolute -bottom-8 left-0 right-0 text-center text-white/60 text-xs">Point at the ingredient list</p>
             </div>
           </div>
         )}
@@ -192,14 +194,14 @@ NEVER fail. If image is partially unclear, analyze what you can and always retur
         )}
       </div>
 
-      <div className="bg-black px-6 pb-12 pt-6 flex flex-col items-center gap-4">
-        <p className="text-white/50 text-sm text-center">Photograph the ingredient list on any cosmetic product</p>
+      <div className="bg-black px-6 pb-10 pt-4 flex items-center justify-between">
+        <div className="w-11" />
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={() => cameraRef.current?.click()}
           className="w-[72px] h-[72px] rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform"
         />
-        <button onClick={() => fileRef.current?.click()} className="flex items-center gap-2 text-white/50 text-sm">
-          <ImageIcon className="w-4 h-4" /> Upload from library
+        <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+          <ImageIcon className="w-5 h-5 text-white/60" />
         </button>
       </div>
     </div>

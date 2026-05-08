@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, ImageIcon, ArrowLeft, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
@@ -19,12 +19,21 @@ const VERDICT_STYLES = {
 
 export default function SupplementScanner() {
   const navigate = useNavigate();
-  const fileRef = useRef(null);
-  const [step, setStep] = useState(1); // 1 = front photo, 2 = back photo
+  const cameraRef = useRef(null);
+  const uploadRef = useRef(null);
+  const [step, setStep] = useState(1);
   const [step1Data, setStep1Data] = useState(null);
   const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Auto-trigger camera on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      cameraRef.current?.click();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -36,7 +45,6 @@ export default function SupplementScanner() {
 
     if (step === 1) {
       const res = await base44.integrations.Core.InvokeLLM({
-        model: 'claude_sonnet_4_6',
         prompt: `You are a supplement expert. Look at this image of the FRONT of a supplement bottle. Read all visible text.
 
 Return JSON with:
@@ -67,27 +75,20 @@ NEVER fail. Always return identified: true and estimate if unclear.`,
       setPreviewUrl(null);
     } else {
       const res = await base44.integrations.Core.InvokeLLM({
-        model: 'claude_sonnet_4_6',
-        prompt: `You are a supplement expert. This is the BACK / ingredient panel of a supplement: "${step1Data?.brand} ${step1Data?.product_name}" (primary ingredient: ${step1Data?.primary_ingredient}).
+        prompt: `You are a supplement expert. This is the BACK / ingredient panel of: "${step1Data?.brand} ${step1Data?.product_name}" (primary: ${step1Data?.primary_ingredient}).
 
 Read the supplement facts label and return JSON with:
 - serving_size: string
-- servings_per_container: number or string
-- ingredients: array of objects each with:
-  - name: ingredient name
-  - amount: amount per serving (string with unit)
-  - dri_percent: DRI percentage as string (e.g. "150%") or "N/A"
-  - bioavailability: "High", "Medium", or "Low"
-  - form_note: short note about the ingredient form quality
-  - flag: one of "none", "underdosed", "overdose risk", "poor form", "filler"
-- quality_score: overall quality score 1-100
+- servings_per_container: number
+- ingredients: array each with: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_note, flag ("none"/"underdosed"/"overdose risk"/"poor form"/"filler")
+- quality_score: 1-100
 - verdict: "YES", "MAYBE", or "NO"
-- verdict_reason: 2 sentence explanation
+- verdict_reason: 2 sentences
 - best_time_to_take: string
 - absorption_tip: string
 - warning: string or null
 
-NEVER return failure. Always estimate values if the image is unclear.`,
+NEVER fail. Always estimate if image is unclear.`,
         file_urls: [file_url],
         response_json_schema: {
           type: 'object',
@@ -137,7 +138,6 @@ NEVER return failure. Always estimate values if the image is unclear.`,
         </div>
 
         <div className="px-5 space-y-4 pb-16">
-          {/* Header */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
@@ -158,7 +158,6 @@ NEVER return failure. Always estimate values if the image is unclear.`,
             <p className="text-xs text-muted-foreground mt-2">{result.verdict_reason}</p>
           </div>
 
-          {/* Usage info */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm space-y-3">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Best Time to Take</p>
@@ -180,7 +179,6 @@ NEVER return failure. Always estimate values if the image is unclear.`,
             )}
           </div>
 
-          {/* Serving info */}
           <div className="flex gap-3">
             <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
               <p className="text-xs text-muted-foreground">Serving Size</p>
@@ -192,7 +190,6 @@ NEVER return failure. Always estimate values if the image is unclear.`,
             </div>
           </div>
 
-          {/* Ingredients */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Ingredients</h3>
             <div className="space-y-3">
@@ -208,12 +205,10 @@ NEVER return failure. Always estimate values if the image is unclear.`,
                           style={{ background: fs.bg, color: fs.text }}>{ing.flag}</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
+                    <div className="flex items-center gap-3 mt-1 flex-wrap">
                       <span className="text-xs text-muted-foreground">{ing.amount}</span>
                       <span className="text-xs text-muted-foreground">DRI: {ing.dri_percent}</span>
-                      <span className="text-xs font-semibold" style={{ color: bioColor }}>
-                        {ing.bioavailability} bioavailability
-                      </span>
+                      <span className="text-xs font-semibold" style={{ color: bioColor }}>{ing.bioavailability} bioavailability</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{ing.form_note}</p>
                   </div>
@@ -226,10 +221,13 @@ NEVER return failure. Always estimate values if the image is unclear.`,
     );
   }
 
-  // Step 1 review screen (after front photo)
+  // Step 2 review (after front photo scanned)
   if (step === 2 && step1Data && !isAnalyzing) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+        <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+
         <div className="flex items-center gap-3 px-5 pt-12 pb-4">
           <button onClick={() => { setStep(1); setStep1Data(null); setPreviewUrl(null); }} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
             <ArrowLeft className="w-5 h-5" />
@@ -238,7 +236,6 @@ NEVER return failure. Always estimate values if the image is unclear.`,
         </div>
         <div className="px-5 space-y-4 flex-1">
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <p className="text-xs text-muted-foreground mb-1">Identified</p>
             <h2 className="text-lg font-bold text-foreground">{step1Data.brand} {step1Data.product_name}</h2>
             <div className="grid grid-cols-2 gap-3 mt-4">
               {[['Format', step1Data.format], ['Primary Ingredient', step1Data.primary_ingredient], ['Confidence', step1Data.confidence]].map(([l, v]) => (
@@ -250,27 +247,33 @@ NEVER return failure. Always estimate values if the image is unclear.`,
             </div>
           </div>
           <div className="bg-secondary rounded-[20px] p-5">
-            <p className="text-sm font-semibold text-foreground">📸 Step 2</p>
-            <p className="text-sm text-muted-foreground mt-1">Now photograph the back of the bottle — the supplement facts / ingredient panel.</p>
+            <p className="text-sm font-semibold text-foreground">Step 2</p>
+            <p className="text-sm text-muted-foreground mt-1">Now photograph the back of the bottle — the supplement facts panel.</p>
           </div>
         </div>
-        <div className="px-5 pb-12 pt-4">
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+        <div className="px-5 pb-12 pt-4 flex gap-3">
           <button
-            onClick={() => fileRef.current?.click()}
-            className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base"
+            onClick={() => cameraRef.current?.click()}
+            className="flex-1 h-14 rounded-2xl bg-foreground text-white font-semibold text-base"
           >
-            📷 Photograph Back of Bottle
+            Photograph Back
+          </button>
+          <button
+            onClick={() => uploadRef.current?.click()}
+            className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center"
+          >
+            <ImageIcon className="w-5 h-5 text-foreground" />
           </button>
         </div>
       </div>
     );
   }
 
-  // Camera screen (step 1 or analyzing)
+  // Camera / initial screen
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
       <div className="flex-1 relative">
         {previewUrl
@@ -281,20 +284,15 @@ NEVER return failure. Always estimate values if the image is unclear.`,
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
             <X className="w-5 h-5 text-white" />
           </button>
-          <span className="text-white font-semibold">💊 Supplement Analyzer</span>
+          <span className="text-white font-semibold">Supplement Analyzer</span>
           <div className="w-10" />
         </div>
 
         {!isAnalyzing && (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="w-[60%] aspect-[2/3] relative">
-              {[
-                'top-0 left-0 border-t-2 border-l-2 rounded-tl-2xl',
-                'top-0 right-0 border-t-2 border-r-2 rounded-tr-2xl',
-                'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-2xl',
-                'bottom-0 right-0 border-b-2 border-r-2 rounded-br-2xl',
-              ].map((cls, idx) => (
-                <div key={idx} className={`absolute w-10 h-10 border-white ${cls}`} />
+              {['top-0 left-0 border-t-2 border-l-2 rounded-tl-2xl', 'top-0 right-0 border-t-2 border-r-2 rounded-tr-2xl', 'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-2xl', 'bottom-0 right-0 border-b-2 border-r-2 rounded-br-2xl'].map((cls, i) => (
+                <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
               ))}
             </div>
             <p className="text-white/60 text-xs mt-6">Step 1: Photograph the front of the bottle</p>
@@ -306,26 +304,20 @@ NEVER return failure. Always estimate values if the image is unclear.`,
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
               <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             </div>
-            <p className="text-white font-semibold text-lg">
-              {step === 1 ? 'Reading label...' : 'Analyzing ingredients...'}
-            </p>
-            <p className="text-white/60 text-sm mt-1">
-              {step === 1 ? 'Identifying your supplement' : 'Deep analysis in progress'}
-            </p>
+            <p className="text-white font-semibold text-lg">{step === 1 ? 'Reading label...' : 'Analyzing ingredients...'}</p>
+            <p className="text-white/60 text-sm mt-1">{step === 1 ? 'Identifying your supplement' : 'Deep analysis in progress'}</p>
           </div>
         )}
       </div>
 
-      <div className="bg-black px-6 pb-12 pt-6 flex flex-col items-center gap-4">
-        <p className="text-white/50 text-sm text-center">
-          {step === 1 ? 'Point at the front label of your supplement' : 'Now photograph the back / ingredient panel'}
-        </p>
+      <div className="bg-black px-6 pb-10 pt-4 flex items-center justify-between">
+        <div className="w-11" />
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={() => cameraRef.current?.click()}
           className="w-[72px] h-[72px] rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform"
         />
-        <button onClick={() => fileRef.current?.click()} className="flex items-center gap-2 text-white/50 text-sm">
-          <ImageIcon className="w-4 h-4" /> Upload from library
+        <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+          <ImageIcon className="w-5 h-5 text-white/60" />
         </button>
       </div>
     </div>

@@ -19,6 +19,7 @@ import MealPlanner from './pages/MealPlanner';
 import ShoppingList from './pages/ShoppingList';
 import HealthRisk from './pages/HealthRisk';
 import Settings from './pages/Settings';
+import SleepTracker from './pages/SleepTracker';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
         <Route path="/shopping" element={<ShoppingList />} />
         <Route path="/health-risk" element={<HealthRisk />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/sleep" element={<SleepTracker />} />
       </Route>
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/food-scanner" element={<FoodScanner />} />

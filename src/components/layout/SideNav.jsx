@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, X, Plus, Droplets, Pill, UtensilsCrossed, ShoppingCart, ShieldAlert, Settings } from 'lucide-react';
+import { Home, User, X, Plus, Droplets, Pill, UtensilsCrossed, ShoppingCart, ShieldAlert, Settings, Moon } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/water', icon: Droplets, label: 'Water Tracker' },
   { path: '/supplements', icon: Pill, label: 'Supplements' },
+  { path: '/sleep', icon: Moon, label: 'Sleep Tracker' },
   { path: '/meal-planner', icon: UtensilsCrossed, label: 'Meal Planner' },
   { path: '/shopping', icon: ShoppingCart, label: 'Shopping List' },
   { path: '/health-risk', icon: ShieldAlert, label: 'Health Risk' },
@@ -73,10 +74,10 @@ export default function SideNav() {
           width: 275,
           transform: open ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
-          background: 'rgba(255,255,255,0.18)',
-          backdropFilter: 'blur(60px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(60px) saturate(180%)',
-          borderRight: '1px solid rgba(255,255,255,0.45)',
+          background: 'rgba(255,255,255,0.08)',
+          backdropFilter: 'blur(80px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(80px) saturate(200%)',
+          borderRight: '1px solid rgba(255,255,255,0.25)',
           boxShadow: '8px 0 40px rgba(0,0,0,0.08)',
           borderTopRightRadius: 28,
           borderBottomRightRadius: 28,

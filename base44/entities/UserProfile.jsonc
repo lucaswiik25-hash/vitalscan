@@ -48,20 +48,10 @@
     },
     "diet_mode": {
       "type": "string",
-      "enum": [
-        "none",
-        "vegan",
-        "vegetarian",
-        "keto",
-        "gluten_free",
-        "paleo",
-        "mediterranean"
-      ],
       "default": "none"
     },
     "preferences": {
-      "type": "string",
-      "description": "Free text dietary preferences"
+      "type": "string"
     },
     "allergens": {
       "type": "array",
@@ -111,6 +101,14 @@
     "onboarding_complete": {
       "type": "boolean",
       "default": false
+    },
+    "last_sleep_hours": {
+      "type": "number",
+      "description": "Hours slept last night"
+    },
+    "last_sleep_date": {
+      "type": "string",
+      "format": "date"
     }
   },
   "required": [

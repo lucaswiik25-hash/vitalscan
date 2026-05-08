@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import SideNav from './SideNav';
 
@@ -7,11 +7,27 @@ const HIDE_NAV_PATHS = ['/onboarding', '/food-scanner', '/skincare-scanner', '/s
 export default function AppShell() {
   const location = useLocation();
   const hideNav = HIDE_NAV_PATHS.some(p => location.pathname.startsWith(p));
+  const [visible, setVisible] = useState(false);
+  const prevPath = useRef(location.pathname);
+
+  useEffect(() => {
+    setVisible(false);
+    const t = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setVisible(true));
+    });
+    return () => cancelAnimationFrame(t);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background max-w-lg mx-auto relative">
       {!hideNav && <SideNav />}
-      <div className="pl-0">
+      <div
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0px)' : 'translateY(18px)',
+          transition: 'opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
         <Outlet />
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, HelpCircle, Zap, ImageIcon } from 'lucide-react';
+import { X, HelpCircle, Zap, ImageIcon, Sparkles, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 
@@ -17,6 +17,7 @@ export default function FoodScanner() {
   const [flash, setFlash] = useState(false);
   const [zoom, setZoom] = useState('1x');
   const [capturedImage, setCapturedImage] = useState(null);
+  const [capturedFile, setCapturedFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -28,14 +29,19 @@ export default function FoodScanner() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const previewUrl = URL.createObjectURL(file);
     setCapturedImage(previewUrl);
+    setCapturedFile(file);
+  };
+
+  const analyse = async () => {
+    if (!capturedFile) return;
     setIsAnalyzing(true);
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
     const call1 = await base44.integrations.Core.InvokeLLM({
       prompt: `Analyze this food image. Identify the food, estimate serving size and provide nutritional data.
@@ -144,7 +150,7 @@ Analyze:
       <FoodScanResult
         result={result}
         onLog={logMeal}
-        onScanAnother={() => { setResult(null); setCapturedImage(null); cameraInputRef.current?.click(); }}
+        onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); cameraInputRef.current?.click(); }}
         onBack={() => navigate(-1)}
       />
     );
@@ -152,25 +158,9 @@ Analyze:
 
   return (
     <div className="min-h-screen bg-black relative flex flex-col">
-      {/* Camera input - auto-triggered */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-      {/* Upload input - for gallery */}
-      <input
-        ref={uploadInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+      <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
-      {/* Camera preview */}
       <div className="flex-1 relative">
         {capturedImage ? (
           <img src={capturedImage} className="w-full h-full object-cover absolute inset-0" alt="" />
@@ -178,7 +168,6 @@ Analyze:
           <div className="w-full h-full bg-gradient-to-b from-gray-800 to-gray-900 absolute inset-0" />
         )}
 
-        {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
             <X className="w-5 h-5 text-white" />
@@ -189,8 +178,8 @@ Analyze:
           </button>
         </div>
 
-        {/* Scan frame */}
-        {!isAnalyzing && (
+        {/* Scan frame — only when no image captured */}
+        {!capturedImage && (
           <div className="absolute inset-0 flex items-center justify-center">
             {mode === 1 ? (
               <div className="w-[80%] h-[25%] relative">
@@ -208,6 +197,26 @@ Analyze:
           </div>
         )}
 
+        {/* Analyse button overlay when image is captured */}
+        {capturedImage && !isAnalyzing && (
+          <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-3 z-10 px-6">
+            <button
+              onClick={analyse}
+              className="w-full h-14 rounded-2xl font-semibold text-base flex items-center justify-center gap-2"
+              style={{ background: 'rgba(255,255,255,0.95)', color: '#1a1a1a' }}
+            >
+              <Sparkles className="w-5 h-5" />
+              Analyse
+            </button>
+            <button
+              onClick={() => { setCapturedImage(null); setCapturedFile(null); cameraInputRef.current?.click(); }}
+              className="text-white/60 text-sm font-medium"
+            >
+              Retake photo
+            </button>
+          </div>
+        )}
+
         {isAnalyzing && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
@@ -219,43 +228,43 @@ Analyze:
         )}
       </div>
 
-      {/* Controls */}
-      <div className="bg-black px-4 pb-10 pt-4">
-        <div className="flex items-center justify-center mb-4">
-          <div className="flex bg-white/10 rounded-full p-0.5">
-            {['.5x', '1x'].map(z => (
-              <button key={z} onClick={() => setZoom(z)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${zoom === z ? 'bg-white/20 text-white' : 'text-white/50'}`}>
-                {z}
+      {/* Controls — hide when image captured */}
+      {!capturedImage && (
+        <div className="bg-black px-4 pb-10 pt-4">
+          <div className="flex items-center justify-center mb-4">
+            <div className="flex bg-white/10 rounded-full p-0.5">
+              {['.5x', '1x'].map(z => (
+                <button key={z} onClick={() => setZoom(z)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${zoom === z ? 'bg-white/20 text-white' : 'text-white/50'}`}>
+                  {z}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-2 mb-6">
+            {MODES.map((m, i) => (
+              <button key={m} onClick={() => setMode(i)}
+                className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all ${mode === i ? 'bg-white text-black' : 'bg-white/10 text-white/60'}`}>
+                {m}
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-2 mb-6">
-          {MODES.map((m, i) => (
-            <button key={m} onClick={() => setMode(i)}
-              className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all ${mode === i ? 'bg-white text-black' : 'bg-white/10 text-white/60'}`}>
-              {m}
+          <div className="flex items-center justify-between px-6">
+            <button onClick={() => setFlash(!flash)} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+              <Zap className={`w-5 h-5 ${flash ? 'text-yellow-400' : 'text-white/60'}`} />
             </button>
-          ))}
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              className="w-[72px] h-[72px] rounded-full bg-white border-4 border-white/30 flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <div className="w-[60px] h-[60px] rounded-full bg-white" />
+            </button>
+            <button onClick={() => uploadInputRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+              <ImageIcon className="w-5 h-5 text-white/60" />
+            </button>
+          </div>
         </div>
-
-        <div className="flex items-center justify-between px-6">
-          <button onClick={() => setFlash(!flash)} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <Zap className={`w-5 h-5 ${flash ? 'text-yellow-400' : 'text-white/60'}`} />
-          </button>
-          <button
-            onClick={() => cameraInputRef.current?.click()}
-            className="w-[72px] h-[72px] rounded-full bg-white border-4 border-white/30 flex items-center justify-center active:scale-95 transition-transform"
-          >
-            <div className="w-[60px] h-[60px] rounded-full bg-white" />
-          </button>
-          <button onClick={() => uploadInputRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-white/60" />
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

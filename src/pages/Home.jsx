@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
-import RecentlyUploaded from '../components/home/RecentlyUploaded';
+import DailyModules from '../components/home/DailyModules';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -38,6 +38,11 @@ export default function Home() {
     queryFn: () => base44.entities.Meal.filter({ logged: true }),
   });
 
+  const { data: allWaterLogs = [] } = useQuery({
+    queryKey: ['allWaterLogs'],
+    queryFn: () => base44.entities.WaterLog.list(),
+  });
+
   const consumed = todayMeals.reduce((acc, meal) => ({
     calories: (acc.calories || 0) + (meal.calories || 0),
     protein: (acc.protein || 0) + (meal.protein || 0),
@@ -48,17 +53,14 @@ export default function Home() {
     sodium: (acc.sodium || 0) + (meal.sodium || 0),
   }), {});
 
-  const loggedDates = [...new Set(allMeals.map(m => m.date))];
-
-  // Always render the page — never block on spinner
   return (
-    <div className="warm-glow min-h-screen">
+    <div className="warm-glow min-h-screen pb-24">
       <Header streak={profile.streak || 0} />
-      <WeekCalendar loggedDates={loggedDates} />
+      <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} />
       <div className="mt-2">
         <NutriCarousel profile={profile} consumed={consumed} />
       </div>
-      <RecentlyUploaded meals={todayMeals} />
+      <DailyModules todayMeals={todayMeals} profile={profile} />
     </div>
   );
 }

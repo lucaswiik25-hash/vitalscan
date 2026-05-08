@@ -85,8 +85,8 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
                 supplement: { type: 'string' },
                 severity: { type: 'string', enum: ['high', 'medium', 'low'] },
                 reason: { type: 'string' },
-                health_risk: { type: 'string' },
-                recommendation: { type: 'string' },
+                health_risks: { type: 'array', items: { type: 'string' } },
+                recommendations: { type: 'array', items: { type: 'string' } },
               },
             },
           },
@@ -100,7 +100,6 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
 
   const timeGroups = ['morning', 'afternoon', 'evening', 'with_food'];
   const timeLabel = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening', with_food: 'With Food' };
-
   const sevColor = { high: { bg: '#fee2e2', text: '#dc2626' }, medium: { bg: '#fef9c3', text: '#ca8a04' }, low: { bg: '#dcfce7', text: '#16a34a' } };
 
   return (
@@ -114,7 +113,6 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
       </div>
 
       <div className="px-5 mt-3 space-y-4">
-        {/* Supplement list by time */}
         {supplements.length === 0 ? (
           <div className="bg-white border border-border rounded-[24px] p-8 text-center shadow-sm">
             <Pill className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -162,20 +160,60 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
             className="w-full h-12 rounded-2xl bg-foreground text-white text-sm font-semibold flex items-center justify-center gap-2">
             {analyzing ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</> : <><Sparkles className="w-4 h-4" /> Analyze My Diet</>}
           </button>
+
           {aiResult && (
-            <div className="mt-4 space-y-3">
-              <p className="text-xs text-muted-foreground">{aiResult.summary}</p>
+            <div className="mt-4 space-y-4">
+              {/* Summary */}
+              <div className="bg-secondary/40 rounded-2xl px-4 py-3">
+                <p className="text-xs font-semibold text-foreground mb-0.5">Summary</p>
+                <p className="text-xs text-muted-foreground">{aiResult.summary}</p>
+              </div>
+
               {(aiResult.deficiencies || []).map((d, i) => {
                 const sc = sevColor[d.severity] || sevColor.low;
                 return (
-                  <div key={i} className="border border-border rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-1">
+                  <div key={i} className="border border-border rounded-2xl p-4 space-y-2">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
                       <p className="text-sm font-bold text-foreground">{d.supplement}</p>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: sc.bg, color: sc.text }}>{d.severity}</span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: sc.bg, color: sc.text }}>{d.severity} priority</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{d.reason}</p>
-                    <p className="text-xs text-muted-foreground mt-1"><span className="font-semibold">Risk:</span> {d.health_risk}</p>
-                    <p className="text-xs text-foreground mt-1 font-medium">{d.recommendation}</p>
+
+                    {/* Why deficient */}
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-0.5">Why you may be deficient</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{d.reason}</p>
+                    </div>
+
+                    {/* Health risks */}
+                    {(d.health_risks || []).length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-foreground mb-1">Health risks</p>
+                        <ul className="space-y-0.5">
+                          {d.health_risks.map((r, j) => (
+                            <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: sc.text }} />
+                              {r}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {(d.recommendations || []).length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-foreground mb-1">Recommendations</p>
+                        <ul className="space-y-0.5">
+                          {d.recommendations.map((r, j) => (
+                            <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <span className="mt-1">•</span>
+                              {r}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 );
               })}

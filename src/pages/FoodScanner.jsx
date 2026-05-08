@@ -43,11 +43,15 @@ export default function FoodScanner() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
+    // Step 1: identify the food / barcode number from image
     const call1 = await base44.integrations.Core.InvokeLLM({
-      prompt: `Analyze this food image. Identify the food, estimate serving size and provide nutritional data.
-If this is a packaged product with a barcode visible, note that.
-If this is a nutrition label, extract the exact values from it.
-Provide your best estimate for all values. Be specific about the food name.`,
+      prompt: `Analyze this food image carefully.
+1. If you can see a barcode, read and return the barcode number as accurately as possible.
+2. Identify the food name, serving size and provide nutritional data.
+3. If it is a nutrition label photo, extract the exact values from the label.
+
+Return has_barcode=true ONLY if you can actually read a numeric barcode from the image.
+Return the barcode_number as a string of digits if visible.`,
       file_urls: [file_url],
       response_json_schema: {
         type: 'object',
@@ -63,13 +67,44 @@ Provide your best estimate for all values. Be specific about the food name.`,
           sugar: { type: 'number' },
           sodium: { type: 'number' },
           has_barcode: { type: 'boolean' },
+          barcode_number: { type: 'string' },
           allergens: { type: 'array', items: { type: 'string' } },
           ingredients_text: { type: 'string' },
         },
       },
     });
 
-    setResult({ ...call1, image_url: file_url, step: 1 });
+    // If barcode detected, fetch real product data from OpenFoodFacts
+    let enriched = { ...call1 };
+    if (call1.has_barcode && call1.barcode_number) {
+      try {
+        const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${call1.barcode_number}.json`);
+        const offData = await offRes.json();
+        if (offData.status === 1 && offData.product) {
+          const p = offData.product;
+          const n = p.nutriments || {};
+          enriched = {
+            ...enriched,
+            name: p.product_name || enriched.name,
+            brand: p.brands || '',
+            serving_size: p.serving_size || enriched.serving_size,
+            calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || enriched.calories),
+            protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || enriched.protein) * 10) / 10,
+            carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || enriched.carbs) * 10) / 10,
+            fat: Math.round((n['fat_serving'] || n['fat_100g'] || enriched.fat) * 10) / 10,
+            fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || enriched.fiber || 0) * 10) / 10,
+            sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || enriched.sugar || 0) * 10) / 10,
+            sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
+            allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
+            ingredients_text: p.ingredients_text || enriched.ingredients_text,
+            confidence: 'high',
+            source: 'openfoodfacts',
+          };
+        }
+      } catch (_) { /* fallback to AI data */ }
+    }
+
+    setResult({ ...enriched, image_url: file_url, step: 1 });
     setIsAnalyzing(false);
 
     const call2 = await base44.integrations.Core.InvokeLLM({

@@ -1,26 +1,10 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
-import { Moon, Sun, Sparkles, Loader2, Plus } from 'lucide-react';
+import { Moon, Sparkles, Loader2, Info, X } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
-
-// We store sleep in UserProfile as a simple array of sleep logs
-// But since we can't store arrays in profile easily, we'll use a simple entity approach
-// and store each day's sleep as a WaterLog-like entry using a Meal note — instead
-// we'll use localStorage for the chart data + profile for today's value
-
-function getSleepData() {
-  try {
-    return JSON.parse(localStorage.getItem('scanly_sleep') || '{}');
-  } catch { return {}; }
-}
-
-function saveSleepData(data) {
-  localStorage.setItem('scanly_sleep', JSON.stringify(data));
-}
 
 const SLEEP_TIPS = [
   { icon: '🌙', tip: 'Go to bed at the same time every night — consistency regulates your circadian rhythm.' },
@@ -30,12 +14,19 @@ const SLEEP_TIPS = [
   { icon: '🧘', tip: '7–9 hours is optimal for adults. Less than 6h impairs cognition like 24h of no sleep.' },
 ];
 
+function getSleepData() {
+  try { return JSON.parse(localStorage.getItem('scanly_sleep') || '{}'); } catch { return {}; }
+}
+function saveSleepData(data) {
+  localStorage.setItem('scanly_sleep', JSON.stringify(data));
+}
+
 export default function SleepTracker() {
-  const queryClient = useQueryClient();
   const [hoursInput, setHoursInput] = useState('');
   const [saved, setSaved] = useState(false);
   const [aiAdvice, setAiAdvice] = useState(null);
   const [loadingAdvice, setLoadingAdvice] = useState(false);
+  const [showTips, setShowTips] = useState(false);
 
   const sleepData = getSleepData();
   const todaySleep = sleepData[TODAY];
@@ -45,7 +36,6 @@ export default function SleepTracker() {
     saveSleepData(updated);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-    // force re-render
     setHoursInput(String(h));
   };
 
@@ -54,15 +44,11 @@ export default function SleepTracker() {
     if (h >= 1 && h <= 24) saveSleep(h);
   };
 
-  // Build last 14 days chart data
   const chartData = Array.from({ length: 14 }, (_, i) => {
     const d = subDays(new Date(), 13 - i);
     const dateStr = format(d, 'yyyy-MM-dd');
-    return {
-      day: format(d, 'EEE dd'),
-      hours: sleepData[dateStr] || null,
-    };
-  }).filter(d => d.hours !== null || true);
+    return { day: format(d, 'EEE dd'), hours: sleepData[dateStr] || null };
+  });
 
   const avgSleep = (() => {
     const vals = Object.values(sleepData).filter(v => v > 0);
@@ -121,24 +107,69 @@ Provide:
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <div className="px-5 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">Sleep Tracker</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Track and improve your sleep</p>
+      {/* Header */}
+      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Sleep Tracker</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Track and improve your sleep</p>
+        </div>
+        <button onClick={() => setShowTips(true)}
+          className="w-10 h-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center">
+          <Info className="w-5 h-5 text-foreground" />
+        </button>
       </div>
 
       <div className="px-5 space-y-4">
-        {/* Log today */}
+        {/* 14-day chart — FIRST */}
         <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Moon className="w-5 h-5 text-blue-500" />
-            <p className="text-sm font-bold text-foreground">Last Night's Sleep</p>
+          <p className="text-sm font-bold text-foreground mb-4">14-Day Sleep Chart</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={2} />
+              <YAxis domain={[0, 12]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', fontSize: 12 }}
+                formatter={(v) => [`${v}h`, 'Sleep']}
+              />
+              <Line type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={2.5}
+                dot={{ fill: '#3b82f6', r: 4, strokeWidth: 0 }} connectNulls={false} />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-3 h-0.5 bg-blue-500 rounded-full" />
+            <span className="text-xs text-muted-foreground">Sleep hours · 7–9h optimal</span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex gap-3">
+          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+            <p className="text-3xl font-extrabold" style={{ color: '#3b82f6' }}>{todaySleep || '—'}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">hrs last night</p>
             {todaySleep && (
-              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: qualityColor(todaySleep) + '22', color: qualityColor(todaySleep) }}>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block"
+                style={{ background: qualityColor(todaySleep) + '22', color: qualityColor(todaySleep) }}>
                 {qualityLabel(todaySleep)}
               </span>
             )}
           </div>
-          {/* Quick buttons */}
+          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+            <p className="text-3xl font-extrabold text-foreground">{avgSleep || '—'}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">avg hrs / night</p>
+          </div>
+          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+            <p className="text-3xl font-extrabold text-foreground">7–9</p>
+            <p className="text-xs text-muted-foreground mt-0.5">recommended</p>
+          </div>
+        </div>
+
+        {/* Log last night — UNDER chart */}
+        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Moon className="w-5 h-5 text-blue-500" />
+            <p className="text-sm font-bold text-foreground">Last Night's Sleep</p>
+          </div>
           <div className="flex gap-1.5 flex-wrap mb-3">
             {[5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10].map(h => (
               <button key={h} onClick={() => saveSleep(h)}
@@ -151,11 +182,9 @@ Provide:
               </button>
             ))}
           </div>
-          {/* Custom input */}
           <div className="flex gap-2">
             <input
-              type="number"
-              min="1" max="24" step="0.5"
+              type="number" min="1" max="24" step="0.5"
               value={hoursInput}
               onChange={e => setHoursInput(e.target.value)}
               placeholder="Custom hours (e.g. 7.5)"
@@ -167,51 +196,6 @@ Provide:
             </button>
           </div>
           {saved && <p className="text-xs text-green-600 mt-2 font-medium">Saved!</p>}
-        </div>
-
-        {/* Stats */}
-        <div className="flex gap-3">
-          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-            <p className="text-3xl font-extrabold" style={{ color: '#3b82f6' }}>{todaySleep || '—'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">hrs last night</p>
-          </div>
-          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-            <p className="text-3xl font-extrabold text-foreground">{avgSleep || '—'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">avg hrs / night</p>
-          </div>
-          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-            <p className="text-3xl font-extrabold text-foreground">7–9</p>
-            <p className="text-xs text-muted-foreground mt-0.5">hrs recommended</p>
-          </div>
-        </div>
-
-        {/* Chart */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-          <p className="text-sm font-bold text-foreground mb-4">14-Day Sleep Chart</p>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={2} />
-              <YAxis domain={[0, 12]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-              <Tooltip
-                contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', fontSize: 12 }}
-                formatter={(v) => [`${v}h`, 'Sleep']}
-              />
-              <Line
-                type="monotone"
-                dataKey="hours"
-                stroke="#3b82f6"
-                strokeWidth={2.5}
-                dot={{ fill: '#3b82f6', r: 4, strokeWidth: 0 }}
-                connectNulls={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-          {/* Optimal zone indicator */}
-          <div className="flex items-center gap-2 mt-2">
-            <div className="w-3 h-0.5 bg-blue-500 rounded-full" />
-            <span className="text-xs text-muted-foreground">Sleep hours · 7–9h optimal zone</span>
-          </div>
         </div>
 
         {/* AI Analysis */}
@@ -252,20 +236,30 @@ Provide:
             </div>
           )}
         </div>
+      </div>
 
-        {/* Sleep tips */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-          <p className="text-sm font-bold text-foreground mb-3">Sleep Science Tips</p>
-          <div className="space-y-3">
-            {SLEEP_TIPS.map((t, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <span className="text-lg shrink-0">{t.icon}</span>
-                <p className="text-xs text-muted-foreground leading-relaxed">{t.tip}</p>
-              </div>
-            ))}
+      {/* Sleep Tips modal */}
+      {showTips && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTips(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground">Sleep Science Tips</h2>
+              <button onClick={() => setShowTips(false)}>
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {SLEEP_TIPS.map((t, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">{t.icon}</span>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{t.tip}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

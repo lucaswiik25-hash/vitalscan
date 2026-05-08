@@ -1,18 +1,109 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Sparkles, Loader2, ShoppingCart, Check, RefreshCw } from 'lucide-react';
+import { Sparkles, Loader2, ShoppingCart, Check, RefreshCw, X, Search } from 'lucide-react';
 
-const CURRENCIES = [
-  { country: 'Finland', currency: '€', code: 'EUR' },
-  { country: 'USA', currency: '$', code: 'USD' },
-  { country: 'UK', currency: '£', code: 'GBP' },
-  { country: 'Sweden', currency: 'kr', code: 'SEK' },
-  { country: 'Norway', currency: 'kr', code: 'NOK' },
-  { country: 'Germany', currency: '€', code: 'EUR' },
+const ALL_COUNTRIES = [
+  { country: 'Afghanistan', currency: '؋', code: 'AFN' },
+  { country: 'Albania', currency: 'L', code: 'ALL' },
+  { country: 'Argentina', currency: '$', code: 'ARS' },
   { country: 'Australia', currency: '$', code: 'AUD' },
+  { country: 'Austria', currency: '€', code: 'EUR' },
+  { country: 'Belgium', currency: '€', code: 'EUR' },
+  { country: 'Brazil', currency: 'R$', code: 'BRL' },
   { country: 'Canada', currency: '$', code: 'CAD' },
+  { country: 'Chile', currency: '$', code: 'CLP' },
+  { country: 'China', currency: '¥', code: 'CNY' },
+  { country: 'Colombia', currency: '$', code: 'COP' },
+  { country: 'Croatia', currency: '€', code: 'EUR' },
+  { country: 'Czech Republic', currency: 'Kč', code: 'CZK' },
+  { country: 'Denmark', currency: 'kr', code: 'DKK' },
+  { country: 'Egypt', currency: '£', code: 'EGP' },
+  { country: 'Estonia', currency: '€', code: 'EUR' },
+  { country: 'Finland', currency: '€', code: 'EUR' },
+  { country: 'France', currency: '€', code: 'EUR' },
+  { country: 'Germany', currency: '€', code: 'EUR' },
+  { country: 'Greece', currency: '€', code: 'EUR' },
+  { country: 'Hungary', currency: 'Ft', code: 'HUF' },
+  { country: 'Iceland', currency: 'kr', code: 'ISK' },
+  { country: 'India', currency: '₹', code: 'INR' },
+  { country: 'Indonesia', currency: 'Rp', code: 'IDR' },
+  { country: 'Ireland', currency: '€', code: 'EUR' },
+  { country: 'Israel', currency: '₪', code: 'ILS' },
+  { country: 'Italy', currency: '€', code: 'EUR' },
+  { country: 'Japan', currency: '¥', code: 'JPY' },
+  { country: 'Kenya', currency: 'KSh', code: 'KES' },
+  { country: 'Latvia', currency: '€', code: 'EUR' },
+  { country: 'Lithuania', currency: '€', code: 'EUR' },
+  { country: 'Malaysia', currency: 'RM', code: 'MYR' },
+  { country: 'Mexico', currency: '$', code: 'MXN' },
+  { country: 'Netherlands', currency: '€', code: 'EUR' },
+  { country: 'New Zealand', currency: '$', code: 'NZD' },
+  { country: 'Nigeria', currency: '₦', code: 'NGN' },
+  { country: 'Norway', currency: 'kr', code: 'NOK' },
+  { country: 'Pakistan', currency: '₨', code: 'PKR' },
+  { country: 'Philippines', currency: '₱', code: 'PHP' },
+  { country: 'Poland', currency: 'zł', code: 'PLN' },
+  { country: 'Portugal', currency: '€', code: 'EUR' },
+  { country: 'Romania', currency: 'lei', code: 'RON' },
+  { country: 'Russia', currency: '₽', code: 'RUB' },
+  { country: 'Saudi Arabia', currency: '﷼', code: 'SAR' },
+  { country: 'Singapore', currency: '$', code: 'SGD' },
+  { country: 'Slovakia', currency: '€', code: 'EUR' },
+  { country: 'Slovenia', currency: '€', code: 'EUR' },
+  { country: 'South Africa', currency: 'R', code: 'ZAR' },
+  { country: 'South Korea', currency: '₩', code: 'KRW' },
+  { country: 'Spain', currency: '€', code: 'EUR' },
+  { country: 'Sweden', currency: 'kr', code: 'SEK' },
+  { country: 'Switzerland', currency: 'CHF', code: 'CHF' },
+  { country: 'Thailand', currency: '฿', code: 'THB' },
+  { country: 'Turkey', currency: '₺', code: 'TRY' },
+  { country: 'UAE', currency: 'د.إ', code: 'AED' },
+  { country: 'UK', currency: '£', code: 'GBP' },
+  { country: 'USA', currency: '$', code: 'USD' },
+  { country: 'Ukraine', currency: '₴', code: 'UAH' },
+  { country: 'Vietnam', currency: '₫', code: 'VND' },
 ];
+
+function CountryPickerModal({ selected, onSelect, onClose }) {
+  const [search, setSearch] = useState('');
+  const filtered = ALL_COUNTRIES.filter(c =>
+    c.country.toLowerCase().includes(search.toLowerCase())
+  );
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white rounded-t-[32px] pt-6 pb-4" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="flex items-center justify-between px-5 mb-3">
+          <h2 className="text-lg font-bold text-foreground">Choose Your Country</h2>
+          <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
+        </div>
+        <div className="px-5 mb-3">
+          <div className="flex items-center gap-2 border border-border rounded-xl px-3 py-2.5">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search country..."
+              className="flex-1 text-sm focus:outline-none bg-transparent"
+            />
+          </div>
+        </div>
+        <div className="overflow-y-auto flex-1 px-5 space-y-1 pb-6">
+          {filtered.map(c => (
+            <button key={c.country} onClick={() => { onSelect(c.country); onClose(); }}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all"
+              style={{ background: selected === c.country ? 'hsl(var(--secondary))' : 'transparent' }}>
+              <span className="text-sm font-medium text-foreground">{c.country}</span>
+              <span className="text-xs text-muted-foreground">{c.currency} · {c.code}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ShoppingList() {
   const [budget, setBudget] = useState('');
@@ -20,13 +111,14 @@ export default function ShoppingList() {
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(false);
   const [checked, setChecked] = useState({});
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
     queryFn: () => base44.entities.UserProfile.list(),
   });
   const profile = profiles[0] || {};
-  const curr = CURRENCIES.find(c => c.country === country) || CURRENCIES[0];
+  const curr = ALL_COUNTRIES.find(c => c.country === country) || ALL_COUNTRIES.find(c => c.country === 'Finland');
 
   const generateList = async () => {
     if (!budget) return;
@@ -99,15 +191,12 @@ Include estimated cost per item and total cost. Make it practical — whole food
         <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm space-y-4">
           <div>
             <p className="text-sm font-semibold text-foreground mb-2">Your Country</p>
-            <div className="flex flex-wrap gap-2">
-              {CURRENCIES.map(c => (
-                <button key={c.country} onClick={() => setCountry(c.country)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                  style={{ background: country === c.country ? '#1a1a1a' : 'hsl(var(--secondary))', color: country === c.country ? 'white' : 'hsl(var(--foreground))' }}>
-                  {c.country}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setShowCountryPicker(true)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border border-border bg-secondary/30 text-sm font-medium text-foreground active:scale-[0.98] transition-transform">
+              <span>{country}</span>
+              <span className="text-muted-foreground text-xs">{curr.currency} · {curr.code} — tap to change</span>
+            </button>
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground mb-2">Weekly Budget ({curr.currency})</p>
@@ -139,7 +228,6 @@ Include estimated cost per item and total cost. Make it practical — whole food
 
         {list && (
           <>
-            {/* Summary */}
             <div className="flex gap-3">
               <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
                 <p className="text-2xl font-extrabold text-foreground">{curr.currency}{list.total_cost?.toFixed(0)}</p>
@@ -195,6 +283,14 @@ Include estimated cost per item and total cost. Make it practical — whole food
           </>
         )}
       </div>
+
+      {showCountryPicker && (
+        <CountryPickerModal
+          selected={country}
+          onSelect={setCountry}
+          onClose={() => setShowCountryPicker(false)}
+        />
+      )}
     </div>
   );
 }

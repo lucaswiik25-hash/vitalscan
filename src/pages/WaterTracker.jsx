@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, subDays, startOfDay } from 'date-fns';
-import { Droplets, Plus, X, ChevronRight, Calendar } from 'lucide-react';
+import { format, subDays } from 'date-fns';
+import { Droplets, X, Calendar, Plus } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -24,8 +24,7 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
   };
 
   const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  // Pad to start on correct weekday (Mon=0)
-  const firstDay = days[0].date.getDay(); // 0=Sun
+  const firstDay = days[0].date.getDay();
   const startPad = firstDay === 0 ? 6 : firstDay - 1;
   const cells = [...Array(startPad).fill(null), ...days];
 
@@ -43,7 +42,6 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
             <X className="w-4 h-4 text-white/70" />
           </button>
         </div>
-        {/* Legend */}
         <div className="flex items-center gap-4 mb-4">
           {[['#6CC5A0', '≥80%'], ['#F5C842', '50–79%'], ['#F47C7C', '<50%'], ['rgba(255,255,255,0.12)', 'None']].map(([c, l]) => (
             <div key={l} className="flex items-center gap-1.5">
@@ -52,13 +50,11 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
             </div>
           ))}
         </div>
-        {/* Day labels */}
         <div className="grid grid-cols-7 gap-1 mb-1">
           {dayLabels.map((d, i) => (
             <div key={i} className="text-center text-xs text-white/40">{d}</div>
           ))}
         </div>
-        {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-1">
           {cells.map((cell, i) => {
             if (!cell) return <div key={i} />;
@@ -66,17 +62,10 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
             const color = getColor(cell.pct, cell.total > 0);
             return (
               <div key={i} className="flex flex-col items-center">
-                <div
-                  className="w-full aspect-square rounded-xl flex flex-col items-center justify-center"
-                  style={{
-                    background: color || 'rgba(255,255,255,0.08)',
-                    border: isToday ? '2px solid rgba(255,255,255,0.5)' : 'none',
-                  }}
-                >
+                <div className="w-full aspect-square rounded-xl flex flex-col items-center justify-center"
+                  style={{ background: color || 'rgba(255,255,255,0.08)', border: isToday ? '2px solid rgba(255,255,255,0.5)' : 'none' }}>
                   <span className="text-xs font-semibold text-white">{format(cell.date, 'd')}</span>
-                  {cell.total > 0 && (
-                    <span className="text-[9px] text-white/80">{cell.pct}%</span>
-                  )}
+                  {cell.total > 0 && <span className="text-[9px] text-white/80">{cell.pct}%</span>}
                 </div>
               </div>
             );
@@ -87,10 +76,40 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
   );
 }
 
+function CustomAmountModal({ onClose, onAdd }) {
+  const [value, setValue] = useState('');
+  const handleAdd = () => {
+    const ml = parseInt(value);
+    if (ml > 0) { onAdd(ml); onClose(); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-foreground">Custom Amount</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
+        </div>
+        <input
+          type="number"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          placeholder="Enter ml (e.g. 350)"
+          className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
+          autoFocus
+        />
+        <button onClick={handleAdd}
+          className="w-full h-12 rounded-2xl bg-foreground text-white font-semibold text-sm">
+          Add Water
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function WaterTracker() {
   const queryClient = useQueryClient();
   const [showCalendar, setShowCalendar] = useState(false);
-  const [customAmount, setCustomAmount] = useState('');
   const [showCustom, setShowCustom] = useState(false);
 
   const { data: profiles = [] } = useQuery({
@@ -119,83 +138,90 @@ export default function WaterTracker() {
     queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
-  const handleCustomAdd = async () => {
-    const ml = parseInt(customAmount);
-    if (ml > 0) {
-      await addWater(ml);
-      setCustomAmount('');
-      setShowCustom(false);
-    }
-  };
-
   const glassColor = pct >= 80 ? '#6CC5A0' : pct >= 50 ? '#F5C842' : '#60A5FA';
 
+  // Big circular ring dimensions
+  const size = 200;
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - pct / 100);
+
+  // Cup grid: each cup = 250ml, show enough cups to cover target
+  const cupsNeeded = Math.ceil(dailyTarget / 250);
+  const cupsFilled = Math.floor(totalToday / 250);
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="px-5 pt-6 pb-2">
+    <div className="min-h-screen bg-background pb-10">
+      {/* Header */}
+      <div className="px-5 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Water Tracker</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Daily goal: {dailyTarget} ml</p>
+        <button onClick={() => setShowCalendar(true)}
+          className="w-10 h-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center">
+          <Calendar className="w-5 h-5 text-foreground" />
+        </button>
       </div>
 
       <div className="px-5 mt-4 space-y-4">
-        {/* Main progress card */}
-        <div className="bg-white border border-border rounded-[24px] p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-4xl font-extrabold text-foreground">{totalToday} <span className="text-lg font-medium text-muted-foreground">ml</span></p>
-              <p className="text-sm text-muted-foreground mt-0.5">of {dailyTarget} ml goal</p>
-            </div>
-            <div className="relative w-20 h-20">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="32" fill="none" stroke="hsl(var(--muted))" strokeWidth="8" />
-                <circle cx="40" cy="40" r="32" fill="none" stroke={glassColor} strokeWidth="8"
-                  strokeDasharray={`${2 * Math.PI * 32}`}
-                  strokeDashoffset={`${2 * Math.PI * 32 * (1 - pct / 100)}`}
-                  strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-sm font-bold text-foreground">{pct}%</span>
-              </div>
+        {/* Big circular progress */}
+        <div className="bg-white border border-border rounded-[24px] p-6 shadow-sm flex flex-col items-center">
+          <div className="relative" style={{ width: size, height: size }}>
+            <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+              <circle
+                cx={size / 2} cy={size / 2} r={r}
+                fill="none"
+                stroke={glassColor}
+                strokeWidth={stroke}
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-extrabold text-foreground">{pct}%</span>
+              <span className="text-sm text-muted-foreground font-medium">of goal</span>
             </div>
           </div>
-          {/* Progress bar */}
-          <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: glassColor }} />
+          <div className="mt-4 text-center">
+            <p className="text-2xl font-extrabold text-foreground">
+              {totalToday} <span className="text-base font-medium text-muted-foreground">ml</span>
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5">of {dailyTarget} ml daily goal</p>
           </div>
         </div>
 
-        {/* Quick add buttons */}
+        {/* Cup grid — each cup = 250ml */}
         <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-          <p className="text-sm font-semibold text-foreground mb-3">Quick Add</p>
-          <div className="flex gap-2 flex-wrap">
-            {[250, 330, 500, 750].map(ml => (
-              <button key={ml} onClick={() => addWater(ml)}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-secondary text-foreground text-sm font-semibold active:scale-95 transition-transform">
-                <Droplets className="w-4 h-4" style={{ color: glassColor }} />
-                {ml} ml
-              </button>
-            ))}
-            <button onClick={() => setShowCustom(!showCustom)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-foreground text-white text-sm font-semibold active:scale-95 transition-transform">
-              <Plus className="w-4 h-4" />
-              Custom
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-foreground">Tap cups to log • 250ml each</p>
+            <button onClick={() => setShowCustom(true)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-secondary text-xs font-semibold text-foreground">
+              <Plus className="w-3.5 h-3.5" /> Custom
             </button>
           </div>
-          {showCustom && (
-            <div className="flex gap-2 mt-3">
-              <input
-                type="number"
-                value={customAmount}
-                onChange={e => setCustomAmount(e.target.value)}
-                placeholder="Enter ml"
-                className="flex-1 border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
-              />
-              <button onClick={handleCustomAdd}
-                className="px-4 py-2 rounded-xl bg-foreground text-white text-sm font-semibold">
-                Add
-              </button>
-            </div>
-          )}
+          <div className="grid grid-cols-5 gap-2">
+            {Array.from({ length: cupsNeeded }, (_, i) => {
+              const filled = i < cupsFilled;
+              return (
+                <button
+                  key={i}
+                  onClick={() => addWater(250)}
+                  className="aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-90"
+                  style={{
+                    background: filled ? `${glassColor}33` : 'hsl(var(--secondary))',
+                    border: filled ? `2px solid ${glassColor}` : '2px solid transparent',
+                  }}
+                >
+                  <Droplets className="w-6 h-6" style={{ color: filled ? glassColor : 'hsl(var(--muted-foreground))' }} />
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3 text-center">
+            {cupsFilled} / {cupsNeeded} cups filled · {totalToday} ml logged
+          </p>
         </div>
 
         {/* Today's log */}
@@ -215,19 +241,6 @@ export default function WaterTracker() {
             </div>
           </div>
         )}
-
-        {/* 30-day calendar button */}
-        <button onClick={() => setShowCalendar(true)}
-          className="w-full bg-white border border-border rounded-[24px] p-5 shadow-sm flex items-center gap-4 active:scale-[0.98] transition-transform">
-          <div className="w-11 h-11 rounded-2xl bg-green-50 flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-green-600" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-bold text-foreground">30-Day Hydration History</p>
-            <p className="text-xs text-muted-foreground">Tap to view calendar</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
       </div>
 
       {showCalendar && (
@@ -235,6 +248,13 @@ export default function WaterTracker() {
           onClose={() => setShowCalendar(false)}
           waterLogs={allLogs}
           dailyTarget={dailyTarget}
+        />
+      )}
+
+      {showCustom && (
+        <CustomAmountModal
+          onClose={() => setShowCustom(false)}
+          onAdd={addWater}
         />
       )}
     </div>

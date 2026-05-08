@@ -38,34 +38,33 @@ export default function HealthRisk() {
       `${m.date} - ${m.name}: ${m.calories}cal, ${m.protein}g protein, ${m.fat}g fat, ${m.carbs}g carbs, ${m.sugar || 0}g sugar, ${m.sodium || 0}mg sodium`
     ).join('\n');
 
-    const avgCal = recentMeals.length > 0 ? Math.round(recentMeals.reduce((s, m) => s + (m.calories || 0), 0) / Math.max(1, new Set(recentMeals.map(m => m.date)).size)) : 0;
+    const avgCal = recentMeals.length > 0
+      ? Math.round(recentMeals.reduce((s, m) => s + (m.calories || 0), 0) / Math.max(1, new Set(recentMeals.map(m => m.date)).size))
+      : 0;
 
     const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a clinical nutritionist and health risk assessor. Analyze this user's diet over the past ${days} days and identify ALL health risks, both immediate and long-term.
+      prompt: `You are a clinical nutritionist and health risk assessor. Analyze this user's diet over the past ${days} days.
 
 User profile:
 - Age: ${profile.age}, Sex: ${profile.sex}
 - Weight: ${profile.weight}kg, Height: ${profile.height}cm
 - Goal: ${profile.goal}, Diet: ${profile.diet_mode}
 - Daily calorie target: ${profile.calorie_target} kcal
-- Protein target: ${profile.protein_target}g
 
 Food log (past ${days} days):
 ${mealSummary || 'No meals logged yet'}
 
-Average daily calories from log: ${avgCal} kcal
+Average daily calories: ${avgCal} kcal
 
-Analyze and identify ALL health risks. Be especially critical if:
-- Calories are severely below targets for their age/weight
-- Macros are severely imbalanced
-- The user is young (under 18) and under-eating
-- There are extreme deficiencies
-
-For each risk, rate severity as: critical, high, medium, or low.`,
+Identify ALL health risks. For each risk provide:
+- title, severity (critical/high/medium/low)
+- description (brief, 1-2 sentences)
+- consequences as a bullet list (3-4 points)
+- action as a bullet list (2-3 actionable steps)`,
       response_json_schema: {
         type: 'object',
         properties: {
-          overall_score: { type: 'number', description: '0-100, 100 = very healthy' },
+          overall_score: { type: 'number' },
           overall_verdict: { type: 'string', enum: ['excellent', 'good', 'concerning', 'dangerous'] },
           summary: { type: 'string' },
           risks: {
@@ -76,8 +75,8 @@ For each risk, rate severity as: critical, high, medium, or low.`,
                 title: { type: 'string' },
                 severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low'] },
                 description: { type: 'string' },
-                consequence: { type: 'string' },
-                action: { type: 'string' },
+                consequences: { type: 'array', items: { type: 'string' } },
+                actions: { type: 'array', items: { type: 'string' } },
               },
             },
           },
@@ -117,12 +116,17 @@ For each risk, rate severity as: critical, high, medium, or low.`,
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Analyzing {meals.filter(m => { const c = new Date(); c.setDate(c.getDate() - days); return new Date(m.date) >= c; }).length} meals from the past {days} days</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Analyzing {meals.filter(m => { const c = new Date(); c.setDate(c.getDate() - days); return new Date(m.date) >= c; }).length} meals from the past {days} days
+          </p>
         </div>
 
         <button onClick={analyze} disabled={loading}
           className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
-          {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing your health...</> : <><ShieldAlert className="w-5 h-5" /> Analyze Health Risks</>}
+          {loading
+            ? <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing your health...</>
+            : <><ShieldAlert className="w-5 h-5" /> Analyze Health Risks</>
+          }
         </button>
 
         {result && (() => {
@@ -135,7 +139,9 @@ For each risk, rate severity as: critical, high, medium, or low.`,
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Overall Health Score</p>
-                    <p className="text-4xl font-extrabold text-foreground mt-0.5">{result.overall_score}<span className="text-lg text-muted-foreground">/100</span></p>
+                    <p className="text-4xl font-extrabold text-foreground mt-0.5">
+                      {result.overall_score}<span className="text-lg text-muted-foreground">/100</span>
+                    </p>
                   </div>
                   <div className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl" style={{ background: vc.bg }}>
                     <VIcon className="w-6 h-6" style={{ color: vc.color }} />
@@ -156,14 +162,45 @@ For each risk, rate severity as: critical, high, medium, or low.`,
                   {result.risks.map((risk, i) => {
                     const sc = SEV_STYLES[risk.severity] || SEV_STYLES.low;
                     return (
-                      <div key={i} className="bg-white border rounded-[24px] p-5 shadow-sm" style={{ borderColor: sc.border }}>
-                        <div className="flex items-center justify-between mb-2">
+                      <div key={i} className="bg-white border rounded-[24px] p-5 shadow-sm space-y-3" style={{ borderColor: sc.border }}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
                           <h4 className="text-sm font-bold text-foreground">{risk.title}</h4>
                           <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: sc.bg, color: sc.text }}>{risk.severity}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{risk.description}</p>
-                        <p className="text-xs mt-1.5"><span className="font-semibold text-foreground">Consequence: </span><span className="text-muted-foreground">{risk.consequence}</span></p>
-                        <p className="text-xs mt-1 font-semibold text-foreground">{risk.action}</p>
+
+                        {/* Description */}
+                        <p className="text-xs text-muted-foreground leading-relaxed">{risk.description}</p>
+
+                        {/* Consequences */}
+                        {(risk.consequences || []).length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-foreground mb-1">Potential consequences</p>
+                            <ul className="space-y-0.5">
+                              {risk.consequences.map((c, j) => (
+                                <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                  <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: sc.text }} />
+                                  {c}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        {(risk.actions || []).length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-foreground mb-1">What to do</p>
+                            <ul className="space-y-0.5">
+                              {risk.actions.map((a, j) => (
+                                <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                  <span className="mt-0.5">→</span>
+                                  {a}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

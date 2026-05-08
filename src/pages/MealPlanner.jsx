@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Loader2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
 
 const MEAL_COUNTS = [2, 3, 4, 5, 6];
+const STORAGE_KEY = 'scanly_meal_plan';
+const TODAY = format(new Date(), 'yyyy-MM-dd');
 
 export default function MealPlanner() {
   const [mealCount, setMealCount] = useState(3);
@@ -17,9 +20,21 @@ export default function MealPlanner() {
   });
   const profile = profiles[0] || {};
 
+  // Load saved plan on mount, clear if from a different day
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      if (saved && saved.date === TODAY) {
+        setPlan(saved.plan);
+        setMealCount(saved.mealCount || 3);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   const generatePlan = async () => {
     setLoading(true);
-    setPlan(null);
 
     const mealNames = {
       2: ['Breakfast', 'Dinner'],
@@ -76,6 +91,9 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
     });
 
     setPlan(result);
+    setExpanded({});
+    // Persist to localStorage for the day
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: TODAY, plan: result, mealCount }));
     setLoading(false);
   };
 
@@ -114,7 +132,12 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
         {/* Generate button */}
         <button onClick={generatePlan} disabled={loading}
           className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
-          {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating your plan...</> : <><Sparkles className="w-5 h-5" /> Generate Today's Meals</>}
+          {loading
+            ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating your plan...</>
+            : plan
+              ? <><RefreshCw className="w-5 h-5" /> Regenerate Plan</>
+              : <><Sparkles className="w-5 h-5" /> Generate Today's Meals</>
+          }
         </button>
 
         {/* Plan */}
@@ -129,10 +152,10 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
                 <p className="text-2xl font-extrabold text-foreground">{plan.total_protein}g</p>
                 <p className="text-xs text-muted-foreground">Protein</p>
               </div>
-              <button onClick={generatePlan}
-                className="w-14 bg-secondary border border-border rounded-[20px] flex items-center justify-center shadow-sm">
-                <RefreshCw className="w-5 h-5 text-foreground" />
-              </button>
+              <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+                <p className="text-xs text-muted-foreground">Generated for</p>
+                <p className="text-xs font-bold text-foreground mt-0.5">Today</p>
+              </div>
             </div>
 
             {plan.notes && (

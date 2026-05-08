@@ -56,10 +56,10 @@ export default function Home() {
   return (
     <div className="warm-glow min-h-screen pb-24">
       <Header streak={profile.streak || 0} />
-      <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} />
       <div className="mt-2">
         <NutriCarousel profile={profile} consumed={consumed} />
       </div>
+      <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} />
       <DailyModules todayMeals={todayMeals} profile={profile} />
     </div>
   );

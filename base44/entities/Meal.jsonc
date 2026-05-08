@@ -1,0 +1,153 @@
+{
+  "name": "Meal",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "time": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "calories": {
+      "type": "number"
+    },
+    "protein": {
+      "type": "number"
+    },
+    "carbs": {
+      "type": "number"
+    },
+    "fat": {
+      "type": "number"
+    },
+    "fiber": {
+      "type": "number"
+    },
+    "sugar": {
+      "type": "number"
+    },
+    "sodium": {
+      "type": "number"
+    },
+    "serving_size": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "barcode",
+        "ai_visual",
+        "manual"
+      ],
+      "default": "ai_visual"
+    },
+    "barcode": {
+      "type": "string"
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "green",
+              "yellow",
+              "red"
+            ]
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "allergens_detected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "diet_compatibility": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "limit",
+        "no"
+      ]
+    },
+    "diet_reason": {
+      "type": "string"
+    },
+    "bloat_risk": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "bloat_reason": {
+      "type": "string"
+    },
+    "glycemic_impact": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "glycemic_reason": {
+      "type": "string"
+    },
+    "skin_impact": {
+      "type": "object",
+      "properties": {
+        "collagen_effect": {
+          "type": "string"
+        },
+        "inflammation": {
+          "type": "string"
+        },
+        "sebum_effect": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    },
+    "appearance_tip": {
+      "type": "string"
+    },
+    "health_score": {
+      "type": "number"
+    },
+    "logged": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name",
+    "date"
+  ]
+}

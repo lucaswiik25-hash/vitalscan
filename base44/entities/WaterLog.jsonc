@@ -1,0 +1,30 @@
+{
+  "name": "WaterLog",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "amount_ml": {
+      "type": "number",
+      "description": "Amount in ml, negative for dehydrating drinks"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "water",
+        "coffee",
+        "alcohol",
+        "energy_drink",
+        "soda",
+        "tea"
+      ],
+      "default": "water"
+    }
+  },
+  "required": [
+    "date",
+    "amount_ml"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "ScanResult",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "food",
+        "skincare",
+        "supplement"
+      ]
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "result_data": {
+      "type": "object",
+      "description": "Full analysis result JSON"
+    },
+    "safety_score": {
+      "type": "number"
+    },
+    "quality_score": {
+      "type": "number"
+    },
+    "verdict": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "date"
+  ]
+}

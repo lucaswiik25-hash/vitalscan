@@ -5,7 +5,14 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-// Add page imports here
+import AppShell from './components/layout/AppShell';
+import Home from './pages/Home';
+import Onboarding from './pages/Onboarding';
+import ScannerHub from './pages/ScannerHub';
+import FoodScanner from './pages/FoodScanner';
+import Progress from './pages/Progress';
+import Groups from './pages/Groups';
+import Profile from './pages/Profile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -33,7 +40,15 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<AppShell />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/progress" element={<Progress />} />
+        <Route path="/groups" element={<Groups />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/scanner" element={<ScannerHub />} />
+      </Route>
+      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/food-scanner" element={<FoodScanner />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

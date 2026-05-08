@@ -1,0 +1,36 @@
+{
+  "name": "Supplement",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "dose": {
+      "type": "string"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "time_of_day": {
+      "type": "string",
+      "enum": [
+        "morning",
+        "afternoon",
+        "evening",
+        "with_food"
+      ],
+      "default": "morning"
+    },
+    "taken_today": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_taken_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

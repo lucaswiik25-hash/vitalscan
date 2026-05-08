@@ -1,0 +1,119 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "User's first name"
+    },
+    "age": {
+      "type": "number"
+    },
+    "weight": {
+      "type": "number",
+      "description": "Weight in kg"
+    },
+    "height": {
+      "type": "number",
+      "description": "Height in cm"
+    },
+    "sex": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female",
+        "other"
+      ]
+    },
+    "activity_level": {
+      "type": "string",
+      "enum": [
+        "sedentary",
+        "lightly_active",
+        "moderately_active",
+        "very_active",
+        "extra_active"
+      ],
+      "default": "moderately_active"
+    },
+    "goal": {
+      "type": "string",
+      "enum": [
+        "lose_weight",
+        "maintain",
+        "gain_muscle",
+        "lean_bulk"
+      ],
+      "default": "maintain"
+    },
+    "diet_mode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "vegan",
+        "vegetarian",
+        "keto",
+        "gluten_free",
+        "paleo",
+        "mediterranean"
+      ],
+      "default": "none"
+    },
+    "preferences": {
+      "type": "string",
+      "description": "Free text dietary preferences"
+    },
+    "allergens": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "calorie_target": {
+      "type": "number"
+    },
+    "protein_target": {
+      "type": "number"
+    },
+    "carbs_target": {
+      "type": "number"
+    },
+    "fat_target": {
+      "type": "number"
+    },
+    "fiber_target": {
+      "type": "number",
+      "default": 30
+    },
+    "sugar_target": {
+      "type": "number",
+      "default": 50
+    },
+    "sodium_target": {
+      "type": "number",
+      "default": 2300
+    },
+    "water_target_ml": {
+      "type": "number"
+    },
+    "streak": {
+      "type": "number",
+      "default": 0
+    },
+    "last_active_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "appearance_mode": {
+      "type": "boolean",
+      "default": false
+    },
+    "onboarding_complete": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -7,9 +7,7 @@ export default function MacroCard({ value, unit = 'g', label, emoji, progress = 
       <span className="text-2xl font-bold text-foreground">{value}{unit}</span>
       <span className="text-xs text-muted-foreground mt-0.5">{label}</span>
       <div className="mt-3 flex justify-start">
-        <ProgressRing progress={progress} size={44} strokeWidth={4}>
-          <span className="text-lg">{emoji}</span>
-        </ProgressRing>
+        <ProgressRing progress={progress} size={44} strokeWidth={4} />
       </div>
     </div>
   );

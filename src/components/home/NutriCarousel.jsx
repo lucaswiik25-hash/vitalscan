@@ -17,9 +17,9 @@ export default function NutriCarousel({ profile = {}, consumed = {} }) {
     // Slide 1: Macros on top, Calorie card below
     <div key="s1" className="min-w-full px-5 space-y-3">
       <div className="flex gap-3">
-        <MacroCard value={Math.max(0, proteinLeft)} label="Protein left" emoji="🍖" progress={consumed.protein ? (consumed.protein / (profile.protein_target || 191)) * 100 : 0} />
-        <MacroCard value={Math.max(0, carbsLeft)} label="Carbs left" emoji="🌾" progress={consumed.carbs ? (consumed.carbs / (profile.carbs_target || 438)) * 100 : 0} />
-        <MacroCard value={Math.max(0, fatLeft)} label="Fat left" emoji="🫒" progress={consumed.fat ? (consumed.fat / (profile.fat_target || 93)) * 100 : 0} />
+        <MacroCard value={Math.max(0, proteinLeft)} label="Protein left" emoji="" progress={consumed.protein ? (consumed.protein / (profile.protein_target || 191)) * 100 : 0} />
+        <MacroCard value={Math.max(0, carbsLeft)} label="Carbs left" emoji="" progress={consumed.carbs ? (consumed.carbs / (profile.carbs_target || 438)) * 100 : 0} />
+        <MacroCard value={Math.max(0, fatLeft)} label="Fat left" emoji="" progress={consumed.fat ? (consumed.fat / (profile.fat_target || 93)) * 100 : 0} />
       </div>
       <CalorieCard
         caloriesLeft={caloriesLeft}

@@ -120,10 +120,10 @@ Provide:
       </div>
 
       <div className="px-5 space-y-4">
-        {/* 14-day chart — FIRST */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-          <p className="text-sm font-bold text-foreground mb-4">14-Day Sleep Chart</p>
-          <ResponsiveContainer width="100%" height={160}>
+        {/* 14-day chart — no card background */}
+        <div className="px-1 py-2">
+          <p className="text-sm font-bold text-foreground mb-4 px-1">14-Day Sleep Chart</p>
+          <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={2} />
@@ -136,7 +136,7 @@ Provide:
                 dot={{ fill: '#3b82f6', r: 4, strokeWidth: 0 }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 px-1">
             <div className="w-3 h-0.5 bg-blue-500 rounded-full" />
             <span className="text-xs text-muted-foreground">Sleep hours · 7–9h optimal</span>
           </div>

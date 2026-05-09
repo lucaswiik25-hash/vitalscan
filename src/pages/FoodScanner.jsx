@@ -2,11 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, HelpCircle, Zap, ImageIcon, Sparkles, Loader2 } from 'lucide-react';
+import { X, HelpCircle, Zap, ImageIcon, Barcode, FileText, UtensilsCrossed } from 'lucide-react';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 
-const MODES = ['Scan Food', 'Barcode', 'Food Label'];
+const MODES = [
+  { id: 'food', label: 'Scan Food', icon: UtensilsCrossed, desc: 'Photograph any meal or packaged product' },
+  { id: 'barcode', label: 'Barcode', icon: Barcode, desc: 'Point at any product barcode' },
+  { id: 'label', label: 'Food Label', icon: FileText, desc: 'Photograph the nutrition facts panel' },
+];
 
 export default function FoodScanner() {
   const navigate = useNavigate();
@@ -15,25 +19,32 @@ export default function FoodScanner() {
   const uploadInputRef = useRef(null);
   const [mode, setMode] = useState(0);
   const [flash, setFlash] = useState(false);
-  const [zoom, setZoom] = useState('1x');
   const [capturedImage, setCapturedImage] = useState(null);
   const [capturedFile, setCapturedFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
+  const [scanLineAnim, setScanLineAnim] = useState(0);
 
-  // Auto-trigger camera on mount
+  // Animate scan line
   useEffect(() => {
-    const timer = setTimeout(() => {
-      cameraInputRef.current?.click();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+    let start = null;
+    let raf;
+    const animate = (ts) => {
+      if (!start) start = ts;
+      const elapsed = (ts - start) % 2000;
+      setScanLineAnim(elapsed / 2000);
+      raf = requestAnimationFrame(animate);
+    };
+    if (!capturedFile && !isAnalyzing) {
+      raf = requestAnimationFrame(animate);
+    }
+    return () => cancelAnimationFrame(raf);
+  }, [capturedFile, isAnalyzing]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const previewUrl = URL.createObjectURL(file);
-    setCapturedImage(previewUrl);
+    setCapturedImage(URL.createObjectURL(file));
     setCapturedFile(file);
   };
 
@@ -43,7 +54,6 @@ export default function FoodScanner() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
-    // Step 1: identify the food / barcode number from image
     const call1 = await base44.integrations.Core.InvokeLLM({
       prompt: `You are a professional nutritionist and food scientist. Analyze this image carefully.
 
@@ -96,7 +106,6 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.`,
       },
     });
 
-    // If barcode detected, fetch real product data from OpenFoodFacts
     let enriched = { ...call1 };
     if (call1.has_barcode && call1.barcode_number) {
       try {
@@ -123,7 +132,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.`,
             source: 'openfoodfacts',
           };
         }
-      } catch (_) { /* fallback to AI data */ }
+      } catch (_) { }
     }
 
     setResult({ ...enriched, image_url: file_url, step: 1 });
@@ -135,28 +144,28 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.`,
 Food: "${enriched.name}"
 Nutrition per serving: ${enriched.calories} kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium, ${enriched.fiber || 0}g fiber
 
-Provide a complete analysis. Return:
-- diet_compatibility: "yes", "limit", or "no" — verdict for a general healthy diet
-- diet_reason: one sentence explaining the verdict
+Return:
+- diet_compatibility: "yes", "limit", or "no"
+- diet_reason: one sentence
 - bloat_risk: "low", "medium", or "high"
 - bloat_reason: one sentence
 - glycemic_impact: "low", "medium", or "high"
 - glycemic_reason: one sentence
 - collagen_effect: "Positive", "Neutral", or "Negative"
-- inflammation: "Low", "Medium", or "High" — inflammation this food causes
+- inflammation: "Low", "Medium", or "High"
 - sebum_effect: "Increases", "Neutral", or "Reduces"
-- skin_summary: two sentences on what this food does to skin over time with regular consumption
-- appearance_tip: one actionable sentence specific to this exact food
-- tomorrow_face: "Positive", "Neutral", or "Negative" contribution to next-day appearance
-- tomorrow_face_note: one sentence explaining
+- skin_summary: two sentences
+- appearance_tip: one actionable sentence
+- tomorrow_face: "Positive", "Neutral", or "Negative"
+- tomorrow_face_note: one sentence
 - hormone_impact: "Positive", "Neutral", or "Negative"
-- hormone_note: one sentence on testosterone or estrogen effect
+- hormone_note: one sentence
 - gut_health: "Positive", "Neutral", or "Negative"
-- gut_note: one sentence reason
+- gut_note: one sentence
 - processing_level: "Whole Food", "Minimally Processed", "Processed", or "Ultra Processed"
 - health_score: number 1-10
 
-NEVER fail. Always provide all fields.`,
+NEVER fail.`,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -226,117 +235,139 @@ NEVER fail. Always provide all fields.`,
       <FoodScanResult
         result={result}
         onLog={logMeal}
-        onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); cameraInputRef.current?.click(); }}
+        onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); }}
         onBack={() => navigate(-1)}
       />
     );
   }
 
+  const isBarcode = mode === 1;
+  const isLabel = mode === 2;
+
+  // Frame dimensions
+  const frameW = isBarcode ? '82%' : '75%';
+  const frameAspect = isBarcode ? 'aspect-[3/1]' : 'aspect-square';
+
   return (
-    <div className="min-h-screen bg-black relative flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col relative">
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
       <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
-      <div className="flex-1 relative">
-        {capturedImage ? (
-          <img src={capturedImage} className="w-full h-full object-cover absolute inset-0" alt="" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-b from-gray-800 to-gray-900 absolute inset-0" />
-        )}
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12 z-10">
+        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+          <X className="w-5 h-5 text-gray-700" />
+        </button>
+        <button className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+          <HelpCircle className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
 
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
-            <X className="w-5 h-5 text-white" />
-          </button>
-          <div className="w-12 h-1 bg-white/30 rounded-full" />
-          <button className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
-            <HelpCircle className="w-5 h-5 text-white" />
-          </button>
-        </div>
-
-        {/* Scan frame — only when no image captured */}
-        {!capturedImage && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            {mode === 1 ? (
-              <div className="w-[80%] h-[25%] relative">
-                {['top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-xl', 'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-xl', 'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-xl', 'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-xl'].map((cls, i) => (
-                  <div key={i} className={`absolute w-8 h-8 border-white ${cls}`} />
-                ))}
-              </div>
-            ) : (
-              <div className="w-[75%] aspect-square relative">
-                {['top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl', 'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl', 'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl', 'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl'].map((cls, i) => (
-                  <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Analyse button overlay when image is captured */}
-        {capturedImage && !isAnalyzing && (
-          <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-3 z-10 px-6">
-            <button
-              onClick={analyse}
-              className="w-full h-14 rounded-2xl font-semibold text-base flex items-center justify-center gap-2"
-              style={{ background: 'rgba(255,255,255,0.95)', color: '#1a1a1a' }}
+      {/* Center scanning frame */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        {isAnalyzing ? (
+          <div className="flex flex-col items-center">
+            <div
+              className="relative rounded-2xl overflow-hidden"
+              style={{ width: '75vw', aspectRatio: '1', boxShadow: '0 0 0 4px rgba(74,222,128,0.4), 0 0 40px rgba(74,222,128,0.3)' }}
             >
-              <Sparkles className="w-5 h-5" />
-              Analyse
-            </button>
-            <button
-              onClick={() => { setCapturedImage(null); setCapturedFile(null); cameraInputRef.current?.click(); }}
-              className="text-white/60 text-sm font-medium"
-            >
-              Retake photo
-            </button>
-          </div>
-        )}
-
-        {isAnalyzing && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-            <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
-              <div className="w-8 h-8 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="absolute inset-0 bg-gray-100 rounded-2xl" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+              </div>
+              {/* Green pulse border */}
+              <div className="absolute inset-0 rounded-2xl animate-pulse" style={{ border: '3px solid rgba(74,222,128,0.7)' }} />
             </div>
-            <p className="text-white font-semibold text-lg">Analyzing...</p>
-            <p className="text-white/60 text-sm mt-1">Identifying your food</p>
+            <p className="mt-6 text-gray-500 text-sm font-medium">Analyzing your food...</p>
           </div>
+        ) : (
+          <>
+            <div className="relative" style={{ width: frameW }}>
+              <div className={`relative ${frameAspect}`}>
+                {/* Corner brackets */}
+                {[
+                  'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl',
+                  'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl',
+                  'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl',
+                  'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl',
+                ].map((cls, i) => (
+                  <div key={i} className={`absolute w-10 h-10 border-gray-800 ${cls}`} />
+                ))}
+
+                {/* Scan line */}
+                <div
+                  className="absolute left-2 right-2 h-0.5 rounded-full"
+                  style={{
+                    top: `${scanLineAnim * 100}%`,
+                    background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.5), transparent)',
+                    opacity: 0.7,
+                  }}
+                />
+
+                {/* Label mode overlay */}
+                {isLabel && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20">
+                    <div className="border-2 border-gray-600 rounded-lg w-3/4 h-3/4 flex flex-col items-center justify-center gap-1 p-2">
+                      <div className="w-full h-1 bg-gray-600 rounded" />
+                      <div className="w-3/4 h-1 bg-gray-600 rounded" />
+                      <div className="w-full h-1 bg-gray-600 rounded" />
+                      <div className="w-2/3 h-1 bg-gray-600 rounded" />
+                    </div>
+                    <p className="text-[9px] text-gray-600 mt-1 font-medium">Align the label inside the frame</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="mt-5 text-gray-400 text-sm text-center px-8">
+              {isBarcode ? 'Point at any product barcode' : isLabel ? 'Align the nutrition label inside the frame' : 'Point at food, a barcode, or a nutrition label'}
+            </p>
+          </>
         )}
       </div>
 
-      {/* Controls — hide when image captured */}
-      {!capturedImage && (
-        <div className="bg-black px-4 pb-10 pt-4">
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex bg-white/10 rounded-full p-0.5">
-              {['.5x', '1x'].map(z => (
-                <button key={z} onClick={() => setZoom(z)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${zoom === z ? 'bg-white/20 text-white' : 'text-white/50'}`}>
-                  {z}
-                </button>
-              ))}
+      {/* Bottom controls */}
+      {!isAnalyzing && (
+        <div className="pb-10 px-5 space-y-4">
+          {/* Mode selector frosted card */}
+          <div className="bg-gray-100/80 backdrop-blur rounded-[24px] p-3">
+            <div className="flex gap-2 mb-2">
+              {MODES.map((m, i) => {
+                const Icon = m.icon;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setMode(i)}
+                    className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-2xl transition-all"
+                    style={{ background: mode === i ? 'white' : 'transparent' }}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: mode === i ? '#1a1a1a' : '#9ca3af' }} strokeWidth={1.5} />
+                    <span className="text-xs font-semibold" style={{ color: mode === i ? '#1a1a1a' : '#9ca3af' }}>{m.label}</span>
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-center text-xs text-gray-400">{MODES[mode].desc}</p>
           </div>
-          <div className="flex items-center justify-center gap-2 mb-6">
-            {MODES.map((m, i) => (
-              <button key={m} onClick={() => setMode(i)}
-                className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all ${mode === i ? 'bg-white text-black' : 'bg-white/10 text-white/60'}`}>
-                {m}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between px-6">
-            <button onClick={() => setFlash(!flash)} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-              <Zap className={`w-5 h-5 ${flash ? 'text-yellow-400' : 'text-white/60'}`} />
+
+          {/* Shutter row */}
+          <div className="flex items-center justify-between px-4">
+            <button
+              onClick={() => setFlash(f => !f)}
+              className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center"
+            >
+              <Zap className={`w-5 h-5 ${flash ? 'text-yellow-500' : 'text-gray-400'}`} />
             </button>
             <button
               onClick={() => cameraInputRef.current?.click()}
-              className="w-[72px] h-[72px] rounded-full bg-white border-4 border-white/30 flex items-center justify-center active:scale-95 transition-transform"
+              className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 flex items-center justify-center active:scale-95 transition-transform shadow-lg"
             >
-              <div className="w-[60px] h-[60px] rounded-full bg-white" />
+              <div className="w-16 h-16 rounded-full bg-white" />
             </button>
-            <button onClick={() => uploadInputRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-white/60" />
+            <button
+              onClick={() => uploadInputRef.current?.click()}
+              className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center"
+            >
+              <ImageIcon className="w-5 h-5 text-gray-400" />
             </button>
           </div>
         </div>

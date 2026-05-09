@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, ImageIcon, ArrowLeft, CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react';
+import { X, HelpCircle, ImageIcon, Check, Pill, FileText, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 
 const FLAG_STYLES = {
   none: { bg: '#f0fdf4', text: '#16a34a' },
@@ -25,23 +25,25 @@ export default function SupplementScanner() {
   const [step1Data, setStep1Data] = useState(null);
   const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  // Step 1 state
   const [s1File, setS1File] = useState(null);
   const [s1Preview, setS1Preview] = useState(null);
-  // Step 2 state
   const [s2File, setS2File] = useState(null);
   const [s2Preview, setS2Preview] = useState(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => { cameraRef.current?.click(); }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleS1File = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setS1File(file);
     setS1Preview(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
+  const handleS2File = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setS2File(file);
+    setS2Preview(URL.createObjectURL(file));
+    e.target.value = '';
   };
 
   const analyseStep1 = async () => {
@@ -58,9 +60,9 @@ Return:
 - primary_ingredient: main active ingredient e.g. "Vitamin D3", "Creatine Monohydrate", "Omega-3"
 - secondary_ingredients: array of other active ingredients visible on front
 - marketing_claims: array of any claims visible e.g. "Third Party Tested", "Non-GMO", "Vegan", "GMP Certified"
-- confidence: "high" (clear readable label), "medium", or "low"
+- confidence: "high", "medium", or "low"
 
-NEVER fail. Always estimate from visual cues if text is not fully clear.`,
+NEVER fail.`,
       file_urls: [file_url],
       response_json_schema: {
         type: 'object',
@@ -79,14 +81,6 @@ NEVER fail. Always estimate from visual cues if text is not fully clear.`,
     setIsAnalyzing(false);
     setStep(2);
     setS1File(null); setS1Preview(null);
-    setTimeout(() => { cameraRef.current?.click(); }, 200);
-  };
-
-  const handleS2File = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setS2File(file);
-    setS2Preview(URL.createObjectURL(file));
   };
 
   const analyseStep2 = async () => {
@@ -97,28 +91,15 @@ NEVER fail. Always estimate from visual cues if text is not fully clear.`,
       prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel on the back of: "${step1Data?.brand} ${step1Data?.product_name}" — primary ingredient: ${step1Data?.primary_ingredient}.
 
 Read every single line of the supplement facts label. Return:
+- serving_size, servings_per_container, estimated_duration
+- ingredients: array for every ingredient — name, amount, dri_percent, bioavailability (High/Medium/Low), form_quality, flag (None/Underdosed/Correctly Dosed/Overdose Risk/Poor Form/Filler)
+- other_ingredients_flags: array of concerning other ingredients
+- quality_score: 1-100
+- verdict: "YES", "MAYBE", or "NO"
+- verdict_reason: 2-3 sentences
+- best_time_to_take, food_note, absorption_tip, interactions, container_supply
 
-- serving_size: e.g. "2 capsules"
-- servings_per_container: number
-- estimated_duration: e.g. "30 days" based on servings_per_container and typical daily use
-- ingredients: array for EVERY ingredient listed — for each:
-  - name: exact ingredient name from label
-  - amount: amount per serving with unit e.g. "500mg", "5000 IU"
-  - dri_percent: % Daily Value if listed, else "N/A"
-  - bioavailability: "High", "Medium", or "Low" — based on specific form (e.g. D3 > D2, glycinate > oxide, methylfolate > folic acid)
-  - form_quality: one sentence assessing the specific form quality e.g. "Magnesium glycinate is a superior, highly bioavailable form"
-  - flag: "None", "Underdosed", "Correctly Dosed", "Overdose Risk", "Poor Form", or "Filler"
-- other_ingredients_flags: array of any concerning other ingredients — fillers, artificial colors, titanium dioxide, excess magnesium stearate, artificial sweeteners
-- quality_score: 1-100 overall quality assessment
-- verdict: "YES", "MAYBE", or "NO" — worth buying
-- verdict_reason: 2-3 sentences covering dose vs DRI, ingredient forms, fillers, and value
-- best_time_to_take: specific time e.g. "Morning with breakfast", "Before bed on empty stomach"
-- food_note: "With food" or "Without food" and why — one sentence
-- absorption_tip: one sentence on how to maximize absorption
-- interactions: any warnings or interactions e.g. "Do not combine with blood thinners" — null if none
-- container_supply: e.g. "30-day supply" estimated from servings
-
-NEVER fail. Always estimate from visual cues and supplement knowledge if label is partially unclear.`,
+NEVER fail.`,
       file_urls: [file_url],
       response_json_schema: {
         type: 'object',
@@ -158,35 +139,27 @@ NEVER fail. Always estimate from visual cues and supplement knowledge if label i
 
   const reset = () => { setResult(null); setStep1Data(null); setStep(1); setS1File(null); setS1Preview(null); setS2File(null); setS2Preview(null); };
 
-  // Results
+  // Results page
   if (result) {
     const vs = VERDICT_STYLES[result.verdict] || VERDICT_STYLES.MAYBE;
     const VIcon = vs.icon;
     const scoreColor = result.quality_score >= 70 ? '#16a34a' : result.quality_score >= 40 ? '#ca8a04' : '#dc2626';
     const bioColor = (b) => b === 'High' ? '#16a34a' : b === 'Medium' ? '#ca8a04' : '#dc2626';
-    const flagKey = (f) => (f || '').toLowerCase().replace(' ', '_');
     const getFS = (flag) => {
       const k = (flag || '').toLowerCase();
-      if (k === 'none') return FLAG_STYLES.none;
-      if (k === 'underdosed') return FLAG_STYLES.underdosed;
-      if (k === 'overdose risk') return FLAG_STYLES['overdose risk'];
-      if (k === 'poor form') return FLAG_STYLES['poor form'];
-      if (k === 'filler') return FLAG_STYLES.filler;
       if (k === 'correctly dosed') return { bg: '#dcfce7', text: '#16a34a' };
-      return FLAG_STYLES.none;
+      return FLAG_STYLES[k] || FLAG_STYLES.none;
     };
 
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center gap-3 px-5 pt-12 pb-4">
           <button onClick={reset} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-            <ArrowLeft className="w-5 h-5" />
+            <X className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-foreground">Supplement Analysis</h1>
         </div>
         <div className="px-5 space-y-4 pb-16">
-
-          {/* Header card */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -211,62 +184,35 @@ NEVER fail. Always estimate from visual cues and supplement knowledge if label i
             </div>
             <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{result.verdict_reason}</p>
           </div>
-
-          {/* Serving info */}
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Serving Size', value: result.serving_size },
-              { label: 'Servings', value: result.servings_per_container },
-              { label: 'Supply', value: result.estimated_duration || result.container_supply || '—' },
-            ].map(({ label, value }) => (
+            {[{ label: 'Serving Size', value: result.serving_size }, { label: 'Servings', value: result.servings_per_container }, { label: 'Supply', value: result.estimated_duration || result.container_supply || '—' }].map(({ label, value }) => (
               <div key={label} className="bg-white border border-border rounded-[20px] p-3 shadow-sm text-center">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wide">{label}</p>
                 <p className="text-xs font-bold text-foreground mt-0.5">{value}</p>
               </div>
             ))}
           </div>
-
-          {/* How to take */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm space-y-3">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">How to Take</p>
-            <div className="grid grid-cols-1 gap-2">
-              {[
-                { label: '⏰ Best Time', value: result.best_time_to_take },
-                { label: '🍽️ Food', value: result.food_note },
-                { label: '💡 Absorption', value: result.absorption_tip },
-              ].map(({ label, value }) => value && (
-                <div key={label} className="flex items-start gap-2">
-                  <span className="text-xs font-semibold text-foreground w-24 shrink-0">{label}</span>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{value}</p>
-                </div>
-              ))}
-            </div>
+            {[{ label: '⏰ Best Time', value: result.best_time_to_take }, { label: '🍽️ Food', value: result.food_note }, { label: '💡 Absorption', value: result.absorption_tip }].map(({ label, value }) => value && (
+              <div key={label} className="flex items-start gap-2">
+                <span className="text-xs font-semibold text-foreground w-24 shrink-0">{label}</span>
+                <p className="text-xs text-muted-foreground leading-relaxed">{value}</p>
+              </div>
+            ))}
             {result.interactions && (
               <div className="flex items-start gap-2 p-3 rounded-xl mt-1" style={{ background: '#fef9c3' }}>
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#ca8a04' }} />
-                <div>
-                  <p className="text-xs font-bold" style={{ color: '#92400e' }}>Interactions & Warnings</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#92400e' }}>{result.interactions}</p>
-                </div>
+                <p className="text-xs" style={{ color: '#92400e' }}>{result.interactions}</p>
               </div>
             )}
           </div>
-
-          {/* Other ingredients flags */}
           {result.other_ingredients_flags?.length > 0 && (
             <div className="bg-orange-50 border border-orange-100 rounded-[20px] p-4">
               <p className="text-xs font-bold text-orange-700 mb-2">⚠️ Other Ingredients Concerns</p>
-              <ul className="space-y-1">
-                {result.other_ingredients_flags.map((f, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-xs text-orange-700">
-                    <span className="mt-0.5">•</span>{f}
-                  </li>
-                ))}
-              </ul>
+              <ul className="space-y-1">{result.other_ingredients_flags.map((f, i) => <li key={i} className="text-xs text-orange-700 flex items-start gap-1.5"><span className="mt-0.5">•</span>{f}</li>)}</ul>
             </div>
           )}
-
-          {/* Ingredients */}
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Supplement Facts</h3>
             <div className="space-y-3">
@@ -282,14 +228,10 @@ NEVER fail. Always estimate from visual cues and supplement knowledge if label i
                     </div>
                     <div className="flex items-center gap-3 mb-1 flex-wrap">
                       <span className="text-xs font-semibold text-foreground">{ing.amount}</span>
-                      {ing.dri_percent && ing.dri_percent !== 'N/A' && (
-                        <span className="text-xs text-muted-foreground">DRI: {ing.dri_percent}</span>
-                      )}
+                      {ing.dri_percent && ing.dri_percent !== 'N/A' && <span className="text-xs text-muted-foreground">DRI: {ing.dri_percent}</span>}
                       <span className="text-[10px] font-bold" style={{ color: bioColor(ing.bioavailability) }}>{ing.bioavailability} bioavailability</span>
                     </div>
-                    {ing.form_quality && (
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">{ing.form_quality}</p>
-                    )}
+                    {ing.form_quality && <p className="text-[10px] text-muted-foreground leading-relaxed">{ing.form_quality}</p>}
                   </div>
                 );
               })}
@@ -300,84 +242,115 @@ NEVER fail. Always estimate from visual cues and supplement knowledge if label i
     );
   }
 
-  // Camera UI helper
-  const CameraUI = ({ preview, onShutter, onUpload, onAnalyse, onRetake, stepLabel, hint, analyseLabel, analyzing, analysingText }) => (
-    <div className="min-h-screen bg-black flex flex-col">
+  // Camera UI
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={step === 1 ? handleS1File : handleS2File} />
       <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={step === 1 ? handleS1File : handleS2File} />
-      <div className="flex-1 relative">
-        {preview
-          ? <img src={preview} className="w-full h-full object-cover absolute inset-0" alt="" />
-          : <div className="w-full h-full bg-gradient-to-b from-gray-800 to-gray-900 absolute inset-0" />}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
-          <button onClick={step === 1 ? () => navigate(-1) : () => { setStep(1); setStep1Data(null); setS2File(null); setS2Preview(null); }}
-            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
-            {step === 1 ? <X className="w-5 h-5 text-white" /> : <ArrowLeft className="w-5 h-5 text-white" />}
-          </button>
-          <span className="text-white font-semibold">{stepLabel}</span>
-          <div className="w-10" />
-        </div>
-        {!preview && !analyzing && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="w-[60%] aspect-[2/3] relative">
-              {['top-0 left-0 border-t-2 border-l-2 rounded-tl-2xl', 'top-0 right-0 border-t-2 border-r-2 rounded-tr-2xl', 'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-2xl', 'bottom-0 right-0 border-b-2 border-r-2 rounded-br-2xl'].map((cls, i) => (
-                <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
-              ))}
+
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 pt-12 z-10">
+        <button onClick={step === 1 ? () => navigate(-1) : () => { setStep(1); setStep1Data(null); setS2File(null); setS2Preview(null); }}
+          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+          <X className="w-5 h-5 text-gray-700" />
+        </button>
+        <button className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+          <HelpCircle className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+
+      {/* Center */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        {isAnalyzing ? (
+          <div className="flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center animate-pulse mb-4">
+              <div className="w-10 h-10 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
             </div>
-            <p className="text-white/60 text-xs mt-6">{hint}</p>
+            <p className="text-gray-500 text-sm font-medium">Analyzing your supplement...</p>
           </div>
-        )}
-        {preview && !analyzing && (
-          <div className="absolute bottom-4 left-0 right-0 px-6 flex flex-col gap-3 z-10">
-            <button onClick={onAnalyse} className="w-full h-14 rounded-2xl font-semibold text-base flex items-center justify-center gap-2"
-              style={{ background: 'rgba(255,255,255,0.95)', color: '#1a1a1a' }}>
-              <Sparkles className="w-5 h-5" /> {analyseLabel}
-            </button>
-            <button onClick={onRetake} className="text-white/60 text-sm text-center">Retake</button>
-          </div>
-        )}
-        {analyzing && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-            <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          <>
+            {/* Two step cards */}
+            <div className="flex gap-4 w-full mb-6">
+              {/* Step 1 */}
+              <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
+                style={{
+                  borderColor: step === 1 ? '#1a1a1a' : step1Data ? '#22c55e' : '#e5e7eb',
+                  background: step1Data ? '#f0fdf4' : step === 1 ? '#f9f9f9' : '#f5f5f5',
+                }}>
+                {step1Data
+                  ? <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center"><Check className="w-6 h-6 text-white" /></div>
+                  : <Pill className="w-10 h-10 text-gray-700" strokeWidth={1.5} />
+                }
+                <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Step 1</p>
+                <p className="text-[11px] text-gray-400 leading-snug">Photograph the front of the bottle</p>
+              </div>
+
+              {/* Dotted connector */}
+              <div className="flex items-center self-center">
+                <div className="flex gap-0.5">{[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-gray-300" />)}</div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
+                style={{
+                  borderColor: step === 2 ? '#1a1a1a' : '#e5e7eb',
+                  background: step === 2 ? '#f9f9f9' : '#f5f5f5',
+                  opacity: step === 1 && !step1Data ? 0.5 : 1,
+                }}>
+                <FileText className="w-10 h-10 text-gray-700" strokeWidth={1.5} />
+                <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Step 2</p>
+                <p className="text-[11px] text-gray-400 leading-snug">Then photograph the back label</p>
+              </div>
             </div>
-            <p className="text-white font-semibold text-lg">{analysingText}</p>
-          </div>
+
+            {/* Progress */}
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">Step {step} of 2</p>
+            <p className="text-center text-sm text-gray-500 px-4 leading-relaxed">
+              {step === 1
+                ? 'Start by photographing the front of the supplement bottle so we can identify the product.'
+                : `Now photograph the back label or supplement facts panel of ${step1Data?.product_name || 'the supplement'}.`
+              }
+            </p>
+
+            {/* Preview */}
+            {(step === 1 ? s1Preview : s2Preview) && (
+              <div className="mt-4 w-32 h-32 rounded-2xl overflow-hidden border-2 border-gray-200">
+                <img src={step === 1 ? s1Preview : s2Preview} className="w-full h-full object-cover" alt="" />
+              </div>
+            )}
+          </>
         )}
       </div>
-      {!preview && (
-        <div className="bg-black px-6 pb-10 pt-4 flex items-center justify-between">
-          <div className="w-11" />
-          <button onClick={() => cameraRef.current?.click()} className="w-[72px] h-[72px] rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform" />
-          <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-white/60" />
-          </button>
+
+      {/* Bottom */}
+      {!isAnalyzing && (
+        <div className="pb-10 px-8">
+          {(step === 1 ? s1Preview : s2Preview) ? (
+            <div className="flex gap-3">
+              <button
+                onClick={() => { if (step === 1) { setS1File(null); setS1Preview(null); } else { setS2File(null); setS2Preview(null); } }}
+                className="flex-1 h-14 rounded-full border border-gray-300 text-sm font-semibold text-gray-600"
+              >Retake</button>
+              <button
+                onClick={step === 1 ? analyseStep1 : analyseStep2}
+                className="flex-1 h-14 rounded-full bg-gray-900 text-white text-sm font-semibold"
+              >{step === 1 ? 'Identify Supplement' : 'Analyse Ingredients'}</button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between px-4">
+              <div className="w-11" />
+              <button
+                onClick={() => cameraRef.current?.click()}
+                className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 active:scale-95 transition-transform shadow-lg"
+              />
+              <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
-
-  if (step === 1) {
-    return <CameraUI
-      preview={s1Preview}
-      onAnalyse={analyseStep1}
-      onRetake={() => { setS1File(null); setS1Preview(null); cameraRef.current?.click(); }}
-      stepLabel="Step 1 of 2"
-      hint="Photograph the FRONT of the supplement bottle"
-      analyseLabel="Identify Supplement"
-      analyzing={isAnalyzing}
-      analysingText="Reading front label..."
-    />;
-  }
-
-  return <CameraUI
-    preview={s2Preview}
-    onAnalyse={analyseStep2}
-    onRetake={() => { setS2File(null); setS2Preview(null); cameraRef.current?.click(); }}
-    stepLabel="Step 2 of 2"
-    hint="Photograph the supplement FACTS panel on the back"
-    analyseLabel="Analyse Ingredients"
-    analyzing={isAnalyzing}
-    analysingText="Analysing ingredient panel..."
-  />;
 }

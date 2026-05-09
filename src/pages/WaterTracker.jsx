@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
@@ -163,37 +163,36 @@ export default function WaterTracker() {
       </div>
 
       <div className="px-5 mt-4 space-y-4">
-        {/* Big circular progress */}
-        <div className="bg-white border border-border rounded-[24px] p-6 shadow-sm flex flex-col items-center">
-          <div className="relative" style={{ width: size, height: size }}>
-            <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+        {/* Big circular progress — no background card */}
+        <div className="flex flex-col items-center py-4">
+          <div className="relative" style={{ width: 260, height: 260 }}>
+            <svg width={260} height={260} style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx={130} cy={130} r={113} fill="none" stroke="hsl(var(--muted))" strokeWidth={16} />
               <circle
-                cx={size / 2} cy={size / 2} r={r}
+                cx={130} cy={130} r={113}
                 fill="none"
                 stroke={glassColor}
-                strokeWidth={stroke}
-                strokeDasharray={circ}
-                strokeDashoffset={offset}
+                strokeWidth={16}
+                strokeDasharray={2 * Math.PI * 113}
+                strokeDashoffset={2 * Math.PI * 113 * (1 - pct / 100)}
                 strokeLinecap="round"
                 style={{ transition: 'stroke-dashoffset 0.6s ease' }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-extrabold text-foreground">{pct}%</span>
+              <span className="text-5xl font-extrabold text-foreground">{pct}%</span>
               <span className="text-sm text-muted-foreground font-medium">of goal</span>
+              <p className="text-xl font-extrabold text-foreground mt-1">
+                {totalToday}<span className="text-sm font-medium text-muted-foreground"> ml</span>
+              </p>
+              <p className="text-xs text-muted-foreground">of {dailyTarget} ml</p>
             </div>
-          </div>
-          <div className="mt-4 text-center">
-            <p className="text-2xl font-extrabold text-foreground">
-              {totalToday} <span className="text-base font-medium text-muted-foreground">ml</span>
-            </p>
-            <p className="text-sm text-muted-foreground mt-0.5">of {dailyTarget} ml daily goal</p>
           </div>
         </div>
 
         {/* Cup grid — each cup = 250ml */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm"
+          style={{ animation: 'slideUp 0.5s cubic-bezier(0.4,0,0.2,1) both' }}>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-foreground">Tap cups to log • 250ml each</p>
             <button onClick={() => setShowCustom(true)}

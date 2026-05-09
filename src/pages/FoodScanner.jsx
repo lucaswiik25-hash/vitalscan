@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, HelpCircle, Zap, ImageIcon, Barcode, FileText, UtensilsCrossed } from 'lucide-react';
+import { X, HelpCircle, Zap, ImageIcon, Barcode, FileText, UtensilsCrossed, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 
@@ -164,6 +164,42 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
     queryClient.invalidateQueries({ queryKey: ['allMeals'] });
     navigate('/');
   };
+
+  // Photo preview screen
+  if (capturedImage && !isAnalyzing) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col">
+        <img src={capturedImage} className="flex-1 w-full object-cover" alt="Captured" />
+        {/* Top overlay */}
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12">
+          <button onClick={() => { setCapturedImage(null); setCapturedFile(null); }}
+            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <div className="w-8 h-1 rounded-full bg-white/40" />
+          <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <HelpCircle className="w-5 h-5 text-white" />
+          </button>
+        </div>
+        {/* Bottom actions */}
+        <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
+          <button
+            onClick={analyse}
+            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Sparkles className="w-5 h-5" />
+            Analyse
+          </button>
+          <button
+            onClick={() => { setCapturedImage(null); setCapturedFile(null); }}
+            className="text-white/70 text-sm font-medium"
+          >
+            Retake photo
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (result) {
     return (

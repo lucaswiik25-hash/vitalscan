@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, HelpCircle, ImageIcon, Shield, XCircle, Lightbulb } from 'lucide-react';
+import { X, HelpCircle, ImageIcon, Shield, XCircle, Lightbulb, Sparkles } from 'lucide-react';
 
 const SAFETY_COLORS = {
   safe: { bg: '#dcfce7', text: '#16a34a', label: 'Safe' },
@@ -169,6 +169,36 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
     );
   }
 
+  // Photo preview screen
+  if (previewUrl && !isAnalyzing) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col">
+        <img src={previewUrl} className="flex-1 w-full object-cover" alt="Captured" />
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12">
+          <button onClick={() => { setCapturedFile(null); setPreviewUrl(null); }}
+            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <div className="w-8 h-1 rounded-full bg-white/40" />
+          <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <HelpCircle className="w-5 h-5 text-white" />
+          </button>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
+          <button onClick={analyse}
+            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
+            <Sparkles className="w-5 h-5" />
+            Analyse
+          </button>
+          <button onClick={() => { setCapturedFile(null); setPreviewUrl(null); }}
+            className="text-white/70 text-sm font-medium">
+            Retake photo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -249,20 +279,13 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
 
       {!isAnalyzing && (
         <div className="pb-10 px-8">
-          {previewUrl ? (
-            <div className="flex gap-3">
-              <button onClick={() => { setCapturedFile(null); setPreviewUrl(null); }} className="flex-1 h-14 rounded-full border border-gray-300 text-sm font-semibold text-gray-600">Retake</button>
-              <button onClick={analyse} className="flex-1 h-14 rounded-full bg-gray-900 text-white text-sm font-semibold">Analyse</button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between px-4">
-              <div className="w-11" />
-              <button onClick={() => cameraRef.current?.click()} className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 active:scale-95 transition-transform shadow-lg" />
-              <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center justify-between px-4">
+            <div className="w-11" />
+            <button onClick={() => cameraRef.current?.click()} className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 active:scale-95 transition-transform shadow-lg" />
+            <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+              <ImageIcon className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
         </div>
       )}
     </div>

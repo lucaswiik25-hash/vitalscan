@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, HelpCircle, ImageIcon, Check, Pill, FileText, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { X, HelpCircle, ImageIcon, Check, Pill, FileText, CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react';
 
 const FLAG_STYLES = {
   none: { bg: '#f0fdf4', text: '#16a34a' },
@@ -183,6 +183,41 @@ Read every single line of the supplement facts label. Return JSON with: serving_
     );
   }
 
+  // Photo preview screen (step 1 or step 2)
+  const activePreview = step === 1 ? s1Preview : s2Preview;
+  const activeAnalyse = step === 1 ? analyseStep1 : analyseStep2;
+  const activeRetake = step === 1
+    ? () => { setS1File(null); setS1Preview(null); }
+    : () => { setS2File(null); setS2Preview(null); };
+
+  if (activePreview && !isAnalyzing) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col">
+        <img src={activePreview} className="flex-1 w-full object-cover" alt="Captured" />
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12">
+          <button onClick={activeRetake}
+            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <div className="w-8 h-1 rounded-full bg-white/40" />
+          <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <HelpCircle className="w-5 h-5 text-white" />
+          </button>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
+          <button onClick={activeAnalyse}
+            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
+            <Sparkles className="w-5 h-5" />
+            Analyse
+          </button>
+          <button onClick={activeRetake} className="text-white/70 text-sm font-medium">
+            Retake photo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Camera UI
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -254,12 +289,7 @@ Read every single line of the supplement facts label. Return JSON with: serving_
               }
             </p>
 
-            {/* Preview */}
-            {(step === 1 ? s1Preview : s2Preview) && (
-              <div className="mt-4 w-32 h-32 rounded-2xl overflow-hidden border-2 border-gray-200">
-                <img src={step === 1 ? s1Preview : s2Preview} className="w-full h-full object-cover" alt="" />
-              </div>
-            )}
+
           </>
         )}
       </div>
@@ -267,29 +297,16 @@ Read every single line of the supplement facts label. Return JSON with: serving_
       {/* Bottom */}
       {!isAnalyzing && (
         <div className="pb-10 px-8">
-          {(step === 1 ? s1Preview : s2Preview) ? (
-            <div className="flex gap-3">
-              <button
-                onClick={() => { if (step === 1) { setS1File(null); setS1Preview(null); } else { setS2File(null); setS2Preview(null); } }}
-                className="flex-1 h-14 rounded-full border border-gray-300 text-sm font-semibold text-gray-600"
-              >Retake</button>
-              <button
-                onClick={step === 1 ? analyseStep1 : analyseStep2}
-                className="flex-1 h-14 rounded-full bg-gray-900 text-white text-sm font-semibold"
-              >{step === 1 ? 'Identify Supplement' : 'Analyse Ingredients'}</button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between px-4">
-              <div className="w-11" />
-              <button
-                onClick={() => cameraRef.current?.click()}
-                className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 active:scale-95 transition-transform shadow-lg"
-              />
-              <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center justify-between px-4">
+            <div className="w-11" />
+            <button
+              onClick={() => cameraRef.current?.click()}
+              className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 active:scale-95 transition-transform shadow-lg"
+            />
+            <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+              <ImageIcon className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
         </div>
       )}
     </div>

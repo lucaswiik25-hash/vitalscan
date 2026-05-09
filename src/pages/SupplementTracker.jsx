@@ -64,7 +64,7 @@ export default function SupplementTracker() {
       `${m.name}: ${m.calories}cal, ${m.protein}g protein, ${m.fat}g fat, ${m.carbs}g carbs, ${m.fiber || 0}g fiber`
     ).join('\n');
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const { data: claudeRes } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: `You are a nutritionist. Based on this user's recent food intake log and profile, analyze what supplements they may be deficient in.
 
 User profile: age ${profile.age}, sex ${profile.sex}, goal: ${profile.goal}, diet: ${profile.diet_mode}
@@ -74,27 +74,9 @@ ${mealSummary || 'No meals logged yet'}
 Current supplements they take: ${supplements.map(s => s.name).join(', ') || 'None'}
 
 Identify the top 5 supplement deficiencies or gaps they likely have based on their diet pattern. For each, explain WHY they might be deficient and what health risks it poses. Be specific and medically accurate.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          deficiencies: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                supplement: { type: 'string' },
-                severity: { type: 'string', enum: ['high', 'medium', 'low'] },
-                reason: { type: 'string' },
-                health_risks: { type: 'array', items: { type: 'string' } },
-                recommendations: { type: 'array', items: { type: 'string' } },
-              },
-            },
-          },
-          summary: { type: 'string' },
-        },
-      },
+      response_json_schema: { type: 'object', properties: { deficiencies: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } } },
     });
-    setAiResult(result);
+    setAiResult(claudeRes.result);
     setAnalyzing(false);
   };
 

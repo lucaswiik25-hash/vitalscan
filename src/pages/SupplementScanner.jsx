@@ -50,34 +50,14 @@ export default function SupplementScanner() {
     if (!s1File) return;
     setIsAnalyzing(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s1File });
-    const res = await base44.integrations.Core.InvokeLLM({
+    const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
+      image_url: file_url,
       prompt: `You are a supplement and nutraceutical expert. Look at this image of the FRONT of a supplement bottle. Read ALL visible text carefully.
 
-Return:
-- brand: brand name exactly as shown
-- product_name: full product name exactly as shown
-- format: one of "tablet", "capsule", "softgel", "powder", "gummy", "liquid", "other"
-- primary_ingredient: main active ingredient e.g. "Vitamin D3", "Creatine Monohydrate", "Omega-3"
-- secondary_ingredients: array of other active ingredients visible on front
-- marketing_claims: array of any claims visible e.g. "Third Party Tested", "Non-GMO", "Vegan", "GMP Certified"
-- confidence: "high", "medium", or "low"
-
-NEVER fail.`,
-      file_urls: [file_url],
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          brand: { type: 'string' },
-          product_name: { type: 'string' },
-          format: { type: 'string' },
-          primary_ingredient: { type: 'string' },
-          secondary_ingredients: { type: 'array', items: { type: 'string' } },
-          marketing_claims: { type: 'array', items: { type: 'string' } },
-          confidence: { type: 'string' },
-        },
-      },
+Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule"/"softgel"/"powder"/"gummy"/"liquid"/"other"), primary_ingredient (main active ingredient), secondary_ingredients (array of other active ingredients visible on front), marketing_claims (array of any claims like "Third Party Tested", "Non-GMO", "Vegan", "GMP Certified"), confidence ("high"/"medium"/"low"). NEVER fail.`,
+      response_json_schema: { type: 'object', properties: { brand: { type: 'string' }, product_name: { type: 'string' }, format: { type: 'string' }, primary_ingredient: { type: 'string' }, secondary_ingredients: { type: 'array', items: { type: 'string' } }, marketing_claims: { type: 'array', items: { type: 'string' } }, confidence: { type: 'string' } } },
     });
-    setStep1Data({ ...res, image_url: file_url });
+    setStep1Data({ ...r.result, image_url: file_url });
     setIsAnalyzing(false);
     setStep(2);
     setS1File(null); setS1Preview(null);
@@ -87,53 +67,14 @@ NEVER fail.`,
     if (!s2File) return;
     setIsAnalyzing(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s2File });
-    const res = await base44.integrations.Core.InvokeLLM({
+    const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
+      image_url: file_url,
       prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel on the back of: "${step1Data?.brand} ${step1Data?.product_name}" — primary ingredient: ${step1Data?.primary_ingredient}.
 
-Read every single line of the supplement facts label. Return:
-- serving_size, servings_per_container, estimated_duration
-- ingredients: array for every ingredient — name, amount, dri_percent, bioavailability (High/Medium/Low), form_quality, flag (None/Underdosed/Correctly Dosed/Overdose Risk/Poor Form/Filler)
-- other_ingredients_flags: array of concerning other ingredients
-- quality_score: 1-100
-- verdict: "YES", "MAYBE", or "NO"
-- verdict_reason: 2-3 sentences
-- best_time_to_take, food_note, absorption_tip, interactions, container_supply
-
-NEVER fail.`,
-      file_urls: [file_url],
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          serving_size: { type: 'string' },
-          servings_per_container: { type: 'number' },
-          estimated_duration: { type: 'string' },
-          ingredients: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                name: { type: 'string' },
-                amount: { type: 'string' },
-                dri_percent: { type: 'string' },
-                bioavailability: { type: 'string' },
-                form_quality: { type: 'string' },
-                flag: { type: 'string' },
-              },
-            },
-          },
-          other_ingredients_flags: { type: 'array', items: { type: 'string' } },
-          quality_score: { type: 'number' },
-          verdict: { type: 'string' },
-          verdict_reason: { type: 'string' },
-          best_time_to_take: { type: 'string' },
-          food_note: { type: 'string' },
-          absorption_tip: { type: 'string' },
-          interactions: { type: 'string' },
-          container_supply: { type: 'string' },
-        },
-      },
+Read every single line of the supplement facts label. Return JSON with: serving_size, servings_per_container, estimated_duration, ingredients (array with: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_quality, flag ("None"/"Underdosed"/"Correctly Dosed"/"Overdose Risk"/"Poor Form"/"Filler")), other_ingredients_flags (array), quality_score (1-100), verdict ("YES"/"MAYBE"/"NO"), verdict_reason, best_time_to_take, food_note, absorption_tip, interactions, container_supply. NEVER fail.`,
+      response_json_schema: { type: 'object', properties: { serving_size: { type: 'string' }, servings_per_container: { type: 'number' }, estimated_duration: { type: 'string' }, ingredients: { type: 'array', items: { type: 'object' } }, other_ingredients_flags: { type: 'array', items: { type: 'string' } }, quality_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' }, best_time_to_take: { type: 'string' }, food_note: { type: 'string' }, absorption_tip: { type: 'string' }, interactions: { type: 'string' }, container_supply: { type: 'string' } } },
     });
-    setResult({ ...step1Data, ...res });
+    setResult({ ...step1Data, ...r.result });
     setIsAnalyzing(false);
   };
 

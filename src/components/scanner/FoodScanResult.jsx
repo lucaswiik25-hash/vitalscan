@@ -103,7 +103,7 @@ export default function FoodScanResult({ result, onLog, onScanAnother, onBack })
     if (ingredientResult) { setShowIngredients(s => !s); return; }
     setLoadingIngredients(true);
     setShowIngredients(true);
-    const res = await base44.integrations.Core.InvokeLLM({
+    const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: `You are a food scientist and toxicologist. Analyze every single ingredient in this product.
 
 Product: "${result.name}"
@@ -157,7 +157,7 @@ NEVER fail.`,
         },
       },
     });
-    setIngredientResult(res);
+    setIngredientResult(r.result);
     setLoadingIngredients(false);
   };
 

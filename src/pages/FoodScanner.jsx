@@ -54,16 +54,17 @@ export default function FoodScanner() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
-    const call1 = await base44.integrations.Core.InvokeLLM({
+    const { data: r1 } = await base44.functions.invoke('analyzeWithClaude', {
+      image_url: file_url,
       prompt: `You are a professional nutritionist and food scientist. Analyze this image carefully.
 
 If you can see a BARCODE on the packaging, read and return the exact barcode number digits.
 If this is a NUTRITION LABEL, extract every value precisely from the label.
 If this is a FOOD PHOTO, identify the food and estimate all values accurately.
 
-Return:
+Return JSON with:
 - name: exact product name or food name including brand if visible
-- confidence: "high" (clear label/barcode), "medium" (recognizable food), "low" (unclear)
+- confidence: "high", "medium", or "low"
 - serving_size: e.g. "1 cup (240ml)" or "100g"
 - calories: total kcal per serving
 - protein: grams
@@ -81,30 +82,9 @@ Return:
 - ingredients_text: full ingredient list text if visible on label
 
 NEVER fail. Always estimate from visual cues if exact values are not readable.`,
-      file_urls: [file_url],
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-          serving_size: { type: 'string' },
-          calories: { type: 'number' },
-          protein: { type: 'number' },
-          carbs: { type: 'number' },
-          fat: { type: 'number' },
-          saturated_fat: { type: 'number' },
-          sugar: { type: 'number' },
-          fiber: { type: 'number' },
-          sodium: { type: 'number' },
-          potassium: { type: 'number' },
-          cholesterol: { type: 'number' },
-          allergens: { type: 'array', items: { type: 'string' } },
-          has_barcode: { type: 'boolean' },
-          barcode_number: { type: 'string' },
-          ingredients_text: { type: 'string' },
-        },
-      },
+      response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
     });
+    const call1 = r1.result;
 
     let enriched = { ...call1 };
     if (call1.has_barcode && call1.barcode_number) {
@@ -138,61 +118,16 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.`,
     setResult({ ...enriched, image_url: file_url, step: 1 });
     setIsAnalyzing(false);
 
-    const call2 = await base44.integrations.Core.InvokeLLM({
+    const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: `You are a clinical nutritionist and dermatologist. Analyze this food for diet, body, and appearance impact.
 
 Food: "${enriched.name}"
 Nutrition per serving: ${enriched.calories} kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium, ${enriched.fiber || 0}g fiber
 
-Return:
-- diet_compatibility: "yes", "limit", or "no"
-- diet_reason: one sentence
-- bloat_risk: "low", "medium", or "high"
-- bloat_reason: one sentence
-- glycemic_impact: "low", "medium", or "high"
-- glycemic_reason: one sentence
-- collagen_effect: "Positive", "Neutral", or "Negative"
-- inflammation: "Low", "Medium", or "High"
-- sebum_effect: "Increases", "Neutral", or "Reduces"
-- skin_summary: two sentences
-- appearance_tip: one actionable sentence
-- tomorrow_face: "Positive", "Neutral", or "Negative"
-- tomorrow_face_note: one sentence
-- hormone_impact: "Positive", "Neutral", or "Negative"
-- hormone_note: one sentence
-- gut_health: "Positive", "Neutral", or "Negative"
-- gut_note: one sentence
-- processing_level: "Whole Food", "Minimally Processed", "Processed", or "Ultra Processed"
-- health_score: number 1-10
-
-NEVER fail.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          diet_compatibility: { type: 'string', enum: ['yes', 'limit', 'no'] },
-          diet_reason: { type: 'string' },
-          bloat_risk: { type: 'string', enum: ['low', 'medium', 'high'] },
-          bloat_reason: { type: 'string' },
-          glycemic_impact: { type: 'string', enum: ['low', 'medium', 'high'] },
-          glycemic_reason: { type: 'string' },
-          collagen_effect: { type: 'string' },
-          inflammation: { type: 'string' },
-          sebum_effect: { type: 'string' },
-          skin_summary: { type: 'string' },
-          appearance_tip: { type: 'string' },
-          tomorrow_face: { type: 'string' },
-          tomorrow_face_note: { type: 'string' },
-          hormone_impact: { type: 'string' },
-          hormone_note: { type: 'string' },
-          gut_health: { type: 'string' },
-          gut_note: { type: 'string' },
-          processing_level: { type: 'string' },
-          health_score: { type: 'number' },
-        },
-      },
+Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_risk ("low"/"medium"/"high"), bloat_reason, glycemic_impact ("low"/"medium"/"high"), glycemic_reason, collagen_effect, inflammation ("Low"/"Medium"/"High"), sebum_effect, skin_summary, appearance_tip, tomorrow_face, tomorrow_face_note, hormone_impact, hormone_note, gut_health, gut_note, processing_level ("Whole Food"/"Minimally Processed"/"Processed"/"Ultra Processed"), health_score (1-10). NEVER fail.`,
+      response_json_schema: { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, inflammation: { type: 'string' }, sebum_effect: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, tomorrow_face_note: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } },
     });
-
-    setResult(prev => ({ ...prev, ...call2, step: 2 }));
+    setResult(prev => ({ ...prev, ...r2.result, step: 2 }));
   };
 
   const logMeal = async () => {

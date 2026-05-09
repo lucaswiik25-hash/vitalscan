@@ -48,62 +48,16 @@ export default function SkincareScanner() {
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
     // Single shot: identify product AND analyze ingredients at once
-    const res = await base44.integrations.Core.InvokeLLM({
+    const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
+      image_url: file_url,
       prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze this skincare/cosmetic product image.
 
 First identify the product, then read EVERY ingredient visible. Evaluate each for the appropriate product type (rinse-off vs leave-on).
 
-Return:
-- brand, product_name, product_type (e.g. "Moisturiser", "Shampoo", "Serum")
-- safety_score: 1-100
-- verdict: "recommended", "use with caution", or "avoid"
-- verdict_reason: two sentences
-- skin_type_suitability: "Oily", "Dry", "Combination", "Sensitive", or "All Skin Types"
-- eye_area_safe: boolean
-- pregnancy_safe: boolean
-- pregnancy_note: string
-- long_term_summary: 3 sentences
-- top_beneficial: array of top 3 beneficial ingredient names
-- top_concerning: array of top 3 concerning ingredient names
-- ingredients: array for every ingredient:
-  - name, inci_name, skin_effect, safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating (0-5), is_hormone_disruptor, hormone_concern, has_fragrance, is_drying_alcohol, is_active_beneficial
-
-NEVER fail.`,
-      file_urls: [file_url],
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          brand: { type: 'string' },
-          product_name: { type: 'string' },
-          product_type: { type: 'string' },
-          safety_score: { type: 'number' },
-          verdict: { type: 'string' },
-          verdict_reason: { type: 'string' },
-          skin_type_suitability: { type: 'string' },
-          eye_area_safe: { type: 'boolean' },
-          pregnancy_safe: { type: 'boolean' },
-          pregnancy_note: { type: 'string' },
-          long_term_summary: { type: 'string' },
-          top_beneficial: { type: 'array', items: { type: 'string' } },
-          top_concerning: { type: 'array', items: { type: 'string' } },
-          ingredients: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                name: { type: 'string' }, inci_name: { type: 'string' }, skin_effect: { type: 'string' },
-                safety_rating: { type: 'string' }, is_irritant: { type: 'boolean' }, is_allergen: { type: 'boolean' },
-                is_comedogenic: { type: 'boolean' }, comedogenic_rating: { type: 'number' },
-                is_hormone_disruptor: { type: 'boolean' }, hormone_concern: { type: 'string' },
-                has_fragrance: { type: 'boolean' }, is_drying_alcohol: { type: 'boolean' }, is_active_beneficial: { type: 'boolean' },
-              },
-            },
-          },
-        },
-      },
+Return JSON with: brand, product_name, product_type, safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason, skin_type_suitability, eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary, top_beneficial (array of 3 strings), top_concerning (array of 3 strings), ingredients (array with: name, inci_name, skin_effect, safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating 0-5, is_hormone_disruptor, hormone_concern, has_fragrance, is_drying_alcohol, is_active_beneficial). NEVER fail.`,
+      response_json_schema: { type: 'object', properties: { brand: { type: 'string' }, product_name: { type: 'string' }, product_type: { type: 'string' }, safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' }, skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' }, pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' }, top_beneficial: { type: 'array', items: { type: 'string' } }, top_concerning: { type: 'array', items: { type: 'string' } }, ingredients: { type: 'array', items: { type: 'object' } } } },
     });
-
-    setResult(res);
+    setResult(r.result);
     setIsAnalyzing(false);
   };
 

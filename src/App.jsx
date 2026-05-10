@@ -20,6 +20,8 @@ import ShoppingList from './pages/ShoppingList';
 import HealthRisk from './pages/HealthRisk';
 import Settings from './pages/Settings';
 import SleepTracker from './pages/SleepTracker';
+import FaceScanner from './pages/FaceScanner';
+import BodyScanner from './pages/BodyScanner';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -59,6 +61,8 @@ const AuthenticatedApp = () => {
       <Route path="/food-scanner" element={<FoodScanner />} />
       <Route path="/skincare-scanner" element={<SkincareScanner />} />
       <Route path="/supplement-scanner" element={<SupplementScanner />} />
+      <Route path="/face-scanner" element={<FaceScanner />} />
+      <Route path="/body-scanner" element={<BodyScanner />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

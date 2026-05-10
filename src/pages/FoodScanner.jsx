@@ -59,6 +59,11 @@ export default function FoodScanner() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
+    const profiles = await base44.entities.UserProfile.list();
+    const userProfile = profiles[0] || {};
+    const dietMode = userProfile.diet_mode || 'standard';
+    const isAppearance = dietMode === 'appearance_mode';
+
     const extraContext = extraNotes.trim()
       ? `\n\nAdditional context from user: "${extraNotes.trim()}". Include this in your nutritional estimate.`
       : '';
@@ -90,7 +95,7 @@ Return JSON with:
 - barcode_number: string of barcode digits if visible
 - ingredients_text: full ingredient list text if visible on label
 
-NEVER fail. Always estimate from visual cues if exact values are not readable.${extraContext}`,
+NEVER fail. Always estimate from visual cues if exact values are not readable.${isAppearance ? '\n\nAPPEARANCE MODE: Also return sodium and potassium as required numeric fields (mg).' : ''}${extraContext}`,
       response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
     });
     const call1 = r1.result;
@@ -127,6 +132,8 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     // Run second analysis in parallel with showing step-1 result
     const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: `You are a clinical nutritionist and dermatologist. Analyze this food for diet, body, and appearance impact.
+
+User's diet mode: ${dietMode}. Tailor the diet_compatibility verdict SPECIFICALLY to the rules of ${dietMode} — not general health. A food that is YES for standard can be NO for keto, carnivore, vegan, etc.
 
 Food: "${enriched.name}"
 Nutrition per serving: ${enriched.calories} kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium, ${enriched.fiber || 0}g fiber

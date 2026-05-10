@@ -67,7 +67,7 @@ export default function SupplementTracker() {
     const { data: claudeRes } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: `You are a nutritionist. Based on this user's recent food intake log and profile, analyze what supplements they may be deficient in.
 
-User profile: age ${profile.age}, sex ${profile.sex}, goal: ${profile.goal}, diet: ${profile.diet_mode}
+User profile: age ${profile.age}, sex ${profile.sex}, goal: ${profile.goal}, diet: ${profile.diet_mode}. Tailor all recommendations specifically to the ${profile.diet_mode} diet — e.g. vegans need B12, keto users need electrolytes, appearance mode users should prioritise collagen, zinc, vitamin C, omega-3.
 Recent meals (last 30):
 ${mealSummary || 'No meals logged yet'}
 

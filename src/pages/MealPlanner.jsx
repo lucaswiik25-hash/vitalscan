@@ -47,6 +47,8 @@ export default function MealPlanner() {
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `You are a professional nutritionist. Create a complete one-day meal plan for this user.
 
+DIET MODE: ${profile.diet_mode || 'standard'}. Build the ENTIRE day's meals strictly around the rules and principles of this diet. Every meal must comply with ${profile.diet_mode || 'standard'} diet rules.${profile.diet_mode === 'appearance_mode' ? ' Focus on anti-inflammatory, collagen-supporting, low-bloat meals that balance sodium and potassium.' : ''}
+
 User profile:
 - Name: ${profile.name}
 - Age: ${profile.age}, Sex: ${profile.sex}
@@ -62,7 +64,7 @@ User profile:
 - Number of meals: ${mealCount} meals named: ${mealNames[mealCount].join(', ')}
 
 Generate ${mealCount} meals. Strictly respect the diet type (${profile.diet_mode}). Make meals realistic, delicious, and achievable at home.
-For each meal provide: name, description (1-2 sentences), ingredients (list), calories, protein, carbs, fat, prep_time.`,
+For each meal provide: name, description (1-2 sentences), ingredients (list), calories, protein, carbs, fat, prep_time${profile.diet_mode === 'appearance_mode' ? ', bloat_risk ("Low"/"Medium"/"High")' : ''}.`,
       response_json_schema: {
         type: 'object',
         properties: {

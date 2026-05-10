@@ -2,10 +2,10 @@ import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { X, ScanLine, Leaf, Pill, ShieldCheck, Target, Clock } from 'lucide-react';
+import { X, ScanLine, Leaf, Pill, ShieldCheck, Target, Clock, Smile, PersonStanding } from 'lucide-react';
 import { format } from 'date-fns';
 
-const scanOptions = [
+const BASE_SCAN_OPTIONS = [
   { title: 'Food Scanner', description: 'Scan any food or barcode to get full nutrition info', icon: ScanLine, path: '/food-scanner', gradient: 'from-orange-50 to-red-50', type: 'food' },
   { title: 'Skincare Analyzer', description: 'Analyze ingredients in any cosmetic product', icon: Leaf, path: '/skincare-scanner', gradient: 'from-pink-50 to-purple-50', type: 'skincare' },
   { title: 'Supplement Scanner', description: 'Check quality and dosage of any supplement', icon: Pill, path: '/supplement-scanner', gradient: 'from-blue-50 to-cyan-50', type: 'supplement' },
@@ -90,6 +90,20 @@ function RecentScans() {
 
 export default function ScannerHub() {
   const navigate = useNavigate();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => base44.entities.UserProfile.list(),
+  });
+  const profile = profiles[0] || {};
+  const isAppearanceMode = profile.diet_mode === 'appearance_mode';
+
+  const scanOptions = [
+    ...BASE_SCAN_OPTIONS,
+    isAppearanceMode
+      ? { title: 'Face Analysis', description: 'AI skin analysis linked to your food intake', icon: Smile, path: '/face-scanner', gradient: 'from-purple-50 to-pink-50', type: null }
+      : { title: 'Body Analyser', description: 'Find the areas you need to work on most', icon: PersonStanding, path: '/body-scanner', gradient: 'from-green-50 to-teal-50', type: null },
+  ];
 
   return (
     <div className="min-h-screen bg-background pb-16">

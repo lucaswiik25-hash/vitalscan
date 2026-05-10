@@ -129,6 +129,8 @@ export default function ShoppingList() {
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `You are a nutritionist and budget shopper. Create a weekly grocery shopping list for this user.
 
+IMPORTANT: Filter EVERY item through the user's diet rules: ${profile.diet_mode || 'standard'}. Do not include any items that violate this diet.${profile.diet_mode === 'appearance_mode' ? ' APPEARANCE MODE: Prioritise anti-inflammatory and bloat-reducing foods: cucumber, leafy greens, blueberries, salmon, sweet potato, avocado, green tea, eggs, olive oil, watermelon, kiwi, pumpkin seeds. Flag and deprioritise: processed meats, high-sodium packaged foods, seed oils, refined sugar, alcohol, soda.' : ''}
+
 User profile:
 - Diet: ${profile.diet_mode || 'standard'}
 - Goal: ${profile.goal}

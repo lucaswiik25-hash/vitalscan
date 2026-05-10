@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, HelpCircle, ImageIcon, Shield, XCircle, Lightbulb, Sparkles } from 'lucide-react';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 const SAFETY_COLORS = {
   safe: { bg: '#dcfce7', text: '#16a34a', label: 'Safe' },
@@ -19,13 +20,14 @@ export default function SkincareScanner() {
   const [result, setResult] = useState(null);
   const [scanLineAnim, setScanLineAnim] = useState(0);
 
+  // Slow scan line — 4 seconds per cycle
   useEffect(() => {
     let start = null;
     let raf;
     const animate = (ts) => {
       if (!start) start = ts;
-      const elapsed = (ts - start) % 2000;
-      setScanLineAnim(elapsed / 2000);
+      const elapsed = (ts - start) % 4000;
+      setScanLineAnim(elapsed / 4000);
       raf = requestAnimationFrame(animate);
     };
     if (!capturedFile && !isAnalyzing) {
@@ -45,9 +47,10 @@ export default function SkincareScanner() {
   const analyse = async () => {
     if (!capturedFile) return;
     setIsAnalyzing(true);
+    setPreviewUrl(null); // hide preview, show analyzing screen
+
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
-    // Single shot: identify product AND analyze ingredients at once
     const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
       prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze this skincare/cosmetic product image.
@@ -60,6 +63,11 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
     setResult(r.result);
     setIsAnalyzing(false);
   };
+
+  // Analyzing screen
+  if (isAnalyzing) {
+    return <AnalyzingScreen type="skincare" message="Reading ingredients & analysing safety..." />;
+  }
 
   // Results
   if (result) {
@@ -170,7 +178,7 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
   }
 
   // Photo preview screen
-  if (previewUrl && !isAnalyzing) {
+  if (previewUrl) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col">
         <img src={previewUrl} className="flex-1 w-full object-cover" alt="Captured" />
@@ -199,95 +207,63 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
     );
   }
 
+  // Camera UI — black background
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col">
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
       <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-12">
-        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-          <X className="w-5 h-5 text-gray-700" />
+        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <X className="w-5 h-5 text-white" />
         </button>
-        <button className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-          <HelpCircle className="w-5 h-5 text-gray-700" />
+        <button className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <HelpCircle className="w-5 h-5 text-white" />
         </button>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {isAnalyzing ? (
-          <div className="flex flex-col items-center">
-            <div
-              className="relative rounded-2xl overflow-hidden mb-4"
-              style={{ width: '65vw', aspectRatio: '3/4', boxShadow: '0 0 0 4px rgba(20,184,166,0.4), 0 0 40px rgba(20,184,166,0.3)' }}
-            >
-              <div className="absolute inset-0 bg-gray-100" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 border-2 border-gray-300 border-t-teal-500 rounded-full animate-spin" />
-              </div>
-              <div className="absolute inset-0 rounded-2xl animate-pulse" style={{ border: '3px solid rgba(20,184,166,0.7)' }} />
-            </div>
-            <p className="text-gray-500 text-sm font-medium">Reading ingredients and analyzing safety...</p>
-          </div>
-        ) : (
-          <>
-            {/* Tall rectangular frame */}
-            <div className="relative mb-5" style={{ width: '65vw', aspectRatio: '3/4' }}>
-              {[
-                'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl',
-                'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl',
-                'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl',
-                'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl',
-              ].map((cls, i) => (
-                <div key={i} className={`absolute w-10 h-10 border-gray-800 ${cls}`} />
-              ))}
-              {/* Scan line */}
-              <div
-                className="absolute left-2 right-2 h-0.5 rounded-full"
-                style={{
-                  top: `${scanLineAnim * 100}%`,
-                  background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.4), transparent)',
-                }}
-              />
-              {/* Illustration inside frame */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center opacity-15">
-                <div className="w-12 h-20 rounded-xl border-2 border-gray-700 relative flex flex-col items-center justify-end pb-2 gap-0.5">
-                  <div className="w-8 h-0.5 bg-gray-600 rounded" />
-                  <div className="w-6 h-0.5 bg-gray-600 rounded" />
-                  <div className="w-8 h-0.5 bg-gray-600 rounded" />
-                  <div className="w-5 h-0.5 bg-gray-600 rounded" />
-                  <div className="w-8 h-0.5 bg-gray-600 rounded" />
-                </div>
-              </div>
-              {previewUrl && (
-                <img src={previewUrl} className="absolute inset-0 w-full h-full object-cover rounded-[20px]" alt="" />
-              )}
-            </div>
+        {/* Tall rectangular frame — white corners */}
+        <div className="relative mb-5" style={{ width: '65vw', aspectRatio: '3/4' }}>
+          {[
+            'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl',
+            'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl',
+            'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl',
+            'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl',
+          ].map((cls, i) => (
+            <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
+          ))}
+          {/* Scan line — white, slow */}
+          <div
+            className="absolute left-2 right-2 h-0.5 rounded-full"
+            style={{
+              top: `${scanLineAnim * 100}%`,
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
+            }}
+          />
+        </div>
 
-            <p className="text-gray-400 text-sm text-center px-4 mb-4">
-              Photograph the ingredient list on any skincare or cosmetic product
-            </p>
+        <p className="text-white/50 text-sm text-center px-4 mb-4">
+          Photograph the ingredient list on any skincare or cosmetic product
+        </p>
 
-            {/* Tip card */}
-            <div className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 w-full">
-              <Lightbulb className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
-              <p className="text-xs text-gray-500">Tip — make sure all ingredients text is visible and in focus for best results.</p>
-            </div>
-          </>
-        )}
+        {/* Tip card */}
+        <div className="flex items-start gap-2 bg-white/10 border border-white/10 rounded-2xl px-4 py-3 w-full">
+          <Lightbulb className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
+          <p className="text-xs text-white/40">Tip — make sure all ingredients text is visible and in focus for best results.</p>
+        </div>
       </div>
 
-      {!isAnalyzing && (
-        <div className="pb-10 px-8">
-          <div className="flex items-center justify-between px-4">
-            <div className="w-11" />
-            <button onClick={() => cameraRef.current?.click()} className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 active:scale-95 transition-transform shadow-lg" />
-            <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
+      <div className="pb-10 px-8">
+        <div className="flex items-center justify-between px-4">
+          <div className="w-11" />
+          <button onClick={() => cameraRef.current?.click()} className="w-20 h-20 rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform shadow-lg" />
+          <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+            <ImageIcon className="w-5 h-5 text-white/40" />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

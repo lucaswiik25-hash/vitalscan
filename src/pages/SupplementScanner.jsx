@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, HelpCircle, ImageIcon, Check, Pill, FileText, CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 const FLAG_STYLES = {
   none: { bg: '#f0fdf4', text: '#16a34a' },
@@ -25,6 +26,7 @@ export default function SupplementScanner() {
   const [step1Data, setStep1Data] = useState(null);
   const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzingMsg, setAnalyzingMsg] = useState('');
   const [s1File, setS1File] = useState(null);
   const [s1Preview, setS1Preview] = useState(null);
   const [s2File, setS2File] = useState(null);
@@ -49,6 +51,8 @@ export default function SupplementScanner() {
   const analyseStep1 = async () => {
     if (!s1File) return;
     setIsAnalyzing(true);
+    setS1Preview(null);
+    setAnalyzingMsg('Identifying your supplement...');
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s1File });
     const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
@@ -60,12 +64,14 @@ Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule
     setStep1Data({ ...r.result, image_url: file_url });
     setIsAnalyzing(false);
     setStep(2);
-    setS1File(null); setS1Preview(null);
+    setS1File(null);
   };
 
   const analyseStep2 = async () => {
     if (!s2File) return;
     setIsAnalyzing(true);
+    setS2Preview(null);
+    setAnalyzingMsg('Analysing supplement facts...');
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s2File });
     const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
@@ -79,6 +85,11 @@ Read every single line of the supplement facts label. Return JSON with: serving_
   };
 
   const reset = () => { setResult(null); setStep1Data(null); setStep(1); setS1File(null); setS1Preview(null); setS2File(null); setS2Preview(null); };
+
+  // Analyzing screen
+  if (isAnalyzing) {
+    return <AnalyzingScreen type="supplement" message={analyzingMsg} />;
+  }
 
   // Results page
   if (result) {
@@ -183,14 +194,14 @@ Read every single line of the supplement facts label. Return JSON with: serving_
     );
   }
 
-  // Photo preview screen (step 1 or step 2)
+  // Photo preview screen
   const activePreview = step === 1 ? s1Preview : s2Preview;
   const activeAnalyse = step === 1 ? analyseStep1 : analyseStep2;
   const activeRetake = step === 1
     ? () => { setS1File(null); setS1Preview(null); }
     : () => { setS2File(null); setS2Preview(null); };
 
-  if (activePreview && !isAnalyzing) {
+  if (activePreview) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col">
         <img src={activePreview} className="flex-1 w-full object-cover" alt="Captured" />
@@ -218,97 +229,81 @@ Read every single line of the supplement facts label. Return JSON with: serving_
     );
   }
 
-  // Camera UI
+  // Camera UI — black background
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col">
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={step === 1 ? handleS1File : handleS2File} />
       <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={step === 1 ? handleS1File : handleS2File} />
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-12 z-10">
         <button onClick={step === 1 ? () => navigate(-1) : () => { setStep(1); setStep1Data(null); setS2File(null); setS2Preview(null); }}
-          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-          <X className="w-5 h-5 text-gray-700" />
+          className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <X className="w-5 h-5 text-white" />
         </button>
-        <button className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-          <HelpCircle className="w-5 h-5 text-gray-700" />
+        <button className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <HelpCircle className="w-5 h-5 text-white" />
         </button>
       </div>
 
       {/* Center */}
       <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {isAnalyzing ? (
-          <div className="flex flex-col items-center">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center animate-pulse mb-4">
-              <div className="w-10 h-10 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
-            </div>
-            <p className="text-gray-500 text-sm font-medium">Analyzing your supplement...</p>
+        {/* Two step cards — adapted for dark bg */}
+        <div className="flex gap-4 w-full mb-6">
+          {/* Step 1 */}
+          <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
+            style={{
+              borderColor: step === 1 ? 'white' : step1Data ? '#22c55e' : 'rgba(255,255,255,0.2)',
+              background: step1Data ? 'rgba(34,197,94,0.15)' : step === 1 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+            }}>
+            {step1Data
+              ? <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center"><Check className="w-6 h-6 text-white" /></div>
+              : <Pill className="w-10 h-10 text-white/60" strokeWidth={1.5} />
+            }
+            <p className="text-xs font-bold text-white/70 uppercase tracking-wide">Step 1</p>
+            <p className="text-[11px] text-white/40 leading-snug">Photograph the front of the bottle</p>
           </div>
-        ) : (
-          <>
-            {/* Two step cards */}
-            <div className="flex gap-4 w-full mb-6">
-              {/* Step 1 */}
-              <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
-                style={{
-                  borderColor: step === 1 ? '#1a1a1a' : step1Data ? '#22c55e' : '#e5e7eb',
-                  background: step1Data ? '#f0fdf4' : step === 1 ? '#f9f9f9' : '#f5f5f5',
-                }}>
-                {step1Data
-                  ? <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center"><Check className="w-6 h-6 text-white" /></div>
-                  : <Pill className="w-10 h-10 text-gray-700" strokeWidth={1.5} />
-                }
-                <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Step 1</p>
-                <p className="text-[11px] text-gray-400 leading-snug">Photograph the front of the bottle</p>
-              </div>
 
-              {/* Dotted connector */}
-              <div className="flex items-center self-center">
-                <div className="flex gap-0.5">{[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-gray-300" />)}</div>
-              </div>
+          {/* Dotted connector */}
+          <div className="flex items-center self-center">
+            <div className="flex gap-0.5">{[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-white/20" />)}</div>
+          </div>
 
-              {/* Step 2 */}
-              <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
-                style={{
-                  borderColor: step === 2 ? '#1a1a1a' : '#e5e7eb',
-                  background: step === 2 ? '#f9f9f9' : '#f5f5f5',
-                  opacity: step === 1 && !step1Data ? 0.5 : 1,
-                }}>
-                <FileText className="w-10 h-10 text-gray-700" strokeWidth={1.5} />
-                <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Step 2</p>
-                <p className="text-[11px] text-gray-400 leading-snug">Then photograph the back label</p>
-              </div>
-            </div>
+          {/* Step 2 */}
+          <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
+            style={{
+              borderColor: step === 2 ? 'white' : 'rgba(255,255,255,0.2)',
+              background: step === 2 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+              opacity: step === 1 && !step1Data ? 0.5 : 1,
+            }}>
+            <FileText className="w-10 h-10 text-white/60" strokeWidth={1.5} />
+            <p className="text-xs font-bold text-white/70 uppercase tracking-wide">Step 2</p>
+            <p className="text-[11px] text-white/40 leading-snug">Then photograph the back label</p>
+          </div>
+        </div>
 
-            {/* Progress */}
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">Step {step} of 2</p>
-            <p className="text-center text-sm text-gray-500 px-4 leading-relaxed">
-              {step === 1
-                ? 'Start by photographing the front of the supplement bottle so we can identify the product.'
-                : `Now photograph the back label or supplement facts panel of ${step1Data?.product_name || 'the supplement'}.`
-              }
-            </p>
-
-
-          </>
-        )}
+        <p className="text-xs text-white/30 font-semibold uppercase tracking-wider mb-3">Step {step} of 2</p>
+        <p className="text-center text-sm text-white/40 px-4 leading-relaxed">
+          {step === 1
+            ? 'Start by photographing the front of the supplement bottle so we can identify the product.'
+            : `Now photograph the back label or supplement facts panel of ${step1Data?.product_name || 'the supplement'}.`
+          }
+        </p>
       </div>
 
       {/* Bottom */}
-      {!isAnalyzing && (
-        <div className="pb-10 px-8">
-          <div className="flex items-center justify-between px-4">
-            <div className="w-11" />
-            <button
-              onClick={() => cameraRef.current?.click()}
-              className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 active:scale-95 transition-transform shadow-lg"
-            />
-            <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
+      <div className="pb-10 px-8">
+        <div className="flex items-center justify-between px-4">
+          <div className="w-11" />
+          <button
+            onClick={() => cameraRef.current?.click()}
+            className="w-20 h-20 rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform shadow-lg"
+          />
+          <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+            <ImageIcon className="w-5 h-5 text-white/40" />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

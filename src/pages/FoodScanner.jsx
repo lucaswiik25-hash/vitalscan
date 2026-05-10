@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, HelpCircle, Zap, ImageIcon, Barcode, FileText, UtensilsCrossed, Sparkles } from 'lucide-react';
+import { X, HelpCircle, Zap, ImageIcon, Barcode, FileText, UtensilsCrossed, Sparkles, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 const MODES = [
   { id: 'food', label: 'Scan Food', icon: UtensilsCrossed, desc: 'Photograph any meal or packaged product' },
@@ -24,15 +25,17 @@ export default function FoodScanner() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [scanLineAnim, setScanLineAnim] = useState(0);
+  const [extraNotes, setExtraNotes] = useState('');
+  const [showAddSheet, setShowAddSheet] = useState(false);
 
-  // Animate scan line
+  // Animate scan line — slow: 4 seconds per cycle
   useEffect(() => {
     let start = null;
     let raf;
     const animate = (ts) => {
       if (!start) start = ts;
-      const elapsed = (ts - start) % 2000;
-      setScanLineAnim(elapsed / 2000);
+      const elapsed = (ts - start) % 4000;
+      setScanLineAnim(elapsed / 4000);
       raf = requestAnimationFrame(animate);
     };
     if (!capturedFile && !isAnalyzing) {
@@ -46,13 +49,19 @@ export default function FoodScanner() {
     if (!file) return;
     setCapturedImage(URL.createObjectURL(file));
     setCapturedFile(file);
+    e.target.value = '';
   };
 
   const analyse = async () => {
     if (!capturedFile) return;
     setIsAnalyzing(true);
+    setCapturedImage(null); // hide preview, show analyzing screen
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
+
+    const extraContext = extraNotes.trim()
+      ? `\n\nAdditional context from user: "${extraNotes.trim()}". Include this in your nutritional estimate.`
+      : '';
 
     const { data: r1 } = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
@@ -81,7 +90,7 @@ Return JSON with:
 - barcode_number: string of barcode digits if visible
 - ingredients_text: full ingredient list text if visible on label
 
-NEVER fail. Always estimate from visual cues if exact values are not readable.`,
+NEVER fail. Always estimate from visual cues if exact values are not readable.${extraContext}`,
       response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
     });
     const call1 = r1.result;
@@ -115,9 +124,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.`,
       } catch (_) { }
     }
 
-    setResult({ ...enriched, image_url: file_url, step: 1 });
-    setIsAnalyzing(false);
-
+    // Run second analysis in parallel with showing step-1 result
     const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: `You are a clinical nutritionist and dermatologist. Analyze this food for diet, body, and appearance impact.
 
@@ -127,7 +134,9 @@ Nutrition per serving: ${enriched.calories} kcal, ${enriched.protein}g protein, 
 Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_risk ("low"/"medium"/"high"), bloat_reason, glycemic_impact ("low"/"medium"/"high"), glycemic_reason, collagen_effect, inflammation ("Low"/"Medium"/"High"), sebum_effect, skin_summary, appearance_tip, tomorrow_face, tomorrow_face_note, hormone_impact, hormone_note, gut_health, gut_note, processing_level ("Whole Food"/"Minimally Processed"/"Processed"/"Ultra Processed"), health_score (1-10). NEVER fail.`,
       response_json_schema: { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, inflammation: { type: 'string' }, sebum_effect: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, tomorrow_face_note: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } },
     });
-    setResult(prev => ({ ...prev, ...r2.result, step: 2 }));
+
+    setResult({ ...enriched, ...r2.result, image_url: file_url, step: 2 });
+    setIsAnalyzing(false);
   };
 
   const logMeal = async () => {
@@ -165,8 +174,26 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
     navigate('/');
   };
 
-  // Photo preview screen
-  if (capturedImage && !isAnalyzing) {
+  // Analyzing screen
+  if (isAnalyzing) {
+    return <AnalyzingScreen type="food" message="Analysing your food..." />;
+  }
+
+  // Result screen
+  if (result) {
+    return (
+      <FoodScanResult
+        result={result}
+        onLog={logMeal}
+        onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); setExtraNotes(''); }}
+        onBack={() => navigate(-1)}
+      />
+    );
+  }
+
+  // Photo preview screen (food mode only gets "anything to add" sheet)
+  if (capturedImage) {
+    const isFoodMode = mode === 0;
     return (
       <div className="fixed inset-0 bg-black flex flex-col">
         <img src={capturedImage} className="flex-1 w-full object-cover" alt="Captured" />
@@ -181,168 +208,166 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
             <HelpCircle className="w-5 h-5 text-white" />
           </button>
         </div>
-        {/* Bottom actions */}
-        <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
-          <button
-            onClick={analyse}
-            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg"
-          >
-            <Sparkles className="w-5 h-5" />
-            Analyse
-          </button>
-          <button
-            onClick={() => { setCapturedImage(null); setCapturedFile(null); }}
-            className="text-white/70 text-sm font-medium"
-          >
-            Retake photo
-          </button>
-        </div>
-      </div>
-    );
-  }
 
-  if (result) {
-    return (
-      <FoodScanResult
-        result={result}
-        onLog={logMeal}
-        onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); }}
-        onBack={() => navigate(-1)}
-      />
+        {/* "Anything to add" bottom sheet for food mode */}
+        {isFoodMode && showAddSheet && (
+          <div className="absolute inset-0 flex flex-col justify-end">
+            <div className="absolute inset-0 bg-black/20" onClick={() => setShowAddSheet(false)} />
+            <div className="relative bg-white rounded-t-[28px] px-5 pt-5 pb-10" style={{ maxHeight: '35vh' }}>
+              <div className="w-10 h-1 rounded-full bg-gray-300 mx-auto mb-4" />
+              <p className="text-sm font-bold text-gray-900 mb-1">Anything to add?</p>
+              <p className="text-xs text-gray-400 mb-3">Describe hidden ingredients, sauces, or extras the AI might miss.</p>
+              <textarea
+                value={extraNotes}
+                onChange={e => setExtraNotes(e.target.value)}
+                placeholder="e.g. also had ketchup, hidden vegetables, olive oil drizzle..."
+                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400"
+                rows={3}
+                autoFocus
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Bottom actions */}
+        {!showAddSheet && (
+          <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
+            {isFoodMode && (
+              <button
+                onClick={() => setShowAddSheet(true)}
+                className="flex items-center gap-1.5 text-white/70 text-sm font-medium bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full"
+              >
+                <Plus className="w-4 h-4" />
+                Anything to add?
+                {extraNotes.trim() && <span className="w-2 h-2 rounded-full bg-green-400 ml-1" />}
+              </button>
+            )}
+            <button
+              onClick={analyse}
+              className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Sparkles className="w-5 h-5" />
+              Analyse
+            </button>
+            <button
+              onClick={() => { setCapturedImage(null); setCapturedFile(null); }}
+              className="text-white/70 text-sm font-medium"
+            >
+              Retake photo
+            </button>
+          </div>
+        )}
+
+        {/* Done button when sheet is open */}
+        {showAddSheet && (
+          <div className="absolute bottom-[35vh] left-0 right-0 pb-4 px-6 flex flex-col items-center gap-2">
+            <button
+              onClick={() => { setShowAddSheet(false); }}
+              className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Sparkles className="w-5 h-5" />
+              Analyse
+            </button>
+          </div>
+        )}
+      </div>
     );
   }
 
   const isBarcode = mode === 1;
   const isLabel = mode === 2;
-
-  // Frame dimensions
   const frameW = isBarcode ? '82%' : '75%';
   const frameAspect = isBarcode ? 'aspect-[3/1]' : 'aspect-square';
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative">
+    <div className="min-h-screen bg-black flex flex-col relative">
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
       <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12 z-10">
-        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-          <X className="w-5 h-5 text-gray-700" />
+        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <X className="w-5 h-5 text-white" />
         </button>
-        <button className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
-          <HelpCircle className="w-5 h-5 text-gray-700" />
+        <button className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <HelpCircle className="w-5 h-5 text-white" />
         </button>
       </div>
 
       {/* Center scanning frame */}
       <div className="flex-1 flex flex-col items-center justify-center">
-        {isAnalyzing ? (
-          <div className="flex flex-col items-center">
+        <div className="relative" style={{ width: frameW }}>
+          <div className={`relative ${frameAspect}`}>
+            {/* Corner brackets */}
+            {[
+              'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl',
+              'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl',
+              'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl',
+              'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl',
+            ].map((cls, i) => (
+              <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
+            ))}
+
+            {/* Scan line — white, slow */}
             <div
-              className="relative rounded-2xl overflow-hidden"
-              style={{ width: '75vw', aspectRatio: '1', boxShadow: '0 0 0 4px rgba(74,222,128,0.4), 0 0 40px rgba(74,222,128,0.3)' }}
-            >
-              <div className="absolute inset-0 bg-gray-100 rounded-2xl" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
-              </div>
-              {/* Green pulse border */}
-              <div className="absolute inset-0 rounded-2xl animate-pulse" style={{ border: '3px solid rgba(74,222,128,0.7)' }} />
-            </div>
-            <p className="mt-6 text-gray-500 text-sm font-medium">Analyzing your food...</p>
+              className="absolute left-2 right-2 h-0.5 rounded-full"
+              style={{
+                top: `${scanLineAnim * 100}%`,
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
+              }}
+            />
           </div>
-        ) : (
-          <>
-            <div className="relative" style={{ width: frameW }}>
-              <div className={`relative ${frameAspect}`}>
-                {/* Corner brackets */}
-                {[
-                  'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl',
-                  'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl',
-                  'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl',
-                  'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl',
-                ].map((cls, i) => (
-                  <div key={i} className={`absolute w-10 h-10 border-gray-800 ${cls}`} />
-                ))}
-
-                {/* Scan line */}
-                <div
-                  className="absolute left-2 right-2 h-0.5 rounded-full"
-                  style={{
-                    top: `${scanLineAnim * 100}%`,
-                    background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.5), transparent)',
-                    opacity: 0.7,
-                  }}
-                />
-
-                {/* Label mode overlay */}
-                {isLabel && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20">
-                    <div className="border-2 border-gray-600 rounded-lg w-3/4 h-3/4 flex flex-col items-center justify-center gap-1 p-2">
-                      <div className="w-full h-1 bg-gray-600 rounded" />
-                      <div className="w-3/4 h-1 bg-gray-600 rounded" />
-                      <div className="w-full h-1 bg-gray-600 rounded" />
-                      <div className="w-2/3 h-1 bg-gray-600 rounded" />
-                    </div>
-                    <p className="text-[9px] text-gray-600 mt-1 font-medium">Align the label inside the frame</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="mt-5 text-gray-400 text-sm text-center px-8">
-              {isBarcode ? 'Point at any product barcode' : isLabel ? 'Align the nutrition label inside the frame' : 'Point at food, a barcode, or a nutrition label'}
-            </p>
-          </>
-        )}
+        </div>
+        <p className="mt-5 text-white/50 text-sm text-center px-8">
+          {isBarcode ? 'Point at any product barcode' : isLabel ? 'Align the nutrition label inside the frame' : 'Point at food, a barcode, or a nutrition label'}
+        </p>
       </div>
 
       {/* Bottom controls */}
-      {!isAnalyzing && (
-        <div className="pb-10 px-5 space-y-4">
-          {/* Mode selector frosted card */}
-          <div className="bg-gray-100/80 backdrop-blur rounded-[24px] p-3">
-            <div className="flex gap-2 mb-2">
-              {MODES.map((m, i) => {
-                const Icon = m.icon;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => setMode(i)}
-                    className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-2xl transition-all"
-                    style={{ background: mode === i ? 'white' : 'transparent' }}
-                  >
-                    <Icon className="w-4 h-4" style={{ color: mode === i ? '#1a1a1a' : '#9ca3af' }} strokeWidth={1.5} />
-                    <span className="text-xs font-semibold" style={{ color: mode === i ? '#1a1a1a' : '#9ca3af' }}>{m.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-center text-xs text-gray-400">{MODES[mode].desc}</p>
+      <div className="pb-10 px-5 space-y-4">
+        {/* Mode selector */}
+        <div className="bg-white/10 backdrop-blur rounded-[24px] p-3">
+          <div className="flex gap-2 mb-2">
+            {MODES.map((m, i) => {
+              const Icon = m.icon;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setMode(i)}
+                  className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-2xl transition-all"
+                  style={{ background: mode === i ? 'rgba(255,255,255,0.15)' : 'transparent' }}
+                >
+                  <Icon className="w-4 h-4" style={{ color: mode === i ? 'white' : 'rgba(255,255,255,0.4)' }} strokeWidth={1.5} />
+                  <span className="text-xs font-semibold" style={{ color: mode === i ? 'white' : 'rgba(255,255,255,0.4)' }}>{m.label}</span>
+                </button>
+              );
+            })}
           </div>
-
-          {/* Shutter row */}
-          <div className="flex items-center justify-between px-4">
-            <button
-              onClick={() => setFlash(f => !f)}
-              className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center"
-            >
-              <Zap className={`w-5 h-5 ${flash ? 'text-yellow-500' : 'text-gray-400'}`} />
-            </button>
-            <button
-              onClick={() => cameraInputRef.current?.click()}
-              className="w-20 h-20 rounded-full bg-gray-900 border-4 border-gray-200 flex items-center justify-center active:scale-95 transition-transform shadow-lg"
-            >
-              <div className="w-16 h-16 rounded-full bg-white" />
-            </button>
-            <button
-              onClick={() => uploadInputRef.current?.click()}
-              className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center"
-            >
-              <ImageIcon className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
+          <p className="text-center text-xs text-white/40">{MODES[mode].desc}</p>
         </div>
-      )}
+
+        {/* Shutter row */}
+        <div className="flex items-center justify-between px-4">
+          <button
+            onClick={() => setFlash(f => !f)}
+            className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+          >
+            <Zap className={`w-5 h-5 ${flash ? 'text-yellow-400' : 'text-white/40'}`} />
+          </button>
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-20 h-20 rounded-full bg-white border-4 border-white/30 flex items-center justify-center active:scale-95 transition-transform shadow-lg"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/80" />
+          </button>
+          <button
+            onClick={() => uploadInputRef.current?.click()}
+            className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+          >
+            <ImageIcon className="w-5 h-5 text-white/40" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

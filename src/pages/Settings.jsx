@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LogOut, User, Bell, Moon, ChevronRight, Trash2, Shield, Info } from 'lucide-react';
+import { LogOut, User, Shield, Info, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
 
   const { data: profiles = [] } = useQuery({
@@ -134,6 +136,19 @@ export default function Settings() {
           </SettingRow>
           <div className="pb-1" />
         </div>
+
+        {/* Redo Onboarding */}
+        <button
+          onClick={async () => {
+            if (!profile.id) return;
+            await base44.entities.UserProfile.update(profile.id, { onboarding_complete: false });
+            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+            navigate('/onboarding');
+          }}
+          className="w-full bg-white border border-border rounded-[24px] px-5 py-4 flex items-center gap-3 shadow-sm active:scale-[0.98] transition-transform">
+          <RefreshCw className="w-4 h-4 text-foreground" />
+          <span className="text-sm font-semibold text-foreground">Redo Onboarding</span>
+        </button>
 
         {/* Logout */}
         <button

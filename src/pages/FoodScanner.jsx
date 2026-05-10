@@ -130,19 +130,49 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     }
 
     // Run second analysis in parallel with showing step-1 result
-    const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
-      prompt: `You are a clinical nutritionist and dermatologist. Analyze this food for diet, body, and appearance impact.
+    const appearancePrompt = isAppearance ? `You are a dermatologist and appearance optimization expert. This user is on APPEARANCE MODE — their entire goal is facial clarity, reduced water retention, sharp facial definition, clear skin, reduced undereye puffiness, and hormonal balance.
 
-User's diet mode: ${dietMode}. Tailor the diet_compatibility verdict SPECIFICALLY to the rules of ${dietMode} — not general health. A food that is YES for standard can be NO for keto, carnivore, vegan, etc.
+APPEARANCE FOODS TO RATE POSITIVELY: eggs, salmon, fatty fish, avocado, blueberries, dark berries, leafy greens, spinach, kale, cucumber, watermelon, sweet potato, olive oil, green tea, pumpkin seeds, broccoli, bone broth, kiwi, Brazil nuts, dark chocolate 85%+, pomegranate, carrots, garlic, walnuts.
+
+APPEARANCE FOODS TO FLAG NEGATIVELY: high sodium foods (water retention → next day puffiness), refined sugar/added sugar (insulin spike → inflammation, glycation, sebum), seed oils (sunflower/canola/soybean/vegetable — inflammatory, disrupts omega ratio), alcohol (dehydrates skin, disrupts sleep), processed meats (sodium + nitrates → inflammation), dairy (IGF-1 spike → sebum in sensitive individuals), white bread/refined carbs (high GI → insulin → inflammation), soda/energy drinks (gut microbiome → skin), fast food (triple threat), artificial sweeteners (gut dysbiosis → skin), soy in large amounts (phytoestrogens → testosterone balance), trans fats (inflammatory, disrupts cell membranes).
+
+Food: "${enriched.name}"
+Nutrition per serving: ${enriched.calories} kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium, ${enriched.fiber || 0}g fiber
+User sex: ${userProfile.sex || 'unknown'}
+
+Return JSON with:
+- appearance_impact: "Excellent", "Good", "Neutral", or "Avoid"
+- appearance_reason: one sentence on why (specific to this food's effect on face/skin)
+- bloat_risk: "Low", "Medium", or "High"
+- bloat_reason: specific reason tied to sodium or sugar content
+- skin_impact: one sentence on what this food does to skin clarity and texture
+- collagen_effect: "Supports", "Neutral", or "Damages" with one sentence reason (collagen_reason)
+- collagen_reason: string
+- hormone_effect: "Supports", "Neutral", or "Disrupts" (for testosterone/hormonal balance)
+- hormone_reason: one sentence
+- tomorrow_face: one sentence — will this food make tomorrow's face look better or worse and why
+- glycemic_impact: "Low", "Medium", or "High"
+- glycemic_reason: one sentence (insulin spikes → sebum connection)
+- health_score: 1-10
+- processing_level: "Whole Food"/"Minimally Processed"/"Processed"/"Ultra Processed"
+NEVER fail.` : `You are a clinical nutritionist and dermatologist. Analyze this food for diet, body, and appearance impact.
+
+User's diet mode: ${dietMode}. Tailor the diet_compatibility verdict SPECIFICALLY to the rules of ${dietMode} — not general health.
 
 Food: "${enriched.name}"
 Nutrition per serving: ${enriched.calories} kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium, ${enriched.fiber || 0}g fiber
 
-Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_risk ("low"/"medium"/"high"), bloat_reason, glycemic_impact ("low"/"medium"/"high"), glycemic_reason, collagen_effect, inflammation ("Low"/"Medium"/"High"), sebum_effect, skin_summary, appearance_tip, tomorrow_face, tomorrow_face_note, hormone_impact, hormone_note, gut_health, gut_note, processing_level ("Whole Food"/"Minimally Processed"/"Processed"/"Ultra Processed"), health_score (1-10). NEVER fail.`,
-      response_json_schema: { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, inflammation: { type: 'string' }, sebum_effect: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, tomorrow_face_note: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } },
+Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_risk ("low"/"medium"/"high"), bloat_reason, glycemic_impact ("low"/"medium"/"high"), glycemic_reason, collagen_effect, inflammation ("Low"/"Medium"/"High"), sebum_effect, skin_summary, appearance_tip, tomorrow_face, tomorrow_face_note, hormone_impact, hormone_note, gut_health, gut_note, processing_level ("Whole Food"/"Minimally Processed"/"Processed"/"Ultra Processed"), health_score (1-10). NEVER fail.`;
+
+    const appearanceSchema = { type: 'object', properties: { appearance_impact: { type: 'string' }, appearance_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, skin_impact: { type: 'string' }, collagen_effect: { type: 'string' }, collagen_reason: { type: 'string' }, hormone_effect: { type: 'string' }, hormone_reason: { type: 'string' }, tomorrow_face: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, health_score: { type: 'number' }, processing_level: { type: 'string' } } };
+    const standardSchema = { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, inflammation: { type: 'string' }, sebum_effect: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, tomorrow_face_note: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } };
+
+    const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
+      prompt: appearancePrompt,
+      response_json_schema: isAppearance ? appearanceSchema : standardSchema,
     });
 
-    setResult({ ...enriched, ...r2.result, image_url: file_url, step: 2 });
+    setResult({ ...enriched, ...r2.result, image_url: file_url, step: 2, is_appearance_mode: isAppearance });
     setIsAnalyzing(false);
   };
 

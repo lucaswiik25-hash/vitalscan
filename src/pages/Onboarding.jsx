@@ -114,9 +114,9 @@ const DIET_OPTIONS = [
   },
   {
     id: 'appearance_mode',
-    label: 'Appearance Mode',
-    subtitle: 'Skin & bloat overlay',
-    description: 'Adds sodium/potassium tracking. Scanner adds skin impact and tomorrow face prediction to every result.',
+    label: '✦ Appearance Mode',
+    subtitle: 'Look your best — inside out',
+    description: 'The entire app shifts focus to facial clarity, reduced puffiness, sharp definition, and hormonal balance. Every meal, scan, and recommendation is built around making you look better. Food scanner shows Appearance Impact instead of macros. Meal planner builds anti-inflammatory, low-sodium, collagen-supporting days. Shopping list prioritises skin-clarity foods.',
     color: '#d946ef',
   },
 ];
@@ -179,6 +179,11 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
 
   const saveProfile = async () => {
     setIsAnalyzing(true);
+    // Delete any existing profiles before creating new one (handles redo onboarding)
+    const existing = await base44.entities.UserProfile.list();
+    for (const p of existing) {
+      await base44.entities.UserProfile.delete(p.id);
+    }
     await base44.entities.UserProfile.create({
       ...parsedProfile,
       diet_mode: selectedDiet,

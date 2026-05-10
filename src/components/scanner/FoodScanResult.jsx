@@ -167,8 +167,64 @@ NEVER fail.`,
     </div>
   );
 
-  // Slide 1: AI Verdict Part 1 — diet/body analysis
-  const slide1 = (
+  // Appearance Mode impact colors
+  const appearanceImpactStyle = {
+    Excellent: { bg: '#dcfce7', text: '#16a34a' },
+    Good: { bg: '#d1fae5', text: '#059669' },
+    Neutral: { bg: '#f3f4f6', text: '#6b7280' },
+    Avoid: { bg: '#fee2e2', text: '#dc2626' },
+  };
+
+  // Slide 1: AI Verdict Part 1
+  const slide1 = result.is_appearance_mode ? (
+    <div className="h-full overflow-y-auto pb-4 space-y-2">
+      {/* Appearance Impact — hero */}
+      {result.appearance_impact && (() => {
+        const s = appearanceImpactStyle[result.appearance_impact] || appearanceImpactStyle.Neutral;
+        return (
+          <div className="rounded-2xl p-4" style={{ background: s.bg }}>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: s.text }}>Appearance Impact</p>
+              <span className="text-sm font-extrabold" style={{ color: s.text }}>{result.appearance_impact}</span>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: s.text }}>{result.appearance_reason}</p>
+          </div>
+        );
+      })()}
+      <Row label="Bloat Risk" value={result.bloat_risk} note={result.bloat_reason} />
+      <Row label="Glycemic Impact" value={result.glycemic_impact} note={result.glycemic_reason} />
+      {result.skin_impact && (
+        <div className="bg-gray-50 rounded-2xl p-3">
+          <p className="text-[10px] font-bold text-gray-500 uppercase mb-0.5">Skin Impact</p>
+          <p className="text-xs text-gray-700">{result.skin_impact}</p>
+        </div>
+      )}
+      {result.collagen_effect && (
+        <div className="bg-gray-50 rounded-2xl p-3">
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="text-[10px] font-bold text-gray-500 uppercase">Collagen Effect</p>
+            <Pill value={result.collagen_effect} />
+          </div>
+          {result.collagen_reason && <p className="text-xs text-gray-500">{result.collagen_reason}</p>}
+        </div>
+      )}
+      {result.hormone_effect && (
+        <div className="bg-gray-50 rounded-2xl p-3">
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="text-[10px] font-bold text-gray-500 uppercase">Hormone Effect</p>
+            <Pill value={result.hormone_effect} />
+          </div>
+          {result.hormone_reason && <p className="text-xs text-gray-500">{result.hormone_reason}</p>}
+        </div>
+      )}
+      {result.tomorrow_face && (
+        <div className="bg-purple-50 rounded-2xl p-3">
+          <p className="text-[10px] font-bold text-purple-600 uppercase mb-0.5">😴 Tomorrow's Face</p>
+          <p className="text-xs text-purple-700">{result.tomorrow_face}</p>
+        </div>
+      )}
+    </div>
+  ) : (
     <div className="h-full overflow-y-auto pb-4">
       <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Body & Diet Analysis</p>
       {result.step >= 2 ? (
@@ -187,7 +243,33 @@ NEVER fail.`,
   );
 
   // Slide 2: AI Verdict Part 2 — appearance & hormones
-  const slide2 = (
+  const slide2 = result.is_appearance_mode ? (
+    // Appearance mode: show macros as reference (secondary focus)
+    <div className="h-full overflow-y-auto pb-4 space-y-3">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Macros (Reference Only)</p>
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
+        {[
+          ['Calories', `${cal} kcal`],
+          ['Protein', `${prot}g`],
+          ['Carbs', `${carbs}g`],
+          ['Fat', `${fat}g`],
+          ['Sugar', `${Math.round((result.sugar || 0) * servings * 10) / 10}g`],
+          ['Sodium', `${Math.round((result.sodium || 0) * servings)}mg`],
+        ].map(([l, v]) => (
+          <div key={l} className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">{l}</span>
+            <span className="text-xs font-semibold text-gray-700">{v}</span>
+          </div>
+        ))}
+      </div>
+      {result.processing_level && (
+        <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
+          <span className="text-xs text-gray-500">Processing Level</span>
+          <Pill value={result.processing_level} />
+        </div>
+      )}
+    </div>
+  ) : (
     <div className="h-full overflow-y-auto pb-4 space-y-3">
       <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Appearance & More</p>
       {result.appearance_tip && (
@@ -299,7 +381,9 @@ NEVER fail.`,
   );
 
   const allSlides = [slide0, slide1, slide2, slide3];
-  const slideLabels = ['Macros', 'Body', 'Appearance', 'Ingredients'];
+  const slideLabels = result.is_appearance_mode
+    ? ['Overview', 'Appearance', 'Macros', 'Ingredients']
+    : ['Macros', 'Body', 'Appearance', 'Ingredients'];
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {

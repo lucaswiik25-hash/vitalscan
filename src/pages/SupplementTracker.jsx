@@ -64,16 +64,46 @@ export default function SupplementTracker() {
       `${m.name}: ${m.calories}cal, ${m.protein}g protein, ${m.fat}g fat, ${m.carbs}g carbs, ${m.fiber || 0}g fiber`
     ).join('\n');
 
-    const { data: claudeRes } = await base44.functions.invoke('analyzeWithClaude', {
-      prompt: `You are a nutritionist. Based on this user's recent food intake log and profile, analyze what supplements they may be deficient in.
+    const isAppearance = profile.diet_mode === 'appearance_mode';
 
-User profile: age ${profile.age}, sex ${profile.sex}, goal: ${profile.goal}, diet: ${profile.diet_mode}. Tailor all recommendations specifically to the ${profile.diet_mode} diet — e.g. vegans need B12, keto users need electrolytes, appearance mode users should prioritise collagen, zinc, vitamin C, omega-3.
+    const appearanceSupplementPrompt = `You are a supplement specialist focused on appearance optimization. Evaluate this user's current supplement stack specifically for appearance outcomes — facial clarity, reduced puffiness, hormonal balance, skin health, and collagen synthesis.
+
+APPEARANCE SUPPLEMENT PRIORITIES (must-haves):
+1. Zinc — reduces acne, supports testosterone, regulates sebum production
+2. Vitamin D3 with K2 — hormonal balance and skin clarity
+3. Omega-3 fish oil — reduces facial inflammation, supports skin barrier
+4. Magnesium glycinate — reduces cortisol (shows on face), supports sleep quality
+5. Collagen peptides — directly supports skin structure and elasticity
+6. Vitamin C — cofactor for collagen synthesis
+7. Beta carotene or Vitamin A — skin cell turnover
+8. B complex — skin cell renewal and stress response
+9. Biotin — hair and nail health if relevant
+
+FLAGS TO LOOK FOR IN CURRENT STACK:
+- Supplements with artificial colors, titanium dioxide, or unnecessary fillers — flag as contradicting the clean appearance goal
+- Magnesium oxide — flag as poorly absorbed (only 4%), recommend switching to glycinate
+- Folic acid — flag as synthetic, recommend methylfolate instead
+- Vitamin D2 — flag as inferior, recommend D3
+- Any supplement high in fillers or artificial additives
+
+User: age ${profile.age}, sex ${profile.sex}.
+Current supplements: ${supplements.map(s => s.name).join(', ') || 'None'}.
+Recent diet summary: ${mealSummary || 'No meals logged yet'}.
+
+Identify the top 5 appearance gaps or stack issues. For each explain the appearance impact and what to do.`;
+
+    const standardSupplementPrompt = `You are a nutritionist. Based on this user's recent food intake log and profile, analyze what supplements they may be deficient in.
+
+User profile: age ${profile.age}, sex ${profile.sex}, goal: ${profile.goal}, diet: ${profile.diet_mode}. Tailor all recommendations specifically to the ${profile.diet_mode} diet.
 Recent meals (last 30):
 ${mealSummary || 'No meals logged yet'}
 
 Current supplements they take: ${supplements.map(s => s.name).join(', ') || 'None'}
 
-Identify the top 5 supplement deficiencies or gaps they likely have based on their diet pattern. For each, explain WHY they might be deficient and what health risks it poses. Be specific and medically accurate.`,
+Identify the top 5 supplement deficiencies or gaps they likely have based on their diet pattern. For each, explain WHY they might be deficient and what health risks it poses. Be specific and medically accurate.`;
+
+    const { data: claudeRes } = await base44.functions.invoke('analyzeWithClaude', {
+      prompt: isAppearance ? appearanceSupplementPrompt : standardSupplementPrompt,
       response_json_schema: { type: 'object', properties: { deficiencies: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } } },
     });
     setAiResult(claudeRes.result);

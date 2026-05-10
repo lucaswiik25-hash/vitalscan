@@ -126,10 +126,22 @@ export default function ShoppingList() {
     setList(null);
     setChecked({});
 
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a nutritionist and budget shopper. Create a weekly grocery shopping list for this user.
+    const isAppearance = profile.diet_mode === 'appearance_mode';
+    const appearanceShoppingPrompt = `You are a nutritionist specializing in appearance optimization. Create a weekly grocery shopping list built ENTIRELY around foods that improve facial clarity, reduce puffiness, support collagen, and balance hormones.
 
-IMPORTANT: Filter EVERY item through the user's diet rules: ${profile.diet_mode || 'standard'}. Do not include any items that violate this diet.${profile.diet_mode === 'appearance_mode' ? ' APPEARANCE MODE: Prioritise anti-inflammatory and bloat-reducing foods: cucumber, leafy greens, blueberries, salmon, sweet potato, avocado, green tea, eggs, olive oil, watermelon, kiwi, pumpkin seeds. Flag and deprioritise: processed meats, high-sodium packaged foods, seed oils, refined sugar, alcohol, soda.' : ''}
+APPEARANCE MODE SHOPPING RULES:
+ALWAYS INCLUDE (appearance-supporting staples): eggs, salmon or other fatty fish, avocado, blueberries, spinach or kale, cucumber, sweet potato, olive oil (extra virgin only), pumpkin seeds, green tea, dark chocolate 85%+, plain Greek yogurt (no added sugar), lean chicken or beef, broccoli, walnuts, bone broth or collagen powder, kiwi, carrots, garlic.
+NEVER INCLUDE: seed oils (sunflower/canola/soybean/vegetable oil), sugary products, white bread, pasta, processed meats (deli meats, sausages), soda, energy drinks, pre-packaged sauces with hidden sodium or sugar, artificial sweeteners, trans fats.
+
+User: allergens to avoid: ${(profile.allergens || []).join(', ') || 'none'}.
+Country: ${country} — use realistic ${country} grocery store prices in ${curr.currency}.
+Weekly budget: ${curr.currency}${budget}.
+
+Group items by category. Stay within budget. Include estimated cost per item. For each item add a short appearance_note on why it's on the list.`;
+
+    const standardShoppingPrompt = `You are a nutritionist and budget shopper. Create a weekly grocery shopping list for this user.
+
+IMPORTANT: Filter EVERY item through the user's diet rules: ${profile.diet_mode || 'standard'}. Do not include any items that violate this diet.
 
 User profile:
 - Diet: ${profile.diet_mode || 'standard'}
@@ -141,7 +153,10 @@ User profile:
 - Weekly budget: ${curr.currency}${budget}
 
 Create a realistic, complete weekly shopping list. Group items by category. Prices must be accurate for ${country}. Stay within the ${curr.currency}${budget} budget.
-Include estimated cost per item and total cost. Make it practical — whole foods, easy to find in local supermarkets.`,
+Include estimated cost per item and total cost. Make it practical — whole foods, easy to find in local supermarkets.`;
+
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: isAppearance ? appearanceShoppingPrompt : standardShoppingPrompt,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -185,7 +200,7 @@ Include estimated cost per item and total cost. Make it practical — whole food
     <div className="min-h-screen bg-background pb-10">
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Shopping List</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">AI-generated based on your diet & budget</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised groceries' : 'AI-generated based on your diet & budget'}</p>
       </div>
 
       <div className="px-5 space-y-4">

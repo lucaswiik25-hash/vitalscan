@@ -44,10 +44,30 @@ export default function MealPlanner() {
       6: ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Evening Snack'],
     };
 
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a professional nutritionist. Create a complete one-day meal plan for this user.
+    const isAppearance = profile.diet_mode === 'appearance_mode';
 
-DIET MODE: ${profile.diet_mode || 'standard'}. Build the ENTIRE day's meals strictly around the rules and principles of this diet. Every meal must comply with ${profile.diet_mode || 'standard'} diet rules.${profile.diet_mode === 'appearance_mode' ? ' Focus on anti-inflammatory, collagen-supporting, low-bloat meals that balance sodium and potassium.' : ''}
+    const appearanceMealPrompt = `You are a nutritionist and appearance optimization specialist. Create a one-day meal plan ENTIRELY optimized for facial clarity, reduced puffiness, sharp definition, and skin health.
+
+APPEARANCE MODE RULES:
+- NEVER plan meals around hitting macro targets. Plan entirely around appearance outcomes.
+- Every meal must be anti-inflammatory, low sodium, and collagen-supporting.
+- Prioritise: eggs, salmon, fatty fish, avocado, blueberries, leafy greens, cucumber, sweet potato, olive oil, pumpkin seeds, broccoli, bone broth, kiwi, walnuts, dark chocolate 85%+, green tea, carrots, garlic.
+- AVOID COMPLETELY: seed oils (sunflower/canola/soybean/vegetable), refined sugar, white bread, pasta, processed meats, soda, energy drinks, packaged sauces with hidden sodium/sugar.
+- Sodium is the #1 driver of next-day puffiness — keep each meal under 400mg sodium.
+- Morning: anti-inflammatory, hormone-supporting, low sodium.
+- Midday: collagen-supporting, low glycemic, skin nourishing.
+- Snacks: antioxidant rich, low sugar.
+- Evening: low sodium, anti-bloat.
+
+User: ${profile.name}, age ${profile.age}, sex ${profile.sex}, weight ${profile.weight}kg.
+Allergens to avoid: ${(profile.allergens || []).join(', ') || 'none'}.
+Number of meals: ${mealCount} meals named: ${mealNames[mealCount].join(', ')}.
+
+For each meal provide: name, description (appearance benefit focused, 1-2 sentences), appearance_benefit (e.g. "reduces facial inflammation, supports skin elasticity"), ingredients (list), bloat_risk ("Low"/"Medium"/"High"), sodium_estimate (mg number), calories, protein, carbs, fat, prep_time.`;
+
+    const standardMealPrompt = `You are a professional nutritionist. Create a complete one-day meal plan for this user.
+
+DIET MODE: ${profile.diet_mode || 'standard'}. Build the ENTIRE day's meals strictly around the rules and principles of this diet. Every meal must comply with ${profile.diet_mode || 'standard'} diet rules.
 
 User profile:
 - Name: ${profile.name}
@@ -63,8 +83,11 @@ User profile:
 - Allergens to avoid: ${(profile.allergens || []).join(', ') || 'none'}
 - Number of meals: ${mealCount} meals named: ${mealNames[mealCount].join(', ')}
 
-Generate ${mealCount} meals. Strictly respect the diet type (${profile.diet_mode}). Make meals realistic, delicious, and achievable at home.
-For each meal provide: name, description (1-2 sentences), ingredients (list), calories, protein, carbs, fat, prep_time${profile.diet_mode === 'appearance_mode' ? ', bloat_risk ("Low"/"Medium"/"High")' : ''}.`,
+Generate ${mealCount} meals. Make meals realistic, delicious, and achievable at home.
+For each meal provide: name, description (1-2 sentences), ingredients (list), calories, protein, carbs, fat, prep_time.`;
+
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: isAppearance ? appearanceMealPrompt : standardMealPrompt,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -76,7 +99,10 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
                 meal_type: { type: 'string' },
                 name: { type: 'string' },
                 description: { type: 'string' },
+                appearance_benefit: { type: 'string' },
                 ingredients: { type: 'array', items: { type: 'string' } },
+                bloat_risk: { type: 'string' },
+                sodium_estimate: { type: 'number' },
                 calories: { type: 'number' },
                 protein: { type: 'number' },
                 carbs: { type: 'number' },
@@ -92,10 +118,9 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
       },
     });
 
-    setPlan(result);
+    setPlan({ ...result, is_appearance_mode: isAppearance });
     setExpanded({});
-    // Persist to localStorage for the day
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: TODAY, plan: result, mealCount }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: TODAY, plan: { ...result, is_appearance_mode: isAppearance }, mealCount }));
     setLoading(false);
   };
 
@@ -105,7 +130,7 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
     <div className="min-h-screen bg-background pb-10">
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Meal Planner</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">AI-generated meals for your diet & goals</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised meals for today' : 'AI-generated meals for your diet & goals'}</p>
       </div>
 
       <div className="px-5 space-y-4">
@@ -174,7 +199,10 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
                       <div className="flex-1">
                         <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{meal.meal_type}</p>
                         <h3 className="text-base font-bold text-foreground mt-0.5">{meal.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">{meal.calories} kcal · {meal.prep_time}</p>
+                        {plan.is_appearance_mode
+                          ? <p className="text-xs text-muted-foreground mt-0.5">{meal.prep_time} · Bloat: {meal.bloat_risk} · ~{meal.sodium_estimate}mg Na</p>
+                          : <p className="text-xs text-muted-foreground mt-0.5">{meal.calories} kcal · {meal.prep_time}</p>
+                        }
                       </div>
                       {expanded[i] ? <ChevronUp className="w-4 h-4 text-muted-foreground mt-1" /> : <ChevronDown className="w-4 h-4 text-muted-foreground mt-1" />}
                     </div>
@@ -182,13 +210,27 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
                   {expanded[i] && (
                     <div className="mt-3 pt-3 border-t border-border space-y-2">
                       <p className="text-sm text-muted-foreground">{meal.description}</p>
+                      {plan.is_appearance_mode && meal.appearance_benefit && (
+                        <div className="bg-purple-50 rounded-xl px-3 py-2">
+                          <p className="text-[10px] font-bold text-purple-600 uppercase mb-0.5">Appearance Benefit</p>
+                          <p className="text-xs text-purple-700">{meal.appearance_benefit}</p>
+                        </div>
+                      )}
                       <div className="flex gap-3">
-                        {[['Protein', `${meal.protein}g`], ['Carbs', `${meal.carbs}g`], ['Fat', `${meal.fat}g`]].map(([l, v]) => (
-                          <div key={l} className="flex-1 bg-secondary rounded-xl p-2 text-center">
-                            <p className="text-sm font-bold text-foreground">{v}</p>
-                            <p className="text-xs text-muted-foreground">{l}</p>
-                          </div>
-                        ))}
+                        {plan.is_appearance_mode
+                          ? [['Calories', `${meal.calories}`], ['Sodium', `${meal.sodium_estimate}mg`], ['Bloat', meal.bloat_risk]].map(([l, v]) => (
+                              <div key={l} className="flex-1 bg-secondary rounded-xl p-2 text-center">
+                                <p className="text-sm font-bold text-foreground">{v}</p>
+                                <p className="text-xs text-muted-foreground">{l}</p>
+                              </div>
+                            ))
+                          : [['Protein', `${meal.protein}g`], ['Carbs', `${meal.carbs}g`], ['Fat', `${meal.fat}g`]].map(([l, v]) => (
+                              <div key={l} className="flex-1 bg-secondary rounded-xl p-2 text-center">
+                                <p className="text-sm font-bold text-foreground">{v}</p>
+                                <p className="text-xs text-muted-foreground">{l}</p>
+                              </div>
+                            ))
+                        }
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-foreground mb-1">Ingredients</p>

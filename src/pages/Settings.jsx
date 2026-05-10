@@ -139,12 +139,7 @@ export default function Settings() {
 
         {/* Redo Onboarding */}
         <button
-          onClick={async () => {
-            if (!profile.id) return;
-            await base44.entities.UserProfile.update(profile.id, { onboarding_complete: false });
-            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-            navigate('/onboarding');
-          }}
+          onClick={() => navigate('/onboarding')}
           className="w-full bg-white border border-border rounded-[24px] px-5 py-4 flex items-center gap-3 shadow-sm active:scale-[0.98] transition-transform">
           <RefreshCw className="w-4 h-4 text-foreground" />
           <span className="text-sm font-semibold text-foreground">Redo Onboarding</span>

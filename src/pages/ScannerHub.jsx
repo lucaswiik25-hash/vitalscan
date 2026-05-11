@@ -5,11 +5,29 @@ import { useQuery } from '@tanstack/react-query';
 import { X, ScanLine, Leaf, Pill, ShieldCheck, Target, Clock, Smile, PersonStanding } from 'lucide-react';
 import { format } from 'date-fns';
 
+// Register a scan result to the database
+async function registerScan(type, productName, brand, imageUrl, safetyScore, qualityScore, verdict) {
+  try {
+    await base44.entities.ScanResult.create({
+      type,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      image_url: imageUrl || null,
+      product_name: productName || 'Unknown',
+      brand: brand || null,
+      safety_score: safetyScore || null,
+      quality_score: qualityScore || null,
+      verdict: verdict || null,
+    });
+  } catch (_) {}
+}
+
 const BASE_SCAN_OPTIONS = [
   { title: 'Food Scanner', description: 'Scan any food or barcode to get full nutrition info', icon: ScanLine, path: '/food-scanner', gradient: 'from-orange-50 to-red-50', type: 'food' },
   { title: 'Skincare Analyzer', description: 'Analyze ingredients in any cosmetic product', icon: Leaf, path: '/skincare-scanner', gradient: 'from-pink-50 to-purple-50', type: 'skincare' },
   { title: 'Supplement Scanner', description: 'Check quality and dosage of any supplement', icon: Pill, path: '/supplement-scanner', gradient: 'from-blue-50 to-cyan-50', type: 'supplement' },
 ];
+
+export { registerScan };
 
 const typeLabels = { food: 'Food', skincare: 'Skincare', supplement: 'Supplement' };
 const typeColors = { food: 'bg-orange-100 text-orange-700', skincare: 'bg-pink-100 text-pink-700', supplement: 'bg-blue-100 text-blue-700' };
@@ -20,7 +38,7 @@ function RecentScans() {
 
   const { data: scans = [] } = useQuery({
     queryKey: ['scanResults'],
-    queryFn: () => base44.entities.ScanResult.list('-created_date', 30),
+    queryFn: () => base44.entities.ScanResult.list('-created_date', 50),
   });
 
   const tabs = ['food', 'skincare', 'supplement'];
@@ -98,12 +116,16 @@ export default function ScannerHub() {
   const profile = profiles[0] || {};
   const isAppearanceMode = profile.diet_mode === 'appearance_mode';
 
-  const scanOptions = [
-    ...BASE_SCAN_OPTIONS,
-    isAppearanceMode
-      ? { title: 'Face Analysis', description: 'AI skin analysis linked to your food intake', icon: Smile, path: '/face-scanner', gradient: 'from-purple-50 to-pink-50', type: null }
-      : { title: 'Body Analyser', description: 'Find the areas you need to work on most', icon: PersonStanding, path: '/body-scanner', gradient: 'from-green-50 to-teal-50', type: null },
-  ];
+  const scanOptions = isAppearanceMode
+    ? [
+        ...BASE_SCAN_OPTIONS,
+        { title: 'Face Analyser', description: 'AI skin & facial analysis linked to your food intake', icon: Smile, path: '/face-scanner', gradient: 'from-purple-50 to-pink-50', type: null },
+        { title: 'Body Analyser', description: 'Find the areas you need to work on most', icon: PersonStanding, path: '/body-scanner', gradient: 'from-green-50 to-teal-50', type: null },
+      ]
+    : [
+        ...BASE_SCAN_OPTIONS,
+        { title: 'Body Analyser', description: 'Find the areas you need to work on most', icon: PersonStanding, path: '/body-scanner', gradient: 'from-green-50 to-teal-50', type: null },
+      ];
 
   return (
     <div className="min-h-screen bg-background pb-16">

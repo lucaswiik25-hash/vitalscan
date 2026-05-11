@@ -1,16 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, subDays, differenceInCalendarDays } from 'date-fns';
 import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
 import DailyModules from '../components/home/DailyModules';
+import DayDetailModal from '../components/home/DayDetailModal';
 
 export default function Home() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery({
     queryKey: ['userProfile'],
@@ -27,6 +30,18 @@ export default function Home() {
       navigate('/onboarding');
     }
   }, [isLoadingProfiles, profiles.length, profile.onboarding_complete]);
+
+  // Calculate and update streak
+  useEffect(() => {
+    if (!profile.id || isLoadingProfiles) return;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const lastActive = profile.last_active_date;
+    if (lastActive === todayStr) return; // already updated today
+    const daysSince = lastActive ? differenceInCalendarDays(new Date(todayStr), new Date(lastActive)) : null;
+    const newStreak = daysSince === 1 ? (profile.streak || 0) + 1 : 1;
+    base44.entities.UserProfile.update(profile.id, { streak: newStreak, last_active_date: todayStr });
+    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+  }, [profile.id, isLoadingProfiles]);
 
   const { data: todayMeals = [] } = useQuery({
     queryKey: ['meals', today],
@@ -59,8 +74,17 @@ export default function Home() {
       <div className="mt-2">
         <NutriCarousel profile={profile} consumed={consumed} />
       </div>
-      <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} />
+      <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
       <DailyModules todayMeals={todayMeals} profile={profile} />
+      {selectedDay && (
+        <DayDetailModal
+          date={selectedDay}
+          meals={allMeals.filter(m => m.date === selectedDay)}
+          waterLogs={allWaterLogs.filter(w => w.date === selectedDay)}
+          profile={profile}
+          onClose={() => setSelectedDay(null)}
+        />
+      )}
     </div>
   );
 }

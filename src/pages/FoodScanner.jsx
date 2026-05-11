@@ -6,6 +6,7 @@ import { X, HelpCircle, Zap, ImageIcon, Barcode, FileText, UtensilsCrossed, Spar
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import BarcodeInput from '../components/scanner/BarcodeInput';
 
 const MODES = [
   { id: 'food', label: 'Scan Food', icon: UtensilsCrossed, desc: 'Photograph any meal or packaged product' },
@@ -27,6 +28,7 @@ export default function FoodScanner() {
   const [scanLineAnim, setScanLineAnim] = useState(0);
   const [extraNotes, setExtraNotes] = useState('');
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showBarcodeInput, setShowBarcodeInput] = useState(false);
 
   // Animate scan line — slow: 4 seconds per cycle
   useEffect(() => {
@@ -172,11 +174,68 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
       response_json_schema: isAppearance ? appearanceSchema : standardSchema,
     });
 
-    setResult({ ...enriched, ...r2.result, image_url: file_url, step: 2, is_appearance_mode: isAppearance });
+    const finalResult = { ...enriched, ...r2.result, image_url: file_url, step: 2, is_appearance_mode: isAppearance };
+    setResult(finalResult);
+    // Register scan
+    base44.entities.ScanResult.create({
+      type: 'food',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      image_url: file_url,
+      product_name: enriched.name,
+      brand: enriched.brand || null,
+      safety_score: finalResult.health_score ? Math.round(finalResult.health_score * 10) : null,
+      verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null,
+    }).catch(() => {});
     setIsAnalyzing(false);
   };
 
-  const logMeal = async () => {
+  const analyseBarcodeManual = async (barcode) => {
+    setShowBarcodeInput(false);
+    setIsAnalyzing(true);
+    let enriched = { name: `Product ${barcode}`, barcode, has_barcode: true, barcode_number: barcode, confidence: 'medium' };
+    try {
+      const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const offData = await offRes.json();
+      if (offData.status === 1 && offData.product) {
+        const p = offData.product;
+        const n = p.nutriments || {};
+        enriched = {
+          name: p.product_name || enriched.name,
+          brand: p.brands || '',
+          serving_size: p.serving_size || '100g',
+          calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || 0),
+          protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || 0) * 10) / 10,
+          carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || 0) * 10) / 10,
+          fat: Math.round((n['fat_serving'] || n['fat_100g'] || 0) * 10) / 10,
+          fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || 0) * 10) / 10,
+          sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || 0) * 10) / 10,
+          sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
+          allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
+          ingredients_text: p.ingredients_text || '',
+          confidence: 'high',
+          source: 'openfoodfacts',
+          has_barcode: true,
+          barcode_number: barcode,
+        };
+      }
+    } catch (_) {}
+    const profiles = await base44.entities.UserProfile.list();
+    const userProfile = profiles[0] || {};
+    const dietMode = userProfile.diet_mode || 'standard';
+    const isAppearance = dietMode === 'appearance_mode';
+    const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
+      prompt: isAppearance
+        ? `Appearance Mode analysis for: "${enriched.name}". Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. Return appearance_impact ("Excellent"/"Good"/"Neutral"/"Avoid"), appearance_reason, bloat_risk ("Low"/"Medium"/"High"), bloat_reason, skin_impact, collagen_effect, collagen_reason, hormone_effect, hormone_reason, tomorrow_face, glycemic_impact ("Low"/"Medium"/"High"), glycemic_reason, health_score (1-10), processing_level.`
+        : `Diet compatibility for "${enriched.name}" on ${dietMode} diet. Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. Return diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_risk ("low"/"medium"/"high"), bloat_reason, glycemic_impact, glycemic_reason, collagen_effect, inflammation, sebum_effect, skin_summary, appearance_tip, tomorrow_face, hormone_impact, hormone_note, gut_health, gut_note, processing_level, health_score (1-10).`,
+      response_json_schema: { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, appearance_impact: { type: 'string' }, appearance_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, collagen_reason: { type: 'string' }, inflammation: { type: 'string' }, skin_impact: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, hormone_effect: { type: 'string' }, hormone_reason: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } },
+    });
+    const finalResult = { ...enriched, ...r2.result, step: 2, is_appearance_mode: isAppearance };
+    setResult(finalResult);
+    base44.entities.ScanResult.create({ type: 'food', date: format(new Date(), 'yyyy-MM-dd'), product_name: enriched.name, brand: enriched.brand || null, verdict: r2.result.diet_compatibility || r2.result.appearance_impact || null }).catch(() => {});
+    setIsAnalyzing(false);
+  };
+
+  const logMeal = async (logIt = true) => {
     if (!result) return;
     const today = format(new Date(), 'yyyy-MM-dd');
     await base44.entities.Meal.create({
@@ -204,7 +263,7 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
       skin_impact: result.skin_impact,
       appearance_tip: result.appearance_tip,
       health_score: result.health_score,
-      logged: true,
+      logged: logIt,
     });
     queryClient.invalidateQueries({ queryKey: ['meals'] });
     queryClient.invalidateQueries({ queryKey: ['allMeals'] });
@@ -221,7 +280,8 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
     return (
       <FoodScanResult
         result={result}
-        onLog={logMeal}
+        onLog={() => logMeal(true)}
+        onLogAnalysisOnly={() => logMeal(false)}
         onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); setExtraNotes(''); }}
         onBack={() => navigate(-1)}
       />
@@ -311,6 +371,11 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
     );
   }
 
+  // Show barcode manual input
+  if (showBarcodeInput) {
+    return <BarcodeInput onSubmit={analyseBarcodeManual} onClose={() => setShowBarcodeInput(false)} />;
+  }
+
   const isBarcode = mode === 1;
   const isLabel = mode === 2;
   const frameW = isBarcode ? '82%' : '75%';
@@ -392,7 +457,7 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
             <Zap className={`w-5 h-5 ${flash ? 'text-yellow-400' : 'text-white/40'}`} />
           </button>
           <button
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={() => isBarcode ? setShowBarcodeInput(true) : cameraInputRef.current?.click()}
             className="w-20 h-20 rounded-full bg-white border-4 border-white/30 flex items-center justify-center active:scale-95 transition-transform shadow-lg"
           >
             <div className="w-16 h-16 rounded-full bg-white/80" />

@@ -133,7 +133,7 @@ Provide:
                 formatter={(v) => [`${v}h`, 'Sleep']}
               />
               <Line type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={2.5}
-                dot={{ fill: '#3b82f6', r: 4, strokeWidth: 0 }} connectNulls={false} />
+                dot={false} activeDot={{ r: 4 }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-2 mt-2 px-1">

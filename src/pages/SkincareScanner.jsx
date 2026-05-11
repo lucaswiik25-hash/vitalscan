@@ -60,7 +60,17 @@ First identify the product, then read EVERY ingredient visible. Evaluate each fo
 Return JSON with: brand, product_name, product_type, safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason, skin_type_suitability, eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary, top_beneficial (array of 3 strings), top_concerning (array of 3 strings), ingredients (array with: name, inci_name, skin_effect, safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating 0-5, is_hormone_disruptor, hormone_concern, has_fragrance, is_drying_alcohol, is_active_beneficial). NEVER fail.`,
       response_json_schema: { type: 'object', properties: { brand: { type: 'string' }, product_name: { type: 'string' }, product_type: { type: 'string' }, safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' }, skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' }, pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' }, top_beneficial: { type: 'array', items: { type: 'string' } }, top_concerning: { type: 'array', items: { type: 'string' } }, ingredients: { type: 'array', items: { type: 'object' } } } },
     });
-    setResult(r.result);
+    const res = r.result;
+    setResult(res);
+    base44.entities.ScanResult.create({
+      type: 'skincare',
+      date: new Date().toISOString().split('T')[0],
+      image_url: file_url,
+      product_name: res.product_name,
+      brand: res.brand || null,
+      safety_score: res.safety_score || null,
+      verdict: res.verdict || null,
+    }).catch(() => {});
     setIsAnalyzing(false);
   };
 

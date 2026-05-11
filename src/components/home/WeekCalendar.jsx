@@ -31,7 +31,7 @@ function scoreColor(score) {
   return '#F47C7C';
 }
 
-export default function WeekCalendar({ loggedDates = [], meals = [], profile = {}, waterLogs = [] }) {
+export default function WeekCalendar({ loggedDates = [], meals = [], profile = {}, waterLogs = [], onDayClick }) {
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -46,20 +46,21 @@ export default function WeekCalendar({ loggedDates = [], meals = [], profile = {
           const isFuture = isAfter(day, today);
           const score = isPast || isTodayDate ? calcHealthScore(dateStr, meals, profile, waterLogs) : null;
           const dotColor = scoreColor(score);
+          const isClickable = isPast && !isFuture;
 
           return (
             <div key={dateStr} className="flex flex-col items-center gap-1.5">
               <span className={`text-xs font-medium ${isTodayDate ? 'text-foreground font-semibold' : isFuture ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}>
                 {format(day, 'EEE')}
               </span>
-              <div
+              <button
+                onClick={() => isClickable && onDayClick && onDayClick(dateStr)}
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all relative ${
-                isTodayDate ? 'bg-foreground text-white scale-110 shadow-md' : isFuture ? 'text-muted-foreground/30' : 'text-foreground border border-border'}`
+                isTodayDate ? 'bg-foreground text-white scale-110 shadow-md' : isFuture ? 'text-muted-foreground/30' : 'text-foreground border border-border active:scale-95'}`
                 }
                 style={!isTodayDate && !isFuture && dotColor ? { borderColor: dotColor, borderWidth: 2 } : {}}>
-                
                 {format(day, 'd')}
-              </div>
+              </button>
               {/* Health score dot */}
               {dotColor && !isTodayDate &&
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />

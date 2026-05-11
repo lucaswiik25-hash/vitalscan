@@ -34,16 +34,33 @@ export default function NutriCarousel({ profile = {}, consumed = {} }) {
         <MacroCard value={Math.max(0, sugarLeft)} label="Sugar left" emoji="🍬" progress={consumed.sugar ? (consumed.sugar / (profile.sugar_target || 118)) * 100 : 0} />
         <MacroCard value={Math.max(0, sodiumLeft)} unit="mg" label="Sodium left" emoji="🍜" progress={consumed.sodium ? (consumed.sodium / (profile.sodium_target || 2300)) * 100 : 0} />
       </div>
-      <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-base font-bold text-foreground">Health Score</span>
-          <span className="text-base font-bold text-muted-foreground">N/A</span>
-        </div>
-        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className="h-full bg-muted-foreground/20 rounded-full" style={{ width: '0%' }} />
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">Track a few foods to generate your health score for today.</p>
-      </div>
+      {(() => {
+        const cal = consumed.calories || 0;
+        const calTarget = profile.calorie_target || 2000;
+        const prot = consumed.protein || 0;
+        const protTarget = profile.protein_target || 150;
+        const hasMeals = cal > 0;
+        const calScore = hasMeals ? Math.min(100, Math.max(0, 100 - Math.abs(cal - calTarget) / calTarget * 100)) : 0;
+        const protScore = hasMeals ? Math.min(100, prot / protTarget * 100) : 0;
+        const healthScore = hasMeals ? Math.round(calScore * 0.6 + protScore * 0.4) : null;
+        const scoreColor = healthScore === null ? '#aaa' : healthScore >= 75 ? '#6CC5A0' : healthScore >= 45 ? '#F5C842' : '#F47C7C';
+        return (
+          <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-base font-bold text-foreground">Health Score</span>
+              <span className="text-base font-bold" style={{ color: scoreColor }}>
+                {healthScore !== null ? `${healthScore}/100` : 'N/A'}
+              </span>
+            </div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${healthScore || 0}%`, background: scoreColor }} />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {healthScore !== null ? `Based on today's calories and protein intake.` : 'Track a few foods to generate your health score for today.'}
+            </p>
+          </div>
+        );
+      })()}
     </div>,
   ];
 

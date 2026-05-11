@@ -43,7 +43,7 @@ function parseIngredients(result) {
   return result.ingredients_text.split(/,|;/).map(s => s.trim()).filter(Boolean).slice(0, 8);
 }
 
-export default function FoodScanResult({ result, onLog, onScanAnother, onBack }) {
+export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onScanAnother, onBack }) {
   const [slide, setSlide] = useState(0);
   const [servings, setServings] = useState(1);
   const [ingredientResult, setIngredientResult] = useState(null);
@@ -482,19 +482,27 @@ NEVER fail.`,
         </div>
 
         {/* Fixed bottom buttons */}
-        <div className="shrink-0 px-5 pb-8 pt-3 border-t border-gray-100 flex gap-3 bg-white">
-          <button
-            onClick={onScanAnother}
-            className="flex-1 h-12 rounded-full border border-gray-300 flex items-center justify-center gap-2 text-sm font-semibold text-gray-700 bg-white"
-          >
-            <Sparkles className="w-4 h-4" />
-            Fix Issue
-          </button>
+        <div className="shrink-0 px-5 pb-8 pt-3 border-t border-gray-100 bg-white">
+          <div className="flex gap-2 mb-2">
+            <button
+              onClick={onScanAnother}
+              className="flex-1 h-11 rounded-full border border-gray-200 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 bg-white"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Rescan
+            </button>
+            <button
+              onClick={() => onLogAnalysisOnly && onLogAnalysisOnly()}
+              className="flex-1 h-11 rounded-full border border-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 bg-white"
+            >
+              Analysis Only
+            </button>
+          </div>
           <button
             onClick={onLog}
-            className="flex-1 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold"
+            className="w-full h-12 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold"
           >
-            Done
+            Log as Meal
           </button>
         </div>
       </div>

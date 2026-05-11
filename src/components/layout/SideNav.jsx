@@ -87,7 +87,7 @@ export default function SideNav() {
         <div className="flex items-center justify-between px-6 pt-14 pb-5">
           <div>
             <span className="text-xl font-bold text-foreground tracking-tight">Scanly</span>
-            <div className="w-8 h-0.5 rounded-full mt-1" style={{ background: '#6CC5A0' }} />
+            <div className="w-8 h-0.5 rounded-full mt-1" style={{ background: 'rgba(255,255,255,0.7)', boxShadow: '0 0 6px rgba(255,255,255,0.6)' }} />
           </div>
           <button
             onClick={() => setOpen(false)}
@@ -111,24 +111,26 @@ export default function SideNav() {
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
                 style={{
                   background: isActive
-                    ? 'rgba(108,197,160,0.20)'
-                    : 'rgba(255,255,255,0.08)',
-                  border: isActive ? '1px solid rgba(108,197,160,0.25)' : '1px solid transparent',
+                    ? 'rgba(255,255,255,0.18)'
+                    : 'rgba(255,255,255,0.05)',
+                  border: isActive ? '1px solid rgba(255,255,255,0.40)' : '1px solid transparent',
+                  boxShadow: isActive ? '0 0 12px rgba(255,255,255,0.15)' : 'none',
                 }}
               >
                 <div
                   className="w-8 h-8 rounded-xl flex items-center justify-center"
                   style={{
-                    background: isActive ? 'rgba(108,197,160,0.25)' : 'rgba(0,0,0,0.05)',
+                    background: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.05)',
+                    boxShadow: isActive ? '0 0 8px rgba(255,255,255,0.25)' : 'none',
                   }}
                 >
-                  <Icon className="w-4 h-4" style={{ color: isActive ? '#4aad85' : 'rgba(0,0,0,0.45)' }} strokeWidth={1.8} />
+                  <Icon className="w-4 h-4" style={{ color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.45)' }} strokeWidth={1.8} />
                 </div>
                 <span className="text-sm font-medium" style={{ color: isActive ? '#1a1a1a' : 'rgba(0,0,0,0.6)' }}>
                   {item.label}
                 </span>
                 {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: '#6CC5A0' }} />
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.9)', boxShadow: '0 0 6px rgba(255,255,255,0.8)' }} />
                 )}
               </Link>
             );

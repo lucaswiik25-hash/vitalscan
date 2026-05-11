@@ -80,7 +80,17 @@ Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule
 Read every single line of the supplement facts label. Return JSON with: serving_size, servings_per_container, estimated_duration, ingredients (array with: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_quality, flag ("None"/"Underdosed"/"Correctly Dosed"/"Overdose Risk"/"Poor Form"/"Filler")), other_ingredients_flags (array), quality_score (1-100), verdict ("YES"/"MAYBE"/"NO"), verdict_reason, best_time_to_take, food_note, absorption_tip, interactions, container_supply. NEVER fail.`,
       response_json_schema: { type: 'object', properties: { serving_size: { type: 'string' }, servings_per_container: { type: 'number' }, estimated_duration: { type: 'string' }, ingredients: { type: 'array', items: { type: 'object' } }, other_ingredients_flags: { type: 'array', items: { type: 'string' } }, quality_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' }, best_time_to_take: { type: 'string' }, food_note: { type: 'string' }, absorption_tip: { type: 'string' }, interactions: { type: 'string' }, container_supply: { type: 'string' } } },
     });
-    setResult({ ...step1Data, ...r.result });
+    const combined = { ...step1Data, ...r.result };
+    setResult(combined);
+    base44.entities.ScanResult.create({
+      type: 'supplement',
+      date: new Date().toISOString().split('T')[0],
+      image_url: step1Data?.image_url || null,
+      product_name: combined.product_name,
+      brand: combined.brand || null,
+      quality_score: combined.quality_score || null,
+      verdict: combined.verdict || null,
+    }).catch(() => {});
     setIsAnalyzing(false);
   };
 

@@ -1,6 +1,77 @@
 import React, { useState } from 'react';
-import CalorieCard from './CalorieCard';
-import MacroCard from './MacroCard';
+
+// Liquid glass card style
+const glassStyle = {
+  background: 'rgba(255,255,255,0.45)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  border: '1px solid rgba(255,255,255,0.7)',
+  boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+};
+
+function GlassMacroCard({ value, unit = 'g', label, progress }) {
+  const pct = Math.min(100, Math.max(0, progress));
+  return (
+    <div className="flex-1 rounded-[18px] p-3 flex flex-col gap-1" style={glassStyle}>
+      <p className="text-[10px] font-semibold text-foreground/50 leading-none">{label}</p>
+      <p className="text-lg font-extrabold text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-xs font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
+      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+        <div className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: pct >= 90 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0' }} />
+      </div>
+    </div>
+  );
+}
+
+function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
+  const pct = caloriesTarget > 0 ? Math.min(100, (caloriesConsumed / caloriesTarget) * 100) : 0;
+  const color = pct >= 100 ? '#F47C7C' : pct >= 70 ? '#F5C842' : '#6CC5A0';
+  return (
+    <div className="rounded-[18px] p-4" style={glassStyle}>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-[10px] font-semibold text-foreground/50">Calories left</p>
+          <p className="text-3xl font-extrabold text-foreground leading-none">{Math.max(0, Math.round(caloriesLeft))}<span className="text-sm font-semibold text-foreground/40 ml-1">kcal</span></p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] text-foreground/40">of {caloriesTarget}</p>
+          <p className="text-sm font-bold" style={{ color }}>{Math.round(pct)}%</p>
+        </div>
+      </div>
+      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function GlassHealthScore({ consumed, profile }) {
+  const cal = consumed.calories || 0;
+  const calTarget = profile.calorie_target || 2000;
+  const prot = consumed.protein || 0;
+  const protTarget = profile.protein_target || 150;
+  const hasMeals = cal > 0;
+  const calScore = hasMeals ? Math.min(100, Math.max(0, 100 - Math.abs(cal - calTarget) / calTarget * 100)) : 0;
+  const protScore = hasMeals ? Math.min(100, prot / protTarget * 100) : 0;
+  const healthScore = hasMeals ? Math.round(calScore * 0.6 + protScore * 0.4) : null;
+  const scoreColor = healthScore === null ? '#aaa' : healthScore >= 75 ? '#6CC5A0' : healthScore >= 45 ? '#F5C842' : '#F47C7C';
+  return (
+    <div className="rounded-[18px] p-4" style={glassStyle}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-bold text-foreground">Health Score</span>
+        <span className="text-base font-extrabold" style={{ color: scoreColor }}>
+          {healthScore !== null ? `${healthScore}/100` : 'N/A'}
+        </span>
+      </div>
+      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${healthScore || 0}%`, background: scoreColor }} />
+      </div>
+      <p className="text-[10px] text-foreground/50 mt-2">
+        {healthScore !== null ? 'Based on calories & protein' : 'Log food to see your score'}
+      </p>
+    </div>
+  );
+}
 
 export default function NutriCarousel({ profile = {}, consumed = {} }) {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -14,53 +85,21 @@ export default function NutriCarousel({ profile = {}, consumed = {} }) {
   const sodiumLeft = (profile.sodium_target || 2300) - (consumed.sodium || 0);
 
   const slides = [
-    // Slide 1: Macros on top, Calorie card below
     <div key="s1" className="min-w-full px-5 space-y-3">
-      <div className="flex gap-3">
-        <MacroCard value={Math.max(0, proteinLeft)} label="Protein left" emoji="" progress={consumed.protein ? (consumed.protein / (profile.protein_target || 191)) * 100 : 0} />
-        <MacroCard value={Math.max(0, carbsLeft)} label="Carbs left" emoji="" progress={consumed.carbs ? (consumed.carbs / (profile.carbs_target || 438)) * 100 : 0} />
-        <MacroCard value={Math.max(0, fatLeft)} label="Fat left" emoji="" progress={consumed.fat ? (consumed.fat / (profile.fat_target || 93)) * 100 : 0} />
+      <div className="flex gap-2">
+        <GlassMacroCard value={Math.max(0, proteinLeft)} label="Protein left" progress={consumed.protein ? (consumed.protein / (profile.protein_target || 191)) * 100 : 0} />
+        <GlassMacroCard value={Math.max(0, carbsLeft)} label="Carbs left" progress={consumed.carbs ? (consumed.carbs / (profile.carbs_target || 438)) * 100 : 0} />
+        <GlassMacroCard value={Math.max(0, fatLeft)} label="Fat left" progress={consumed.fat ? (consumed.fat / (profile.fat_target || 93)) * 100 : 0} />
       </div>
-      <CalorieCard
-        caloriesLeft={caloriesLeft}
-        caloriesTarget={profile.calorie_target || 2500}
-        caloriesConsumed={consumed.calories || 0}
-      />
+      <GlassCalorieCard caloriesLeft={caloriesLeft} caloriesTarget={profile.calorie_target || 2500} caloriesConsumed={consumed.calories || 0} />
     </div>,
-    // Slide 2: Micro macros + Health Score
     <div key="s2" className="min-w-full px-5 space-y-3">
-      <div className="flex gap-3">
-        <MacroCard value={Math.max(0, fiberLeft)} label="Fiber left" emoji="🍆" progress={consumed.fiber ? (consumed.fiber / (profile.fiber_target || 38)) * 100 : 0} />
-        <MacroCard value={Math.max(0, sugarLeft)} label="Sugar left" emoji="🍬" progress={consumed.sugar ? (consumed.sugar / (profile.sugar_target || 118)) * 100 : 0} />
-        <MacroCard value={Math.max(0, sodiumLeft)} unit="mg" label="Sodium left" emoji="🍜" progress={consumed.sodium ? (consumed.sodium / (profile.sodium_target || 2300)) * 100 : 0} />
+      <div className="flex gap-2">
+        <GlassMacroCard value={Math.max(0, fiberLeft)} label="Fiber left" progress={consumed.fiber ? (consumed.fiber / (profile.fiber_target || 38)) * 100 : 0} />
+        <GlassMacroCard value={Math.max(0, sugarLeft)} label="Sugar left" progress={consumed.sugar ? (consumed.sugar / (profile.sugar_target || 118)) * 100 : 0} />
+        <GlassMacroCard value={Math.max(0, sodiumLeft)} unit="mg" label="Sodium left" progress={consumed.sodium ? (consumed.sodium / (profile.sodium_target || 2300)) * 100 : 0} />
       </div>
-      {(() => {
-        const cal = consumed.calories || 0;
-        const calTarget = profile.calorie_target || 2000;
-        const prot = consumed.protein || 0;
-        const protTarget = profile.protein_target || 150;
-        const hasMeals = cal > 0;
-        const calScore = hasMeals ? Math.min(100, Math.max(0, 100 - Math.abs(cal - calTarget) / calTarget * 100)) : 0;
-        const protScore = hasMeals ? Math.min(100, prot / protTarget * 100) : 0;
-        const healthScore = hasMeals ? Math.round(calScore * 0.6 + protScore * 0.4) : null;
-        const scoreColor = healthScore === null ? '#aaa' : healthScore >= 75 ? '#6CC5A0' : healthScore >= 45 ? '#F5C842' : '#F47C7C';
-        return (
-          <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-base font-bold text-foreground">Health Score</span>
-              <span className="text-base font-bold" style={{ color: scoreColor }}>
-                {healthScore !== null ? `${healthScore}/100` : 'N/A'}
-              </span>
-            </div>
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${healthScore || 0}%`, background: scoreColor }} />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {healthScore !== null ? `Based on today's calories and protein intake.` : 'Track a few foods to generate your health score for today.'}
-            </p>
-          </div>
-        );
-      })()}
+      <GlassHealthScore consumed={consumed} profile={profile} />
     </div>,
   ];
 
@@ -84,12 +123,11 @@ export default function NutriCarousel({ profile = {}, consumed = {} }) {
           {slides}
         </div>
       </div>
-      <div className="flex items-center justify-center gap-1.5 mt-4">
+      <div className="flex items-center justify-center gap-1.5 mt-3">
         {slides.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentSlide(i)}
-            className={`w-2 h-2 rounded-full transition-all ${i === currentSlide ? 'bg-foreground scale-125' : 'bg-muted-foreground/30'}`}
+          <button key={i} onClick={() => setCurrentSlide(i)}
+            className="rounded-full transition-all"
+            style={{ width: i === currentSlide ? 16 : 6, height: 6, background: i === currentSlide ? '#1a1a1a' : 'rgba(0,0,0,0.15)' }}
           />
         ))}
       </div>

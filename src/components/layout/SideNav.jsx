@@ -40,19 +40,20 @@ export default function SideNav() {
         <span className="w-1 h-1 rounded-full bg-foreground/30" />
       </button>
 
-      {/* Floating + scanner button */}
+      {/* Floating + scanner button — liquid glass */}
       <button
         onClick={() => navigate('/scanner')}
         aria-label="Open scanner"
-        className="fixed bottom-8 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+        className="fixed bottom-8 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center active:scale-95 transition-transform"
         style={{
-          background: 'rgba(26,26,26,0.88)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '2px solid rgba(255,255,255,0.15)',
+          background: 'rgba(255,255,255,0.35)',
+          backdropFilter: 'blur(24px) saturate(200%) brightness(1.1)',
+          WebkitBackdropFilter: 'blur(24px) saturate(200%) brightness(1.1)',
+          border: '1.5px solid rgba(255,255,255,0.75)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
         }}
       >
-        <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
+        <Plus className="w-7 h-7 text-foreground" strokeWidth={2.5} />
       </button>
 
       {/* Backdrop */}

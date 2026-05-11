@@ -126,6 +126,11 @@ function FoodSearch() {
 function ScannerCarousel({ cardKeys }) {
   const [active, setActive] = useState(0);
   const touchStartX = useRef(null);
+  const trackRef = useRef(null);
+
+  const CARD_W = 220;
+  const CARD_GAP = 14;
+  const PEEK = 28;
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -135,8 +140,6 @@ function ScannerCarousel({ cardKeys }) {
     if (diff < -40 && active > 0) setActive(a => a - 1);
     touchStartX.current = null;
   };
-
-  const card = CARD_CONFIGS[cardKeys[active]];
 
   return (
     <div className="mt-5 fade-in-up-1">
@@ -152,44 +155,55 @@ function ScannerCarousel({ cardKeys }) {
         </div>
       </div>
 
+      {/* Overflow visible so adjacent cards peek */}
       <div
-        className="px-5"
+        className="overflow-hidden"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <Link to={card.path} key={cardKeys[active]}
-          className="block rounded-[28px] p-6 shadow-lg active:scale-[0.98] transition-transform overflow-hidden relative"
-          style={{ background: `linear-gradient(135deg, ${card.gradient[0]}, ${card.gradient[1]})`, minHeight: 180 }}
+        <div
+          ref={trackRef}
+          className="flex transition-transform duration-300 ease-out"
+          style={{
+            paddingLeft: PEEK,
+            paddingRight: PEEK,
+            gap: CARD_GAP,
+            transform: `translateX(calc(-${active} * (${CARD_W}px + ${CARD_GAP}px)))`,
+          }}
         >
-          {/* Big background emoji */}
-          <div className="absolute right-4 bottom-2 text-[90px] opacity-20 select-none pointer-events-none leading-none">
-            {card.emoji}
-          </div>
-          <div className="relative z-10">
-            <span className="text-4xl">{card.emoji}</span>
-            <h3 className="text-2xl font-extrabold text-white mt-3 leading-tight">{card.title}</h3>
-            <p className="text-sm text-white/75 mt-1 leading-snug max-w-[70%]">{card.description}</p>
-            <div className="mt-5 inline-flex items-center gap-1.5 bg-white/25 backdrop-blur-sm rounded-full px-4 py-1.5">
-              <span className="text-xs font-bold text-white">Open Scanner</span>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Adjacent card previews */}
-      <div className="px-5 mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        {cardKeys.map((key, i) => {
-          if (i === active) return null;
-          const c = CARD_CONFIGS[key];
-          return (
-            <button key={key} onClick={() => setActive(i)}
-              className="shrink-0 flex items-center gap-2.5 rounded-2xl px-4 py-3 border border-border bg-white shadow-sm active:scale-95 transition-transform"
-            >
-              <span className="text-xl">{c.emoji}</span>
-              <span className="text-xs font-semibold text-foreground whitespace-nowrap">{c.title.replace(' Scanner', '').replace(' Analyzer', '')}</span>
-            </button>
-          );
-        })}
+          {cardKeys.map((key, i) => {
+            const c = CARD_CONFIGS[key];
+            const isActive = i === active;
+            return (
+              <Link
+                key={key}
+                to={c.path}
+                onClick={(e) => { if (!isActive) { e.preventDefault(); setActive(i); } }}
+                className="shrink-0 rounded-[22px] overflow-hidden relative transition-all duration-300 active:scale-[0.97]"
+                style={{
+                  width: CARD_W,
+                  height: 150,
+                  background: `linear-gradient(145deg, ${c.gradient[0]}, ${c.gradient[1]})`,
+                  opacity: isActive ? 1 : 0.65,
+                  transform: isActive ? 'scale(1)' : 'scale(0.94)',
+                  boxShadow: isActive ? '0 8px 28px rgba(0,0,0,0.18)' : '0 2px 10px rgba(0,0,0,0.08)',
+                }}
+              >
+                {/* Bg emoji */}
+                <div className="absolute right-2 bottom-0 text-[72px] opacity-20 select-none pointer-events-none leading-none">
+                  {c.emoji}
+                </div>
+                <div className="relative z-10 p-4 h-full flex flex-col justify-between">
+                  <span className="text-3xl">{c.emoji}</span>
+                  <div>
+                    <p className="text-sm font-extrabold text-white leading-tight">{c.title}</p>
+                    <p className="text-[11px] text-white/70 mt-0.5 leading-snug line-clamp-2">{c.description}</p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

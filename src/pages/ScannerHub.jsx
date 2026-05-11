@@ -128,9 +128,9 @@ function ScannerCarousel({ cardKeys }) {
   const touchStartX = useRef(null);
   const trackRef = useRef(null);
 
-  const CARD_W = 220;
-  const CARD_GAP = 14;
-  const PEEK = 28;
+  const CARD_W = 260;
+  const CARD_GAP = 12;
+  const PEEK = 32;
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -168,7 +168,7 @@ function ScannerCarousel({ cardKeys }) {
             paddingLeft: PEEK,
             paddingRight: PEEK,
             gap: CARD_GAP,
-            transform: `translateX(calc(-${active} * (${CARD_W}px + ${CARD_GAP}px)))`,
+            transform: `translateX(calc(${PEEK}px - ${active} * (${CARD_W}px + ${CARD_GAP}px)))`,
           }}
         >
           {cardKeys.map((key, i) => {
@@ -212,9 +212,60 @@ function ScannerCarousel({ cardKeys }) {
 // ─── Recent scans ─────────────────────────────────────────────────────────────
 const typeLabels = { food: 'Food', skincare: 'Skincare', supplement: 'Supplement' };
 
+function ScanDetailModal({ scan, onClose }) {
+  if (!scan) return null;
+  const data = scan.result_data || {};
+  const score = scan.safety_score ?? scan.quality_score ?? null;
+  const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-6 pb-10 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4 shrink-0">
+          <div className="flex-1 pr-4">
+            <p className="text-xs text-muted-foreground capitalize">{scan.type} scan · {format(new Date(scan.created_date), 'MMM d, h:mm a')}</p>
+            <h2 className="text-lg font-bold text-foreground mt-0.5">{scan.product_name || 'Unknown'}</h2>
+            {scan.brand && <p className="text-xs text-muted-foreground">{scan.brand}</p>}
+          </div>
+          {score !== null && (
+            <div className="text-center">
+              <p className="text-3xl font-extrabold" style={{ color: scoreColor }}>{score}</p>
+              <p className="text-[10px] text-muted-foreground">score</p>
+            </div>
+          )}
+        </div>
+        {scan.verdict && (
+          <div className="mb-3 px-3 py-2 rounded-xl shrink-0"
+            style={{ background: scoreColor + '18' }}>
+            <p className="text-sm font-semibold capitalize" style={{ color: scoreColor }}>{scan.verdict}</p>
+          </div>
+        )}
+        <div className="overflow-y-auto flex-1 space-y-2">
+          {Object.entries(data).filter(([k]) => !['image_url'].includes(k)).map(([k, v]) => {
+            if (typeof v === 'object' || Array.isArray(v)) return null;
+            if (!v) return null;
+            return (
+              <div key={k} className="flex items-start justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
+                <span className="text-xs text-gray-500 capitalize">{k.replace(/_/g, ' ')}</span>
+                <span className="text-xs font-semibold text-gray-800 text-right max-w-[60%]">{String(v)}</span>
+              </div>
+            );
+          })}
+          {!Object.keys(data).length && (
+            <p className="text-sm text-muted-foreground text-center py-6">No detailed data available for this scan.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecentScans() {
   const [activeTab, setActiveTab] = useState(0);
+  const [viewScan, setViewScan] = useState(null);
   const touchStartX = useRef(null);
+  const longPressTimer = useRef(null);
 
   const { data: scans = [] } = useQuery({
     queryKey: ['scanResults'],
@@ -233,9 +284,15 @@ function RecentScans() {
     touchStartX.current = null;
   };
 
+  const startLongPress = (scan) => {
+    longPressTimer.current = setTimeout(() => setViewScan(scan), 500);
+  };
+  const cancelLongPress = () => clearTimeout(longPressTimer.current);
+
   return (
     <div className="mt-6 px-5 fade-in-up-4">
       <h2 className="text-sm font-bold text-foreground mb-3">Recent Scans</h2>
+      <p className="text-[10px] text-muted-foreground mb-2">Hold to view details</p>
       <div className="flex gap-1 mb-3 bg-secondary rounded-2xl p-1">
         {tabs.map((t, i) => (
           <button key={t} onClick={() => setActiveTab(i)}
@@ -254,7 +311,16 @@ function RecentScans() {
         ) : (
           <div className="space-y-2">
             {filtered.slice(0, 6).map(scan => (
-              <div key={scan.id} className="bg-white border border-border rounded-[20px] p-4 shadow-sm flex items-center gap-3">
+              <div
+                key={scan.id}
+                className="bg-white border border-border rounded-[20px] p-4 shadow-sm flex items-center gap-3 select-none"
+                onTouchStart={() => startLongPress(scan)}
+                onTouchEnd={cancelLongPress}
+                onTouchMove={cancelLongPress}
+                onMouseDown={() => startLongPress(scan)}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
+              >
                 {scan.image_url
                   ? <img src={scan.image_url} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="" />
                   : <div className="w-12 h-12 rounded-xl bg-secondary shrink-0 flex items-center justify-center text-xl">
@@ -279,6 +345,7 @@ function RecentScans() {
           </div>
         )}
       </div>
+      {viewScan && <ScanDetailModal scan={viewScan} onClose={() => setViewScan(null)} />}
     </div>
   );
 }

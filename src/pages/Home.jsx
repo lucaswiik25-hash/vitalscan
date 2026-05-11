@@ -6,7 +6,7 @@ import { format, subDays, differenceInCalendarDays } from 'date-fns';
 import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
-import DailyModules from '../components/home/DailyModules';
+import CaloriesBurnedModule from '../components/home/CaloriesBurnedModule';
 import DayDetailModal from '../components/home/DayDetailModal';
 
 export default function Home() {
@@ -71,11 +71,13 @@ export default function Home() {
   return (
     <div className="warm-glow min-h-screen pb-24">
       <Header streak={profile.streak || 0} />
-      <div className="mt-2">
+      <div className="mt-3 mb-2">
+        <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
+      </div>
+      <div className="mt-1 mb-4">
         <NutriCarousel profile={profile} consumed={consumed} />
       </div>
-      <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
-      <DailyModules todayMeals={todayMeals} profile={profile} />
+      <CaloriesBurnedModule profile={profile} />
       {selectedDay && (
         <DayDetailModal
           date={selectedDay}

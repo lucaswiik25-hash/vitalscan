@@ -70,7 +70,7 @@ export default function FoodScanner() {
       ? `\n\nAdditional context from user: "${extraNotes.trim()}". Include this in your nutritional estimate.`
       : '';
 
-    const { data: r1 } = await base44.functions.invoke('analyzeWithClaude', {
+    const r1raw = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
       prompt: `You are a professional nutritionist and food scientist. Analyze this image carefully.
 
@@ -100,7 +100,7 @@ Return JSON with:
 NEVER fail. Always estimate from visual cues if exact values are not readable.${isAppearance ? '\n\nAPPEARANCE MODE: Also return sodium and potassium as required numeric fields (mg).' : ''}${extraContext}`,
       response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
     });
-    const call1 = r1.result;
+    const call1 = r1raw.data?.result || r1raw.data || {};
 
     let enriched = { ...call1 };
     if (call1.has_barcode && call1.barcode_number) {
@@ -169,12 +169,13 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
     const appearanceSchema = { type: 'object', properties: { appearance_impact: { type: 'string' }, appearance_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, skin_impact: { type: 'string' }, collagen_effect: { type: 'string' }, collagen_reason: { type: 'string' }, hormone_effect: { type: 'string' }, hormone_reason: { type: 'string' }, tomorrow_face: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, health_score: { type: 'number' }, processing_level: { type: 'string' } } };
     const standardSchema = { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, inflammation: { type: 'string' }, sebum_effect: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, tomorrow_face_note: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } };
 
-    const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
+    const r2raw = await base44.functions.invoke('analyzeWithClaude', {
       prompt: appearancePrompt,
       response_json_schema: isAppearance ? appearanceSchema : standardSchema,
     });
+    const r2result = r2raw.data?.result || r2raw.data || {};
 
-    const finalResult = { ...enriched, ...r2.result, image_url: file_url, step: 2, is_appearance_mode: isAppearance };
+    const finalResult = { ...enriched, ...r2result, image_url: file_url, step: 2, is_appearance_mode: isAppearance };
     setResult(finalResult);
     // Register scan
     base44.entities.ScanResult.create({
@@ -223,15 +224,15 @@ Return JSON with: diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_ri
     const userProfile = profiles[0] || {};
     const dietMode = userProfile.diet_mode || 'standard';
     const isAppearance = dietMode === 'appearance_mode';
-    const { data: r2 } = await base44.functions.invoke('analyzeWithClaude', {
+    const r2braw = await base44.functions.invoke('analyzeWithClaude', {
       prompt: isAppearance
         ? `Appearance Mode analysis for: "${enriched.name}". Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. Return appearance_impact ("Excellent"/"Good"/"Neutral"/"Avoid"), appearance_reason, bloat_risk ("Low"/"Medium"/"High"), bloat_reason, skin_impact, collagen_effect, collagen_reason, hormone_effect, hormone_reason, tomorrow_face, glycemic_impact ("Low"/"Medium"/"High"), glycemic_reason, health_score (1-10), processing_level.`
         : `Diet compatibility for "${enriched.name}" on ${dietMode} diet. Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. Return diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_risk ("low"/"medium"/"high"), bloat_reason, glycemic_impact, glycemic_reason, collagen_effect, inflammation, sebum_effect, skin_summary, appearance_tip, tomorrow_face, hormone_impact, hormone_note, gut_health, gut_note, processing_level, health_score (1-10).`,
       response_json_schema: { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, appearance_impact: { type: 'string' }, appearance_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, collagen_reason: { type: 'string' }, inflammation: { type: 'string' }, skin_impact: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, hormone_effect: { type: 'string' }, hormone_reason: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } },
     });
-    const finalResult = { ...enriched, ...r2.result, step: 2, is_appearance_mode: isAppearance };
+    const finalResult = { ...enriched, ...(r2braw.data?.result || r2braw.data || {}), step: 2, is_appearance_mode: isAppearance };
     setResult(finalResult);
-    base44.entities.ScanResult.create({ type: 'food', date: format(new Date(), 'yyyy-MM-dd'), product_name: enriched.name, brand: enriched.brand || null, verdict: r2.result.diet_compatibility || r2.result.appearance_impact || null }).catch(() => {});
+    base44.entities.ScanResult.create({ type: 'food', date: format(new Date(), 'yyyy-MM-dd'), product_name: enriched.name, brand: enriched.brand || null, verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null }).catch(() => {});
     setIsAnalyzing(false);
   };
 

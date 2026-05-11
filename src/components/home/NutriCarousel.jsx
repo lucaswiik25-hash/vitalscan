@@ -12,10 +12,10 @@ const glassStyle = {
 function GlassMacroCard({ value, unit = 'g', label, progress }) {
   const pct = Math.min(100, Math.max(0, progress));
   return (
-    <div className="flex-1 rounded-[18px] p-3 flex flex-col gap-1" style={glassStyle}>
-      <p className="text-[10px] font-semibold text-foreground/50 leading-none">{label}</p>
-      <p className="text-lg font-extrabold text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-xs font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
-      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+    <div className="flex-1 rounded-[20px] p-4 flex flex-col gap-2" style={glassStyle}>
+      <p className="text-xs font-semibold text-foreground/50 leading-none">{label}</p>
+      <p className="text-2xl font-extrabold text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
+      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
         <div className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, background: pct >= 90 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0' }} />
       </div>
@@ -27,18 +27,18 @@ function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
   const pct = caloriesTarget > 0 ? Math.min(100, (caloriesConsumed / caloriesTarget) * 100) : 0;
   const color = pct >= 100 ? '#F47C7C' : pct >= 70 ? '#F5C842' : '#6CC5A0';
   return (
-    <div className="rounded-[18px] p-4" style={glassStyle}>
-      <div className="flex items-center justify-between mb-2">
+    <div className="rounded-[20px] p-5" style={glassStyle}>
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-[10px] font-semibold text-foreground/50">Calories left</p>
-          <p className="text-3xl font-extrabold text-foreground leading-none">{Math.max(0, Math.round(caloriesLeft))}<span className="text-sm font-semibold text-foreground/40 ml-1">kcal</span></p>
+          <p className="text-xs font-semibold text-foreground/50">Calories left</p>
+          <p className="text-4xl font-extrabold text-foreground leading-none mt-1">{Math.max(0, Math.round(caloriesLeft))}<span className="text-base font-semibold text-foreground/40 ml-1">kcal</span></p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-foreground/40">of {caloriesTarget}</p>
-          <p className="text-sm font-bold" style={{ color }}>{Math.round(pct)}%</p>
+          <p className="text-xs text-foreground/40">of {caloriesTarget}</p>
+          <p className="text-lg font-bold" style={{ color }}>{Math.round(pct)}%</p>
         </div>
       </div>
-      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+      <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>

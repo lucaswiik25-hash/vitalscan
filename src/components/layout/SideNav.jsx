@@ -67,18 +67,18 @@ export default function SideNav() {
         }}
       />
 
-      {/* Drawer — liquid glass */}
+      {/* Drawer — true liquid glass */}
       <div
         className="fixed top-0 left-0 h-full z-50 flex flex-col"
         style={{
           width: 275,
           transform: open ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
-          background: 'rgba(255,255,255,0.08)',
-          backdropFilter: 'blur(80px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(80px) saturate(200%)',
-          borderRight: '1px solid rgba(255,255,255,0.25)',
-          boxShadow: '8px 0 40px rgba(0,0,0,0.08)',
+          background: 'rgba(255,255,255,0.55)',
+          backdropFilter: 'blur(40px) saturate(180%) brightness(1.08)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(1.08)',
+          borderRight: '1px solid rgba(255,255,255,0.6)',
+          boxShadow: '8px 0 48px rgba(0,0,0,0.10), inset 1px 0 0 rgba(255,255,255,0.8)',
           borderTopRightRadius: 28,
           borderBottomRightRadius: 28,
         }}
@@ -110,27 +110,21 @@ export default function SideNav() {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
                 style={{
-                  background: isActive
-                    ? 'rgba(255,255,255,0.18)'
-                    : 'rgba(255,255,255,0.05)',
-                  border: isActive ? '1px solid rgba(255,255,255,0.40)' : '1px solid transparent',
-                  boxShadow: isActive ? '0 0 12px rgba(255,255,255,0.15)' : 'none',
+                  background: isActive ? 'rgba(26,26,26,0.10)' : 'transparent',
+                  border: isActive ? '1px solid rgba(26,26,26,0.12)' : '1px solid transparent',
                 }}
               >
                 <div
                   className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{
-                    background: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.05)',
-                    boxShadow: isActive ? '0 0 8px rgba(255,255,255,0.25)' : 'none',
-                  }}
+                  style={{ background: isActive ? 'rgba(26,26,26,0.12)' : 'rgba(0,0,0,0.04)' }}
                 >
-                  <Icon className="w-4 h-4" style={{ color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.45)' }} strokeWidth={1.8} />
+                  <Icon className="w-4 h-4" style={{ color: isActive ? '#1a1a1a' : 'rgba(0,0,0,0.4)' }} strokeWidth={1.8} />
                 </div>
-                <span className="text-sm font-medium" style={{ color: isActive ? '#1a1a1a' : 'rgba(0,0,0,0.6)' }}>
+                <span className="text-sm font-medium" style={{ color: isActive ? '#1a1a1a' : 'rgba(0,0,0,0.55)' }}>
                   {item.label}
                 </span>
                 {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.9)', boxShadow: '0 0 6px rgba(255,255,255,0.8)' }} />
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-gray-800" />
                 )}
               </Link>
             );

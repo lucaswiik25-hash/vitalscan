@@ -89,15 +89,15 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
         : { bg: '#fee2e2', color: '#dc2626', icon: XCircle, label: 'Avoid' };
     const VIcon = verdictStyle.icon;
     return (
-      <div className="min-h-screen bg-background">
-        <div className="flex items-center gap-3 px-5 pt-12 pb-4">
+      <div className="min-h-screen bg-white">
+        <div className="flex items-center gap-3 px-5 pt-12 pb-4 border-b border-gray-100 fade-in-up">
           <button onClick={() => { setResult(null); setCapturedFile(null); setPreviewUrl(null); }}
-            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-            <X className="w-5 h-5" />
+            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+            <X className="w-5 h-5 text-gray-700" />
           </button>
-          <h1 className="text-xl font-bold text-foreground">Skincare Analysis</h1>
+          <h1 className="text-xl font-bold text-gray-900">Skincare Analysis</h1>
         </div>
-        <div className="px-5 space-y-4 pb-16">
+        <div className="px-5 space-y-4 pb-16 fade-in-up-2">
           <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <div>

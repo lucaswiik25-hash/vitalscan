@@ -33,61 +33,72 @@ function parseIngredients(result) {
   return result.ingredients_text.split(/,|;/).map(s => s.trim()).filter(Boolean).slice(0, 8);
 }
 
-// ─── Dotted arc score widget ──────────────────────────────────────────────────
-function DottedScoreCircle({ score, label }) {
-  const total = 60;
-  const filled = Math.round((score / 100) * total);
-  const size = 140;
-  const cx = size / 2, cy = size / 2;
-  const r = 52;
-  const startAngle = -210;
-  const sweep = 240;
+// ─── C-shaped rainbow dot arc ─────────────────────────────────────────────────
+function DottedArcScore({ score, label }) {
+  const total = 70;
+  const size = 190;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = 82;
+  // C-shape: arc from bottom-left sweeping up and around to top-right, opening to the right
+  // Start at ~210° (bottom-left), sweep 240° counterclockwise to ~-30° (top-right)
+  const startDeg = 210;
+  const sweepDeg = 240;
 
-  const getColor = (i) => {
-    const pct = i / total;
-    if (score >= 70) return pct < filled / total ? '#16a34a' : '#e5e7eb';
-    if (score >= 30) {
-      if (pct < filled / total) return pct > 0.6 ? '#F5C842' : '#F97316';
-      return '#e5e7eb';
-    }
-    if (pct < filled / total) return '#dc2626';
-    return '#e5e7eb';
+  // Interpolate color along the arc: green → yellow-green → orange → yellow
+  const lerpColor = (t) => {
+    const stops = [
+      { t: 0,    r: 34,  g: 197, b: 94  }, // green
+      { t: 0.33, r: 132, g: 204, b: 22  }, // lime
+      { t: 0.6,  r: 249, g: 115, b: 22  }, // orange
+      { t: 1,    r: 234, g: 179, b: 8   }, // yellow
+    ];
+    let i = 0;
+    while (i < stops.length - 2 && t > stops[i + 1].t) i++;
+    const a = stops[i], b = stops[i + 1];
+    const f = (t - a.t) / (b.t - a.t);
+    const ri = Math.round(a.r + (b.r - a.r) * f);
+    const gi = Math.round(a.g + (b.g - a.g) * f);
+    const bi = Math.round(a.b + (b.b - a.b) * f);
+    return `rgb(${ri},${gi},${bi})`;
   };
 
   const dots = Array.from({ length: total }, (_, i) => {
-    const angle = (startAngle + (sweep / total) * i) * (Math.PI / 180);
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
-    return { x, y, color: getColor(i) };
+    const t = i / (total - 1);
+    // Go counterclockwise: start at startDeg, decrease angle
+    const deg = startDeg - sweepDeg * t;
+    const rad = deg * (Math.PI / 180);
+    const x = cx + r * Math.cos(rad);
+    const y = cy + r * Math.sin(rad);
+    return { x, y, color: lerpColor(t) };
   });
-
-  const scoreColor = score >= 70 ? '#16a34a' : score >= 30 ? '#F97316' : '#dc2626';
 
   return (
     <div style={{ width: size, height: size, position: 'relative', flexShrink: 0 }}>
       <svg width={size} height={size}>
         {dots.map((d, i) => (
-          <circle key={i} cx={d.x} cy={d.y} r={3.5} fill={d.color} />
+          <circle key={i} cx={d.x} cy={d.y} r={4.5} fill={d.color} />
         ))}
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 32, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{score}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', marginTop: 2 }}>{label || 'Score'}</span>
+        <span style={{ fontSize: 72, fontWeight: 900, color: '#111', lineHeight: 1 }}>{score}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginTop: 4, letterSpacing: '0.02em' }}>{label || 'Score'}</span>
       </div>
     </div>
   );
 }
 
-// ─── Macro bar row ────────────────────────────────────────────────────────────
+// ─── Macro bar row (left column style) ───────────────────────────────────────
 function MacroBarRow({ label, value, unit, max, color }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const display = value != null ? (Number.isInteger(value) ? value : value.toFixed(1)) : 0;
   return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between">
-        <span className="text-xs text-gray-500">{label}</span>
-        <span className="text-base font-bold text-gray-800">{value?.toFixed(1) ?? 0}<span className="text-xs text-gray-400 ml-0.5">{unit || 'g'}</span></span>
+    <div>
+      <span className="text-[11px] text-gray-400 font-medium">{label}</span>
+      <div className="text-[26px] font-black text-gray-900 leading-tight">
+        {display}<span className="text-sm font-semibold text-gray-400 ml-0.5">{unit || 'g'}</span>
       </div>
-      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="mt-1 rounded-full overflow-hidden" style={{ width: '55%', height: 4, background: '#e5e7eb' }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>
@@ -100,6 +111,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   const [servings, setServings] = useState(1);
   const [ingredientResult, setIngredientResult] = useState(null);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
   const touchStartX = useRef(null);
 
   const safetyColor = { Green: { bg: '#dcfce7', text: '#16a34a' }, Yellow: { bg: '#fef9c3', text: '#ca8a04' }, Red: { bg: '#fee2e2', text: '#dc2626' } };
@@ -147,53 +159,37 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     Neutral: { bg: '#f3f4f6', text: '#6b7280' }, Avoid: { bg: '#fee2e2', text: '#dc2626' },
   };
 
-  // ─── Slide 0: Score + Macros (new design) ──────────────────────────────────
+  const descText = tip || result.diet_reason || result.bloat_reason || result.appearance_tip || '';
+
+  // ─── Slide 0: Redesigned Score tab ─────────────────────────────────────────
   const slide0 = (
-    <div className="pb-4 fade-in-up">
-      {/* Score + macro bars side by side */}
-      <div className="flex items-start gap-4 mb-4">
-        {/* Macro bars */}
-        <div className="flex-1 space-y-3 pt-1">
-          <MacroBarRow label="Sugar" value={sugar} max={(result.sugar || 0) * 5 || 50} color="#F97316" />
-          <MacroBarRow label="Fats" value={fat} max={(result.fat || 0) * 5 || 50} color="#F5C842" />
-          <MacroBarRow label="Carbs" value={carbs} max={(result.carbs || 0) * 5 || 100} color="#6CC5A0" />
-          <MacroBarRow label="Protein" value={prot} max={(result.protein || 0) * 5 || 50} color="#38BDF8" />
+    <div className="pb-4 fade-in-up flex flex-col gap-5">
+      {/* Hero: macros left + dot arc right */}
+      <div className="flex items-center gap-0">
+        {/* Left: macro column */}
+        <div className="flex flex-col gap-4" style={{ flex: '0 0 42%' }}>
+          <MacroBarRow label="Sugar" value={sugar} max={(result.sugar || 1) * 5} color="#ef4444" />
+          <MacroBarRow label="Fats" value={fat} max={(result.fat || 1) * 5} color="#eab308" />
+          <MacroBarRow label="Carbs" value={carbs} max={(result.carbs || 1) * 5} color="#22c55e" />
+          <MacroBarRow label="Protein" value={prot} max={(result.protein || 1) * 5} color="#38bdf8" />
         </div>
-        {/* Dotted score circle */}
-        <DottedScoreCircle score={result.health_score ? Math.round(result.health_score * 10) : 0} label={scoreLabel()} />
-      </div>
-
-      {/* Calories strip */}
-      <div className="bg-gray-50 rounded-2xl px-4 py-3 flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-base">🔥</span>
-          <span className="text-xs text-gray-500">Calories</span>
-        </div>
-        <span className="text-xl font-extrabold text-gray-900">{cal} <span className="text-xs font-semibold text-gray-400">kcal</span></span>
-        <div className="flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1">
-          <button onClick={() => setServings(s => Math.max(0.5, s - 0.5))} className="text-gray-400 text-sm font-bold w-4 text-center">−</button>
-          <span className="text-xs font-semibold text-gray-800 px-1">{servings}×</span>
-          <button onClick={() => setServings(s => s + 0.5)} className="text-gray-400 text-sm font-bold w-4 text-center">+</button>
+        {/* Right: C-shape arc */}
+        <div style={{ flex: '0 0 58%', display: 'flex', justifyContent: 'center' }}>
+          <DottedArcScore score={result.health_score ? Math.round(result.health_score * 10) : 0} label={scoreLabel()} />
         </div>
       </div>
 
-      {/* Sodium + fiber mini row */}
-      <div className="flex gap-2 mb-3">
-        {[['Sodium', `${sodium}mg`], ['Fiber', `${Math.round((result.fiber || 0) * servings * 10) / 10}g`]].map(([l, v]) => (
-          <div key={l} className="flex-1 bg-gray-50 rounded-xl px-3 py-2 flex items-center justify-between">
-            <span className="text-[10px] text-gray-400">{l}</span>
-            <span className="text-xs font-bold text-gray-700">{v}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Tip box */}
-      {tip && (
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3">
-          <p className="text-[10px] font-bold text-blue-600 uppercase mb-0.5">💡 Tip</p>
-          <p className="text-xs text-blue-700 leading-relaxed">{tip}</p>
+      {/* Description */}
+      {descText ? (
+        <div>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            {descExpanded ? descText : descText.slice(0, 120)}
+            {!descExpanded && descText.length > 120 && (
+              <> <button onClick={() => setDescExpanded(true)} className="font-bold text-gray-700">Read More</button></>
+            )}
+          </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 
@@ -311,16 +307,16 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col" style={{ maxWidth: 480, margin: '0 auto' }}>
-      {/* Top nav */}
-      <div className="shrink-0 flex items-center justify-between px-4 pt-12 pb-3 border-b border-gray-100 fade-in-up">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
-        </button>
-        <div className="text-center flex-1 px-3">
-          <p className="text-sm font-bold text-gray-900 truncate">{result.name}</p>
-          <p className="text-xs text-gray-400">{result.serving_size || 'per serving'}</p>
+      {/* Top nav — white bg, product name centered large */}
+      <div className="shrink-0 bg-white px-4 pt-12 pb-4 fade-in-up">
+        <div className="flex items-center mb-3">
+          <button onClick={onBack} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <div className="flex-1" />
         </div>
-        <div className="w-10" />
+        <p className="text-2xl font-extrabold text-gray-900 text-center leading-tight px-2">{result.name}</p>
+        <p className="text-xs text-gray-400 text-center mt-1">{result.serving_size || 'per serving'}</p>
       </div>
 
       {/* Tab pills */}

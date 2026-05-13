@@ -55,9 +55,9 @@ function VerdictBadge({ result }) {
     label = 'NO'; bg = '#ef4444';
   }
   return (
-    <div className="shrink-0 rounded-2xl px-5 py-3 flex items-center justify-center"
-      style={{ background: bg, minWidth: 72, alignSelf: 'flex-end', marginBottom: 4 }}>
-      <span className="text-2xl font-black text-white leading-none">{label}</span>
+    <div className="shrink-0 rounded-xl px-3 py-1.5 flex items-center justify-center"
+      style={{ background: bg }}>
+      <span className="text-sm font-black text-white leading-none">{label}</span>
     </div>
   );
 }
@@ -426,52 +426,41 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   return (
     <div className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden" style={{ maxWidth: 480, margin: '0 auto' }}>
 
-      {/* ── 1. Product image — white card with shadow ── */}
-      <div className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] flex items-center justify-center"
-        style={{ height: 200, boxShadow: '0 4px 24px rgba(0,0,0,0.10)', overflow: 'hidden' }}>
+      {/* ── 1. Product image — white card, image covers full area ── */}
+      <div className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
+        style={{ height: 210, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
         {result.image_url ? (
           <img src={result.image_url} alt={result.name}
-            className="w-full h-full object-contain p-4" />
+            className="w-full h-full object-cover" />
         ) : (
-          <IconModule icon={ShoppingCart} bg="#f3f4f6" color="#9ca3af" size={72} />
+          <div className="w-full h-full flex items-center justify-center">
+            <IconModule icon={ShoppingCart} bg="#f3f4f6" color="#9ca3af" size={72} />
+          </div>
         )}
         <button onClick={onBack}
           className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(8px)' }}>
+          style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
           <ArrowLeft style={{ width: 16, height: 16, color: 'white', strokeWidth: 2.5 }} />
         </button>
       </div>
 
-      {/* ── 2. Name + verdict badge + action FAB ── */}
-      <div className="shrink-0 px-5 pt-4 pb-1">
-        <div className="flex items-end justify-between gap-3">
-          <h1 className="text-[26px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
-            {result.name}
-          </h1>
-          <div className="flex items-end gap-2 shrink-0">
-            <VerdictBadge result={result} />
-            <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
-          </div>
+      {/* ── 2. Name (full width) + verdict badge + action FAB inline ── */}
+      <div className="shrink-0 px-5 pt-4 pb-2">
+        <h1 className="text-[32px] font-black text-gray-900 leading-tight w-full" style={{ letterSpacing: '-0.02em' }}>
+          {result.name}
+        </h1>
+        <div className="flex items-center gap-2 mt-2">
+          <VerdictBadge result={result} />
+          <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
         </div>
       </div>
 
-      {/* ── 3. Dot page indicators ── */}
-      <div className="shrink-0 flex items-center gap-1.5 px-5 pb-2 pt-1">
+      {/* ── 3. Dot page indicators — centered above content ── */}
+      <div className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
         {allSlides.map((_, i) => (
           <button key={i} onClick={() => setSlide(i)}
             className="rounded-full transition-all duration-200"
             style={{ width: i === slide ? 22 : 7, height: 7, background: i === slide ? '#1a1a1a' : '#d1d5db' }} />
-        ))}
-      </div>
-
-      {/* ── 4. Tab pills ── */}
-      <div className="shrink-0 px-5 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
-        {slideLabels.map((label, i) => (
-          <button key={label} onClick={() => setSlide(i)}
-            className="text-xs font-semibold px-4 py-1.5 rounded-full shrink-0 transition-all"
-            style={{ background: slide === i ? '#1a1a1a' : '#e5e7eb', color: slide === i ? 'white' : '#6b7280' }}>
-            {label}
-          </button>
         ))}
       </div>
 

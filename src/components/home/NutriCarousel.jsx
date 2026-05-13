@@ -5,7 +5,7 @@ const glassStyle = {
   background: 'rgba(255,255,255,0.60)',
   backdropFilter: 'blur(24px) saturate(200%)',
   WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-  border: '1px solid rgba(255,255,255,0.85)',
+  border: '1px solid rgba(0,0,0,0.09)',
   boxShadow: '0 2px 10px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,1)',
 };
 
@@ -14,7 +14,7 @@ function GlassMacroCard({ value, unit = 'g', label, progress }) {
   return (
     <div className="flex-1 rounded-[22px] p-4 flex flex-col gap-3" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">{label}</p>
-      <p className="text-3xl font-extrabold text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
+      <p className="text-3xl font-light text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
       <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
         <div className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, background: pct >= 90 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0' }} />
@@ -23,23 +23,36 @@ function GlassMacroCard({ value, unit = 'g', label, progress }) {
   );
 }
 
+function CircleProgress({ pct, color, size = 72, stroke = 7 }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
   const pct = caloriesTarget > 0 ? Math.min(100, (caloriesConsumed / caloriesTarget) * 100) : 0;
   const color = pct >= 100 ? '#F47C7C' : pct >= 70 ? '#F5C842' : '#6CC5A0';
   return (
     <div className="rounded-[22px] p-5" style={glassStyle}>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold text-foreground/50">Calories left</p>
-          <p className="text-5xl font-extrabold text-foreground leading-none mt-1">{Math.max(0, Math.round(caloriesLeft))}<span className="text-lg font-semibold text-foreground/40 ml-1">kcal</span></p>
+          <p className="text-5xl font-light text-foreground leading-none mt-1">{Math.max(0, Math.round(caloriesLeft))}<span className="text-lg font-semibold text-foreground/40 ml-1">kcal</span></p>
+          <p className="text-xs text-foreground/40 mt-1">of {caloriesTarget}</p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-foreground/40">of {caloriesTarget}</p>
-          <p className="text-2xl font-bold" style={{ color }}>{Math.round(pct)}%</p>
+        <div className="relative flex items-center justify-center" style={{ width: 72, height: 72 }}>
+          <CircleProgress pct={pct} color={color} size={72} stroke={7} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-sm font-bold" style={{ color }}>{Math.round(pct)}%</span>
+          </div>
         </div>
-      </div>
-      <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
-        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>
   );

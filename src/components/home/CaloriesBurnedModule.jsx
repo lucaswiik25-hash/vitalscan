@@ -48,7 +48,7 @@ export default function CaloriesBurnedModule({ profile = {} }) {
     background: 'rgba(255,255,255,0.55)',
     backdropFilter: 'blur(24px) saturate(180%)',
     WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-    border: '1px solid rgba(255,255,255,0.75)',
+    border: '1px solid rgba(0,0,0,0.09)',
     boxShadow: '0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
   };
 

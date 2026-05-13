@@ -164,25 +164,25 @@ export default function WaterTracker() {
 
       <div className="px-5 mt-4 space-y-4">
         {/* Big circular progress — no background card */}
-        <div className="flex flex-col items-center py-4">
-          <div className="relative" style={{ width: 260, height: 260 }}>
-            <svg width={260} height={260} style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx={130} cy={130} r={113} fill="none" stroke="hsl(var(--muted))" strokeWidth={16} />
+        <div className="flex flex-col items-center py-6">
+          <div className="relative" style={{ width: 320, height: 320 }}>
+            <svg width={320} height={320} style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx={160} cy={160} r={136} fill="none" stroke="hsl(var(--muted))" strokeWidth={22} strokeLinecap="round" />
               <circle
-                cx={130} cy={130} r={113}
+                cx={160} cy={160} r={136}
                 fill="none"
                 stroke={glassColor}
-                strokeWidth={16}
-                strokeDasharray={2 * Math.PI * 113}
-                strokeDashoffset={2 * Math.PI * 113 * (1 - pct / 100)}
+                strokeWidth={22}
+                strokeDasharray={2 * Math.PI * 136}
+                strokeDashoffset={2 * Math.PI * 136 * (1 - pct / 100)}
                 strokeLinecap="round"
                 style={{ transition: 'stroke-dashoffset 0.6s ease' }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-5xl font-extrabold text-foreground">{pct}%</span>
+              <span className="text-6xl font-extrabold text-foreground">{pct}%</span>
               <span className="text-sm text-muted-foreground font-medium">of goal</span>
-              <p className="text-xl font-extrabold text-foreground mt-1">
+              <p className="text-2xl font-extrabold text-foreground mt-2">
                 {totalToday}<span className="text-sm font-medium text-muted-foreground"> ml</span>
               </p>
               <p className="text-xs text-muted-foreground">of {dailyTarget} ml</p>

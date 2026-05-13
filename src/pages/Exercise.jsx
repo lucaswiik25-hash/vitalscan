@@ -3,45 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ArrowLeft, Plus, Flame, Dumbbell, Timer, Trash2, X, Loader2, ChevronRight } from 'lucide-react';
-
-const glassStyle = {
-  background: 'rgba(255,255,255,0.55)',
-  backdropFilter: 'blur(24px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-  border: '1px solid rgba(255,255,255,0.75)',
-  boxShadow: '0 4px 24px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
-
-const deepGlassStyle = {
-  background: 'rgba(255,255,255,0.75)',
-  backdropFilter: 'blur(30px) saturate(200%)',
-  WebkitBackdropFilter: 'blur(30px) saturate(200%)',
-  border: '1px solid rgba(255,255,255,0.9)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,1)',
-};
-
-const CATEGORY_CONFIG = {
-  cardio:      { emoji: '🏃', color: '#ef4444', bg: '#fef2f2' },
-  strength:    { emoji: '💪', color: '#8b5cf6', bg: '#f5f3ff' },
-  flexibility: { emoji: '🧘', color: '#06b6d4', bg: '#ecfeff' },
-  sports:      { emoji: '⚽', color: '#f59e0b', bg: '#fffbeb' },
-  other:       { emoji: '🏋️', color: '#64748b', bg: '#f8fafc' },
-};
+import { ArrowLeft, Plus, Flame, Dumbbell, Timer, Trash2, X, Loader2, ChevronRight, Pencil, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
 
 const QUICK_EXERCISES = [
-  { name: 'Running', category: 'cardio', met: 9.8 },
-  { name: 'Walking', category: 'cardio', met: 3.5 },
-  { name: 'Cycling', category: 'cardio', met: 7.5 },
-  { name: 'Swimming', category: 'cardio', met: 8.0 },
-  { name: 'Weight Training', category: 'strength', met: 5.0 },
-  { name: 'HIIT', category: 'cardio', met: 10.0 },
-  { name: 'Yoga', category: 'flexibility', met: 2.5 },
-  { name: 'Jump Rope', category: 'cardio', met: 11.0 },
-  { name: 'Basketball', category: 'sports', met: 8.0 },
-  { name: 'Football', category: 'sports', met: 8.3 },
-  { name: 'Pilates', category: 'flexibility', met: 3.5 },
-  { name: 'Rowing', category: 'cardio', met: 8.5 },
+  { name: 'Running', icon: Activity, met: 9.8, category: 'cardio' },
+  { name: 'Walking', icon: PersonStanding, met: 3.5, category: 'cardio' },
+  { name: 'Cycling', icon: Bike, met: 7.5, category: 'cardio' },
+  { name: 'Swimming', icon: Waves, met: 8.0, category: 'cardio' },
+  { name: 'Weight Training', icon: Dumbbell, met: 5.0, category: 'strength' },
+  { name: 'HIIT', icon: Zap, met: 10.0, category: 'cardio' },
+  { name: 'Jump Rope', icon: SkipForward, met: 11.0, category: 'cardio' },
+  { name: 'Yoga', icon: Activity, met: 2.5, category: 'flexibility' },
+  { name: 'Basketball', icon: Activity, met: 8.0, category: 'sports' },
+  { name: 'Football', icon: Activity, met: 8.3, category: 'sports' },
+  { name: 'Pilates', icon: Activity, met: 3.5, category: 'flexibility' },
+  { name: 'Rowing', icon: Activity, met: 8.5, category: 'cardio' },
 ];
 
 function calcBMR(profile) {
@@ -55,14 +31,38 @@ function calcCalories(met, weight, minutes) {
   return Math.round((met * weight * minutes) / 60);
 }
 
+// Circular progress ring component
+function ProgressRing({ pct }) {
+  const r = 36;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(100, pct) / 100);
+  return (
+    <div className="relative" style={{ width: 88, height: 88 }}>
+      <svg width={88} height={88} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={44} cy={44} r={r} fill="none" stroke="#f0f0f0" strokeWidth={8} />
+        <circle cx={44} cy={44} r={r} fill="none" stroke="#1a1a1a" strokeWidth={8}
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+        <Flame className="w-3.5 h-3.5 text-gray-900" />
+        <span className="text-sm font-bold text-gray-900 leading-none">{Math.round(Math.min(100, pct))}%</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Exercise() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [showAdd, setShowAdd] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
   const [saving, setSaving] = useState(false);
-  const [selectedQuick, setSelectedQuick] = useState(null);
 
   const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => base44.entities.UserProfile.list() });
   const profile = profiles[0] || {};
@@ -73,21 +73,15 @@ export default function Exercise() {
     queryFn: () => base44.entities.Exercise.filter({ date: today }),
   });
 
-  const { data: allExercises = [] } = useQuery({
-    queryKey: ['allExercises'],
-    queryFn: () => base44.entities.Exercise.list('-created_date', 50),
-  });
-
   const bmr = useMemo(() => calcBMR(profile), [profile]);
   const totalBurned = exercises.reduce((s, e) => s + (e.calories_burned || 0), 0);
-
-  // Exercise calorie target = BMR (just the base metabolic rate for exercise goal)
-  const exerciseTarget = Math.round(bmr * 0.3); // 30% of BMR as daily exercise burn target
+  const totalMinutes = exercises.reduce((s, e) => s + (e.duration_minutes || 0), 0);
+  const exerciseTarget = Math.round(bmr * 0.3);
+  const pct = exerciseTarget > 0 ? (totalBurned / exerciseTarget) * 100 : 0;
 
   const handleQuickSelect = (ex) => {
-    setSelectedQuick(ex);
-    const cal = calcCalories(ex.met, weight, form.duration_minutes || 30);
-    setForm(f => ({ ...f, name: ex.name, category: ex.category, calories_burned: cal }));
+    const cal = calcCalories(ex.met, weight, 30);
+    setForm({ name: ex.name, category: ex.category, duration_minutes: 30, intensity: 'medium', notes: '', calories_burned: cal });
     setShowAdd(true);
   };
 
@@ -107,7 +101,6 @@ export default function Exercise() {
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
     setShowAdd(false);
     setForm({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
-    setSelectedQuick(null);
     setSaving(false);
   };
 
@@ -117,121 +110,113 @@ export default function Exercise() {
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
   };
 
-  const pct = exerciseTarget > 0 ? Math.min(100, (totalBurned / exerciseTarget) * 100) : 0;
-  const ringColor = pct >= 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+  const visibleExercises = showAll ? QUICK_EXERCISES : QUICK_EXERCISES.slice(0, 6);
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: 'linear-gradient(135deg, #fff8f5 0%, #f0f4ff 100%)' }}>
+    <div className="min-h-screen bg-white pb-28">
       {/* Header */}
-      <div className="px-5 pt-12 pb-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={glassStyle}>
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
+      <div className="px-5 pt-12 pb-4 flex items-center">
+        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">
+          <ArrowLeft className="w-5 h-5 text-gray-900" />
         </button>
-        <h1 className="text-xl font-extrabold text-gray-900 flex-1">Exercise</h1>
-        <button onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center shadow-lg">
-          <Plus className="w-5 h-5 text-white" />
+        <h1 className="text-xl font-bold text-gray-900 flex-1 text-center">Exercise</h1>
+        <button onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center">
+          <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
         </button>
       </div>
 
-      {/* Today Summary Card */}
-      <div className="mx-5 mb-5 rounded-[24px] p-5" style={deepGlassStyle}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Today's Burn</p>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-4xl font-black text-gray-900">{totalBurned.toLocaleString()}</span>
-              <span className="text-base font-semibold text-gray-400">kcal</span>
+      <div className="px-5 space-y-5">
+        {/* Today's Burn Hero Card */}
+        <div className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Today's Burn</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-6xl font-black text-gray-900 leading-none">{totalBurned.toLocaleString()}</span>
+                <span className="text-base font-semibold text-gray-400">kcal</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">Target: {exerciseTarget} kcal</p>
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">Target: {exerciseTarget} kcal</p>
+            <ProgressRing pct={pct} />
           </div>
-          {/* Ring */}
-          <div className="relative w-20 h-20">
-            <svg width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="40" cy="40" r="32" fill="none" stroke="#f3f4f6" strokeWidth="8" />
-              <circle cx="40" cy="40" r="32" fill="none" stroke={ringColor} strokeWidth="8"
-                strokeDasharray={`${2 * Math.PI * 32}`}
-                strokeDashoffset={`${2 * Math.PI * 32 * (1 - pct / 100)}`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <Flame className="w-4 h-4" style={{ color: ringColor }} />
-              <span className="text-xs font-bold text-gray-700">{Math.round(pct)}%</span>
-            </div>
+
+          {/* Stat chips */}
+          <div className="flex gap-2">
+            {[
+              { icon: Timer, value: totalMinutes, label: 'minutes' },
+              { icon: Dumbbell, value: exercises.length, label: 'sessions' },
+              { icon: Flame, value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
+            ].map(({ icon: Icon, value, label }) => (
+              <div key={label} className="flex-1 bg-gray-50 rounded-[14px] py-3 px-2 flex flex-col items-center gap-1">
+                <Icon className="w-4 h-4 text-gray-900" />
+                <span className="text-lg font-bold text-gray-900 leading-none">{value}</span>
+                <span className="text-[10px] text-gray-400">{label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Mini stats */}
-        <div className="flex gap-3">
-          <div className="flex-1 rounded-2xl p-3 text-center" style={{ background: 'rgba(0,0,0,0.04)' }}>
-            <Timer className="w-4 h-4 text-gray-400 mx-auto mb-1" />
-            <p className="text-lg font-extrabold text-gray-900">{exercises.reduce((s, e) => s + (e.duration_minutes || 0), 0)}</p>
-            <p className="text-[10px] text-gray-400">min</p>
+        {/* Add Exercise section */}
+        <div>
+          <div className="mb-3">
+            <h2 className="text-base font-bold text-gray-900">Add Exercise</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Tap to log instantly</p>
           </div>
-          <div className="flex-1 rounded-2xl p-3 text-center" style={{ background: 'rgba(0,0,0,0.04)' }}>
-            <Dumbbell className="w-4 h-4 text-gray-400 mx-auto mb-1" />
-            <p className="text-lg font-extrabold text-gray-900">{exercises.length}</p>
-            <p className="text-[10px] text-gray-400">sessions</p>
-          </div>
-          <div className="flex-1 rounded-2xl p-3 text-center" style={{ background: 'rgba(0,0,0,0.04)' }}>
-            <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
-            <p className="text-lg font-extrabold text-gray-900">{Math.max(0, exerciseTarget - totalBurned)}</p>
-            <p className="text-[10px] text-gray-400">left</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Add */}
-      <div className="px-5 mb-5">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Add</p>
-        <div className="grid grid-cols-3 gap-2">
-          {QUICK_EXERCISES.map(ex => {
-            const cfg = CATEGORY_CONFIG[ex.category];
-            return (
-              <button key={ex.name} onClick={() => handleQuickSelect(ex)}
-                className="rounded-[18px] p-3 flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
-                style={{ ...glassStyle, background: cfg.bg, border: `1px solid ${cfg.color}22` }}>
-                <span className="text-2xl">{cfg.emoji}</span>
-                <span className="text-[10px] font-bold text-center leading-tight" style={{ color: cfg.color }}>{ex.name}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Today's exercises */}
-      {exercises.length > 0 && (
-        <div className="px-5 mb-5">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Today's Sessions</p>
           <div className="space-y-2">
-            {exercises.map(ex => {
-              const cfg = CATEGORY_CONFIG[ex.category] || CATEGORY_CONFIG.other;
+            {visibleExercises.map(ex => {
+              const Icon = ex.icon;
+              const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
               return (
-                <div key={ex.id} className="rounded-[20px] p-4 flex items-center gap-3" style={deepGlassStyle}>
-                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0" style={{ background: cfg.bg }}>
-                    {cfg.emoji}
+                <button key={ex.name} onClick={() => handleQuickSelect(ex)}
+                  className="w-full bg-white border border-gray-150 rounded-[14px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+                  style={{ border: '1px solid #e5e7eb' }}>
+                  <div className="w-10 h-10 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5 text-gray-900" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900">{ex.name}</p>
-                    <p className="text-xs text-gray-400">{ex.duration_minutes} min · <span style={{ color: cfg.color }}>{ex.calories_burned} kcal</span></p>
+                    <p className="text-xs text-gray-400">approx {calPerHour} kcal per hour</p>
                   </div>
-                  <button onClick={() => handleDelete(ex.id)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.05)' }}>
-                    <Trash2 className="w-3.5 h-3.5 text-gray-400" />
-                  </button>
-                </div>
+                  <Plus className="w-4 h-4 text-gray-400 shrink-0" />
+                </button>
               );
             })}
           </div>
+          {!showAll && (
+            <button onClick={() => setShowAll(true)} className="w-full mt-3 text-sm text-gray-400 font-medium py-2">
+              Show more
+            </button>
+          )}
         </div>
-      )}
 
-      {exercises.length === 0 && (
-        <div className="mx-5 rounded-[20px] p-8 text-center" style={glassStyle}>
-          <Dumbbell className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-400">No exercises logged today</p>
-          <p className="text-xs text-gray-300 mt-1">Tap a quick-add or use the + button</p>
-        </div>
-      )}
+        {/* Today's Sessions */}
+        {exercises.length > 0 && (
+          <div>
+            <h2 className="text-base font-bold text-gray-900 mb-3">Today's Sessions</h2>
+            <div className="space-y-2">
+              {exercises.map(ex => (
+                <div key={ex.id} className="bg-white rounded-[14px] p-4 flex items-center gap-3 shadow-sm border border-gray-100">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900">{ex.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{ex.duration_minutes} min · {ex.calories_burned} kcal</p>
+                  </div>
+                  <button onClick={() => handleDelete(ex.id)}
+                    className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {exercises.length === 0 && (
+          <div className="rounded-[14px] border border-gray-100 p-8 text-center">
+            <Dumbbell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">No exercises logged today</p>
+          </div>
+        )}
+      </div>
 
       {/* Add Exercise Modal */}
       {showAdd && (
@@ -240,11 +225,10 @@ export default function Exercise() {
           <div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">Log Exercise</h2>
-              <button onClick={() => { setShowAdd(false); setSelectedQuick(null); }} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+              <button onClick={() => setShowAdd(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
-
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Exercise Name</label>
@@ -253,7 +237,6 @@ export default function Exercise() {
                   className="w-full h-12 rounded-2xl border border-gray-200 px-4 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 />
               </div>
-
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Duration: {form.duration_minutes} min</label>
                 <input type="range" min="5" max="180" step="5" value={form.duration_minutes}
@@ -264,7 +247,6 @@ export default function Exercise() {
                   <span>5 min</span><span>180 min</span>
                 </div>
               </div>
-
               <div className="grid grid-cols-3 gap-2">
                 {['low', 'medium', 'high'].map(lvl => (
                   <button key={lvl} onClick={() => setForm(f => ({ ...f, intensity: lvl }))}
@@ -274,17 +256,15 @@ export default function Exercise() {
                   </button>
                 ))}
               </div>
-
               {form.calories_burned && (
-                <div className="rounded-2xl p-3 text-center" style={{ background: '#fef3c7' }}>
-                  <p className="text-xs text-amber-600 font-semibold">Estimated Calories Burned</p>
-                  <p className="text-2xl font-black text-amber-700">{form.calories_burned} <span className="text-sm font-semibold">kcal</span></p>
+                <div className="rounded-2xl p-3 text-center bg-gray-50 border border-gray-100">
+                  <p className="text-xs text-gray-500 font-semibold">Estimated Calories Burned</p>
+                  <p className="text-2xl font-black text-gray-900">{form.calories_burned} <span className="text-sm font-semibold text-gray-400">kcal</span></p>
                 </div>
               )}
-
               <button onClick={handleSave} disabled={saving || !form.name.trim()}
-                className="w-full h-13 h-12 rounded-full bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flame className="w-4 h-4" />}
+                className="w-full h-12 rounded-full bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {saving ? 'Saving...' : 'Log Exercise'}
               </button>
             </div>

@@ -6,7 +6,7 @@ const glassStyle = {
   backdropFilter: 'blur(24px) saturate(200%)',
   WebkitBackdropFilter: 'blur(24px) saturate(200%)',
   border: '1px solid rgba(255,255,255,0.85)',
-  boxShadow: '0 6px 28px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,1)',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,1)',
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {

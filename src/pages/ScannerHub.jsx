@@ -128,9 +128,9 @@ function ScannerCarousel({ cardKeys }) {
   const touchStartX = useRef(null);
   const trackRef = useRef(null);
 
-  const CARD_W = 260;
+  const CARD_W = 275;
   const CARD_GAP = 12;
-  const PEEK = 32;
+  const PEEK = 28;
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -182,7 +182,7 @@ function ScannerCarousel({ cardKeys }) {
                 className="shrink-0 rounded-[22px] overflow-hidden relative transition-all duration-300 active:scale-[0.97]"
                 style={{
                   width: CARD_W,
-                  height: 150,
+                  height: 190,
                   background: `linear-gradient(145deg, ${c.gradient[0]}, ${c.gradient[1]})`,
                   opacity: isActive ? 1 : 0.65,
                   transform: isActive ? 'scale(1)' : 'scale(0.94)',
@@ -237,9 +237,8 @@ function RecentScans() {
   };
 
   const handleScanClick = (scan) => {
-    // Navigate to the scanner page with stored result data
     const path = SCAN_PATHS[scan.type] || '/food-scanner';
-    // Store the scan result in sessionStorage to rehydrate the verdict page
+    // Store full scan including result_data so verdict page can be shown directly
     sessionStorage.setItem('replayScan', JSON.stringify({ scan, fromHistory: true }));
     navigate(path + '?replay=1');
   };

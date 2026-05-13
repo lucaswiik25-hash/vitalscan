@@ -30,6 +30,23 @@ export default function FoodScanner() {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
 
+  // Handle replay from scan history
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('replay') === '1') {
+      const stored = sessionStorage.getItem('replayScan');
+      if (stored) {
+        try {
+          const { scan } = JSON.parse(stored);
+          if (scan && scan.result_data) {
+            setResult({ ...scan.result_data, name: scan.product_name, image_url: scan.image_url });
+          }
+        } catch (_) {}
+        sessionStorage.removeItem('replayScan');
+      }
+    }
+  }, []);
+
   // Animate scan line — slow: 4 seconds per cycle
   useEffect(() => {
     let start = null;

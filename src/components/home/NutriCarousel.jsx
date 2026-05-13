@@ -2,20 +2,20 @@ import React, { useState } from 'react';
 
 // Liquid glass card style
 const glassStyle = {
-  background: 'rgba(255,255,255,0.45)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-  border: '1px solid rgba(255,255,255,0.7)',
-  boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+  background: 'rgba(255,255,255,0.60)',
+  backdropFilter: 'blur(24px) saturate(200%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+  border: '1px solid rgba(255,255,255,0.85)',
+  boxShadow: '0 6px 28px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,1)',
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {
   const pct = Math.min(100, Math.max(0, progress));
   return (
-    <div className="flex-1 rounded-[20px] p-4 flex flex-col gap-2" style={glassStyle}>
+    <div className="flex-1 rounded-[22px] p-4 flex flex-col gap-3" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">{label}</p>
-      <p className="text-2xl font-extrabold text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
-      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+      <p className="text-3xl font-extrabold text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
+      <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
         <div className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, background: pct >= 90 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0' }} />
       </div>
@@ -27,18 +27,18 @@ function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
   const pct = caloriesTarget > 0 ? Math.min(100, (caloriesConsumed / caloriesTarget) * 100) : 0;
   const color = pct >= 100 ? '#F47C7C' : pct >= 70 ? '#F5C842' : '#6CC5A0';
   return (
-    <div className="rounded-[20px] p-5" style={glassStyle}>
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-[22px] p-5" style={glassStyle}>
+      <div className="flex items-center justify-between mb-4">
         <div>
           <p className="text-xs font-semibold text-foreground/50">Calories left</p>
-          <p className="text-4xl font-extrabold text-foreground leading-none mt-1">{Math.max(0, Math.round(caloriesLeft))}<span className="text-base font-semibold text-foreground/40 ml-1">kcal</span></p>
+          <p className="text-5xl font-extrabold text-foreground leading-none mt-1">{Math.max(0, Math.round(caloriesLeft))}<span className="text-lg font-semibold text-foreground/40 ml-1">kcal</span></p>
         </div>
         <div className="text-right">
           <p className="text-xs text-foreground/40">of {caloriesTarget}</p>
-          <p className="text-lg font-bold" style={{ color }}>{Math.round(pct)}%</p>
+          <p className="text-2xl font-bold" style={{ color }}>{Math.round(pct)}%</p>
         </div>
       </div>
-      <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+      <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>

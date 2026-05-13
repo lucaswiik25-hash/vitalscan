@@ -305,22 +305,61 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     touchStartX.current = null;
   };
 
+  // Verdict for the badge
+  const verdictBadge = result.diet_compatibility || result.appearance_impact || result.verdict || null;
+  const verdictBadgeColor = (() => {
+    const v = (verdictBadge || '').toLowerCase();
+    if (['yes', 'excellent', 'good', 'clean'].some(k => v.includes(k))) return { bg: '#dcfce7', text: '#16a34a', label: 'YES' };
+    if (['limit', 'moderate', 'mixed', 'neutral'].some(k => v.includes(k))) return { bg: '#fef9c3', text: '#ca8a04', label: 'VALID' };
+    return { bg: '#fee2e2', text: '#dc2626', label: 'NO' };
+  })();
+
   return (
     <div className="fixed inset-0 bg-white flex flex-col" style={{ maxWidth: 480, margin: '0 auto' }}>
-      {/* Top nav — white bg, product name centered large */}
-      <div className="shrink-0 bg-white px-4 pt-12 pb-4 fade-in-up">
-        <div className="flex items-center mb-3">
-          <button onClick={onBack} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
-          </button>
-          <div className="flex-1" />
+      {/* Product image — rectangular hero */}
+      <div className="shrink-0 relative" style={{ height: 220 }}>
+        {result.image_url ? (
+          <img src={result.image_url} alt={result.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-8xl" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
+            🍽️
+          </div>
+        )}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.15) 100%)' }} />
+        {/* Back button */}
+        <button onClick={onBack} className="absolute top-12 left-4 w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)' }}>
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+      </div>
+
+      {/* Header: name + verdict badge */}
+      <div className="shrink-0 bg-white px-4 pt-4 pb-2 fade-in-up">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xl font-extrabold text-gray-900 leading-tight">{result.name}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{result.serving_size || 'per serving'}</p>
+          </div>
+          {verdictBadge && (
+            <div className="shrink-0 rounded-2xl px-4 py-2 text-center" style={{ background: verdictBadgeColor.bg }}>
+              <p className="text-lg font-black" style={{ color: verdictBadgeColor.text }}>{verdictBadgeColor.label}</p>
+              <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: verdictBadgeColor.text }}>verdict</p>
+            </div>
+          )}
         </div>
-        <p className="text-2xl font-extrabold text-gray-900 text-center leading-tight px-2">{result.name}</p>
-        <p className="text-xs text-gray-400 text-center mt-1">{result.serving_size || 'per serving'}</p>
+      </div>
+
+      {/* Dot page indicator */}
+      <div className="shrink-0 flex items-center justify-center gap-1.5 py-2">
+        {allSlides.map((_, i) => (
+          <button key={i} onClick={() => setSlide(i)}
+            className="rounded-full transition-all"
+            style={{ width: i === slide ? 18 : 6, height: 6, background: i === slide ? '#1a1a1a' : '#d1d5db' }} />
+        ))}
       </div>
 
       {/* Tab pills */}
-      <div className="shrink-0 px-4 pt-3 pb-2 flex gap-2 overflow-x-auto no-scrollbar fade-in-up-2">
+      <div className="shrink-0 px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar fade-in-up-2">
         {slideLabels.map((label, i) => (
           <button key={label} onClick={() => setSlide(i)}
             className="text-xs font-semibold px-4 py-1.5 rounded-full shrink-0 transition-all"

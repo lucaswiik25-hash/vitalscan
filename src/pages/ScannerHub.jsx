@@ -212,60 +212,12 @@ function ScannerCarousel({ cardKeys }) {
 // ─── Recent scans ─────────────────────────────────────────────────────────────
 const typeLabels = { food: 'Food', skincare: 'Skincare', supplement: 'Supplement' };
 
-function ScanDetailModal({ scan, onClose }) {
-  if (!scan) return null;
-  const data = scan.result_data || {};
-  const score = scan.safety_score ?? scan.quality_score ?? null;
-  const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-6 pb-10 max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <div className="flex-1 pr-4">
-            <p className="text-xs text-muted-foreground capitalize">{scan.type} scan · {format(new Date(scan.created_date), 'MMM d, h:mm a')}</p>
-            <h2 className="text-lg font-bold text-foreground mt-0.5">{scan.product_name || 'Unknown'}</h2>
-            {scan.brand && <p className="text-xs text-muted-foreground">{scan.brand}</p>}
-          </div>
-          {score !== null && (
-            <div className="text-center">
-              <p className="text-3xl font-extrabold" style={{ color: scoreColor }}>{score}</p>
-              <p className="text-[10px] text-muted-foreground">score</p>
-            </div>
-          )}
-        </div>
-        {scan.verdict && (
-          <div className="mb-3 px-3 py-2 rounded-xl shrink-0"
-            style={{ background: scoreColor + '18' }}>
-            <p className="text-sm font-semibold capitalize" style={{ color: scoreColor }}>{scan.verdict}</p>
-          </div>
-        )}
-        <div className="overflow-y-auto flex-1 space-y-2">
-          {Object.entries(data).filter(([k]) => !['image_url'].includes(k)).map(([k, v]) => {
-            if (typeof v === 'object' || Array.isArray(v)) return null;
-            if (!v) return null;
-            return (
-              <div key={k} className="flex items-start justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
-                <span className="text-xs text-gray-500 capitalize">{k.replace(/_/g, ' ')}</span>
-                <span className="text-xs font-semibold text-gray-800 text-right max-w-[60%]">{String(v)}</span>
-              </div>
-            );
-          })}
-          {!Object.keys(data).length && (
-            <p className="text-sm text-muted-foreground text-center py-6">No detailed data available for this scan.</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+const SCAN_PATHS = { food: '/food-scanner', skincare: '/skincare-scanner', supplement: '/supplement-scanner' };
 
 function RecentScans() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
-  const [viewScan, setViewScan] = useState(null);
   const touchStartX = useRef(null);
-  const longPressTimer = useRef(null);
 
   const { data: scans = [] } = useQuery({
     queryKey: ['scanResults'],
@@ -284,15 +236,25 @@ function RecentScans() {
     touchStartX.current = null;
   };
 
-  const startLongPress = (scan) => {
-    longPressTimer.current = setTimeout(() => setViewScan(scan), 500);
+  const handleScanClick = (scan) => {
+    // Navigate to the scanner page with stored result data
+    const path = SCAN_PATHS[scan.type] || '/food-scanner';
+    // Store the scan result in sessionStorage to rehydrate the verdict page
+    sessionStorage.setItem('replayScan', JSON.stringify({ scan, fromHistory: true }));
+    navigate(path + '?replay=1');
   };
-  const cancelLongPress = () => clearTimeout(longPressTimer.current);
+
+  const cardStyle = {
+    background: 'rgba(255,255,255,0.65)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.8)',
+    boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+  };
 
   return (
     <div className="mt-6 px-5 fade-in-up-4">
       <h2 className="text-sm font-bold text-foreground mb-3">Recent Scans</h2>
-      <p className="text-[10px] text-muted-foreground mb-2">Hold to view details</p>
       <div className="flex gap-1 mb-3 bg-secondary rounded-2xl p-1">
         {tabs.map((t, i) => (
           <button key={t} onClick={() => setActiveTab(i)}
@@ -304,48 +266,45 @@ function RecentScans() {
       </div>
       <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {filtered.length === 0 ? (
-          <div className="bg-white border border-border rounded-[20px] p-6 text-center shadow-sm">
+          <div className="rounded-[20px] p-6 text-center" style={cardStyle}>
             <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">No {typeLabels[tabs[activeTab]].toLowerCase()} scans yet</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.slice(0, 6).map(scan => (
-              <div
-                key={scan.id}
-                className="bg-white border border-border rounded-[20px] p-4 shadow-sm flex items-center gap-3 select-none"
-                onTouchStart={() => startLongPress(scan)}
-                onTouchEnd={cancelLongPress}
-                onTouchMove={cancelLongPress}
-                onMouseDown={() => startLongPress(scan)}
-                onMouseUp={cancelLongPress}
-                onMouseLeave={cancelLongPress}
-              >
-                {scan.image_url
-                  ? <img src={scan.image_url} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="" />
-                  : <div className="w-12 h-12 rounded-xl bg-secondary shrink-0 flex items-center justify-center text-xl">
-                      {tabs[activeTab] === 'food' ? '🍽️' : tabs[activeTab] === 'skincare' ? '🧴' : '💊'}
-                    </div>
-                }
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{scan.product_name || 'Unknown'}</p>
-                  {scan.brand && <p className="text-xs text-muted-foreground">{scan.brand}</p>}
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(scan.created_date), 'MMM d, h:mm a')}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  {scan.safety_score != null && (
-                    <p className="text-sm font-bold" style={{ color: scan.safety_score >= 70 ? '#16a34a' : scan.safety_score >= 40 ? '#ca8a04' : '#dc2626' }}>
-                      {scan.safety_score}
-                    </p>
-                  )}
-                  {scan.verdict && <p className="text-[10px] text-muted-foreground capitalize">{scan.verdict}</p>}
-                </div>
-              </div>
-            ))}
+            {filtered.slice(0, 6).map(scan => {
+              const score = scan.safety_score ?? scan.quality_score ?? null;
+              const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
+              return (
+                <button
+                  key={scan.id}
+                  className="w-full rounded-[20px] p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+                  style={cardStyle}
+                  onClick={() => handleScanClick(scan)}
+                >
+                  {scan.image_url
+                    ? <img src={scan.image_url} className="w-14 h-14 rounded-2xl object-cover shrink-0" alt="" />
+                    : <div className="w-14 h-14 rounded-2xl bg-secondary shrink-0 flex items-center justify-center text-2xl">
+                        {tabs[activeTab] === 'food' ? '🍽️' : tabs[activeTab] === 'skincare' ? '🧴' : '💊'}
+                      </div>
+                  }
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">{scan.product_name || 'Unknown'}</p>
+                    {scan.brand && <p className="text-xs text-muted-foreground">{scan.brand}</p>}
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(scan.created_date), 'MMM d, h:mm a')}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {score !== null && (
+                      <p className="text-xl font-extrabold" style={{ color: scoreColor }}>{score}</p>
+                    )}
+                    {scan.verdict && <p className="text-[10px] capitalize mt-0.5" style={{ color: scoreColor }}>{scan.verdict}</p>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
-      {viewScan && <ScanDetailModal scan={viewScan} onClose={() => setViewScan(null)} />}
     </div>
   );
 }

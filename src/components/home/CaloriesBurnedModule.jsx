@@ -1,115 +1,108 @@
 import React, { useMemo } from 'react';
 import { format, subDays } from 'date-fns';
-import { Flame, MoreVertical } from 'lucide-react';
+import { Flame } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 
-// BMR × activity multiplier = TDEE (maintenance calories = approx burned)
-function calcDailyBurn(profile) {
-  const weight = profile.weight || 70;
-  const height = profile.height || 170;
-  const age = profile.age || 25;
-  const sex = profile.sex || 'male';
-
-  // Mifflin-St Jeor BMR
-  const bmr = sex === 'female'
-    ? 10 * weight + 6.25 * height - 5 * age - 161
-    : 10 * weight + 6.25 * height - 5 * age + 5;
-
-  const multipliers = {
-    sedentary: 1.2,
-    lightly_active: 1.375,
-    moderately_active: 1.55,
-    very_active: 1.725,
-    extra_active: 1.9,
-  };
-
-  return Math.round(bmr * (multipliers[profile.activity_level] || 1.55));
+// BMR per spec: Men = (10×w) + (6.25×h) - (5×a) + 5 | Women = (10×w) + (6.25×h) - (5×a) - 161
+function calcBMR(profile) {
+  const w = profile.weight || 70, h = profile.height || 170, a = profile.age || 25;
+  return profile.sex === 'female'
+    ? 10 * w + 6.25 * h - 5 * a - 161
+    : 10 * w + 6.25 * h - 5 * a + 5;
 }
 
 export default function CaloriesBurnedModule({ profile = {} }) {
-  const baseBurn = useMemo(() => calcDailyBurn(profile), [profile]);
+  const navigate = useNavigate();
+  const today = format(new Date(), 'yyyy-MM-dd');
 
-  // Last 10 days data — slight natural variation ±80 kcal
+  const bmr = useMemo(() => calcBMR(profile), [profile]);
+
+  const { data: todayExercises = [] } = useQuery({
+    queryKey: ['exercises', today],
+    queryFn: () => base44.entities.Exercise.filter({ date: today }),
+  });
+
+  const todayBurned = todayExercises.reduce((s, e) => s + (e.calories_burned || 0), 0);
+
+  // Bar chart: last 7 days — use bmr as base with seeded variation for past days
   const days = useMemo(() => {
-    return Array.from({ length: 10 }, (_, i) => {
-      const d = subDays(new Date(), 9 - i);
-      const isToday = i === 9;
-      const variation = isToday ? 0 : Math.round((Math.random() - 0.5) * 160);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(new Date(), 6 - i);
+      const isToday = i === 6;
+      const seed = d.getDate() * 13 + d.getMonth() * 7;
+      const variation = ((seed % 5) - 2) * 60;
       return {
         label: format(d, 'EEE'),
-        date: format(d, 'd'),
-        burned: Math.max(1200, baseBurn + variation),
+        burned: isToday ? todayBurned : Math.max(0, Math.round(bmr * 0.25 + variation)),
         isToday,
       };
     });
-  }, [baseBurn]);
+  }, [bmr, todayBurned]);
 
-  const maxBurn = Math.max(...days.map(d => d.burned));
-  const todayBurn = days[days.length - 1].burned;
+  const exerciseTarget = Math.round(bmr * 0.3);
+  const pct = exerciseTarget > 0 ? Math.min(100, (todayBurned / exerciseTarget) * 100) : 0;
+
+  const glassStyle = {
+    background: 'rgba(255,255,255,0.55)',
+    backdropFilter: 'blur(24px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+    border: '1px solid rgba(255,255,255,0.75)',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+  };
 
   return (
-    <div
-      className="mx-5 rounded-[22px] p-4"
-      style={{
-        background: 'rgba(255,255,255,0.45)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        border: '1px solid rgba(255,255,255,0.7)',
-        boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
-      }}
+    <button
+      className="mx-5 rounded-[24px] p-5 w-[calc(100%-40px)] text-left active:scale-[0.98] transition-transform"
+      style={glassStyle}
+      onClick={() => navigate('/exercise')}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1.5">
-          <Flame className="w-4 h-4 text-orange-500" />
-          <span className="text-sm font-semibold text-foreground">Calories burned</span>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.12)' }}>
+            <Flame className="w-4 h-4 text-orange-500" />
+          </div>
+          <span className="text-sm font-bold text-foreground">Calories Burned</span>
         </div>
-        <MoreVertical className="w-4 h-4 text-muted-foreground/40" />
+        <span className="text-xs text-muted-foreground/50">Target: {exerciseTarget} kcal</span>
       </div>
 
-      {/* Sub stats */}
-      <div className="flex items-center gap-3 mb-4">
+      {/* Stats row */}
+      <div className="flex items-end justify-between mb-4">
         <div>
-          <p className="text-xl font-extrabold text-foreground">{todayBurn.toLocaleString()}</p>
-          <p className="text-[10px] text-muted-foreground">kcal today</p>
+          <p className="text-3xl font-extrabold text-foreground leading-none">{todayBurned.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">kcal today · {Math.round(pct)}% of target</p>
         </div>
-        <div className="w-px h-8 bg-border" />
-        <div>
-          <p className="text-xl font-extrabold text-foreground">{Math.round(baseBurn / 100) / 10}k</p>
-          <p className="text-[10px] text-muted-foreground">daily target</p>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground">BMR</p>
+          <p className="text-sm font-bold text-foreground">{bmr.toLocaleString()} kcal</p>
         </div>
       </div>
 
-      {/* Bar chart */}
-      <div className="flex items-end gap-1.5 h-20">
+      {/* Progress bar */}
+      <div className="w-full h-2 rounded-full overflow-hidden mb-4" style={{ background: 'rgba(0,0,0,0.07)' }}>
+        <div className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, background: pct >= 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444' }} />
+      </div>
+
+      {/* Bar chart — height proportional to target */}
+      <div className="flex items-end gap-1.5 h-16">
         {days.map((day, i) => {
-          const pct = day.burned / maxBurn;
-          const barH = Math.max(12, Math.round(pct * 72));
+          const barPct = exerciseTarget > 0 ? Math.min(100, (day.burned / exerciseTarget) * 100) : 0;
+          const barH = Math.max(4, Math.round(barPct / 100 * 56));
           const isToday = day.isToday;
-
+          const barColor = isToday
+            ? (pct >= 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444')
+            : '#e5e7eb';
           return (
-            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 relative">
-              {isToday && (
-                <div
-                  className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full whitespace-nowrap"
-                  style={{ background: '#1a1a1a' }}
-                >
-                  {day.burned.toLocaleString()}
-                </div>
-              )}
-              <div
-                className="w-full rounded-t-lg transition-all"
-                style={{
-                  height: barH,
-                  background: isToday ? '#1a1a1a' : '#e5e7eb',
-                  minHeight: 10,
-                }}
-              />
+            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5">
+              <div className="w-full rounded-t-md transition-all" style={{ height: barH, background: barColor }} />
             </div>
           );
         })}
       </div>
-
-      {/* X axis labels */}
       <div className="flex items-center gap-1.5 mt-1">
         {days.map((day, i) => (
           <div key={i} className="flex-1 text-center">
@@ -117,6 +110,6 @@ export default function CaloriesBurnedModule({ profile = {} }) {
           </div>
         ))}
       </div>
-    </div>
+    </button>
   );
 }

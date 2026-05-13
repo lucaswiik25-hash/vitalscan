@@ -1,0 +1,46 @@
+{
+  "name": "Exercise",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "duration_minutes": {
+      "type": "number"
+    },
+    "calories_burned": {
+      "type": "number"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "cardio",
+        "strength",
+        "flexibility",
+        "sports",
+        "other"
+      ],
+      "default": "other"
+    },
+    "intensity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "date"
+  ]
+}

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, X, Plus, Droplets, Pill, UtensilsCrossed, ShoppingCart, ShieldAlert, Settings, Moon } from 'lucide-react';
+import { Home, User, X, Plus, Droplets, Pill, UtensilsCrossed, ShoppingCart, ShieldAlert, Settings, Moon, Dumbbell } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
+  { path: '/exercise', icon: Dumbbell, label: 'Exercise' },
   { path: '/water', icon: Droplets, label: 'Water Tracker' },
   { path: '/supplements', icon: Pill, label: 'Supplements' },
   { path: '/sleep', icon: Moon, label: 'Sleep Tracker' },

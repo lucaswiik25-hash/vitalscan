@@ -7,11 +7,11 @@ import { Pill, UtensilsCrossed, Moon } from 'lucide-react';
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
 const glassStyle = {
-  background: 'rgba(255,255,255,0.45)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-  border: '1px solid rgba(255,255,255,0.7)',
-  boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+  background: 'rgba(255,255,255,0.60)',
+  backdropFilter: 'blur(24px) saturate(200%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+  border: '1px solid rgba(255,255,255,0.85)',
+  boxShadow: '0 6px 28px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,1)',
 };
 
 export default function DailyModules({ todayMeals = [], profile = {} }) {

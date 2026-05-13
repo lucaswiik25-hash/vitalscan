@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, HelpCircle, ImageIcon, Check, Pill, FileText, CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react';
+import { X, ImageIcon, Check, Pill, FileText, CheckCircle, AlertTriangle, XCircle, Sparkles, ArrowLeft } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 const FLAG_STYLES = {
@@ -18,6 +19,18 @@ const VERDICT_STYLES = {
   NO: { bg: '#fee2e2', text: '#dc2626', icon: XCircle },
 };
 
+function ScanButton({ label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
+      style={{ verticalAlign: 'middle' }}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function SupplementScanner() {
   const navigate = useNavigate();
   const cameraRef = useRef(null);
@@ -31,6 +44,12 @@ export default function SupplementScanner() {
   const [s1Preview, setS1Preview] = useState(null);
   const [s2File, setS2File] = useState(null);
   const [s2Preview, setS2Preview] = useState(null);
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => base44.entities.UserProfile.list(),
+  });
+  const userName = profiles[0]?.name || 'there';
 
   const handleS1File = (e) => {
     const file = e.target.files[0];
@@ -96,7 +115,6 @@ Read every single line of the supplement facts label. Return JSON with: serving_
 
   const reset = () => { setResult(null); setStep1Data(null); setStep(1); setS1File(null); setS1Preview(null); setS2File(null); setS2Preview(null); };
 
-  // Analyzing screen
   if (isAnalyzing) {
     return <AnalyzingScreen type="supplement" message={analyzingMsg} />;
   }
@@ -207,112 +225,91 @@ Read every single line of the supplement facts label. Return JSON with: serving_
   // Photo preview screen
   const activePreview = step === 1 ? s1Preview : s2Preview;
   const activeAnalyse = step === 1 ? analyseStep1 : analyseStep2;
-  const activeRetake = step === 1
-    ? () => { setS1File(null); setS1Preview(null); }
-    : () => { setS2File(null); setS2Preview(null); };
+  const activeRetake = step === 1 ? () => { setS1File(null); setS1Preview(null); } : () => { setS2File(null); setS2Preview(null); };
 
   if (activePreview) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col">
         <img src={activePreview} className="flex-1 w-full object-cover" alt="Captured" />
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12">
-          <button onClick={activeRetake}
-            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <button onClick={activeRetake} className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
             <X className="w-5 h-5 text-white" />
-          </button>
-          <div className="w-8 h-1 rounded-full bg-white/40" />
-          <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <HelpCircle className="w-5 h-5 text-white" />
           </button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
-          <button onClick={activeAnalyse}
-            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
+          <button onClick={activeAnalyse} className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
             <Sparkles className="w-5 h-5" />
             Analyse
           </button>
-          <button onClick={activeRetake} className="text-white/70 text-sm font-medium">
-            Retake photo
-          </button>
+          <button onClick={activeRetake} className="text-white/70 text-sm font-medium">Retake photo</button>
         </div>
       </div>
     );
   }
 
-  // Camera UI — black background
+  // Step 2 camera (after step 1 is done) — keep the two-step UI for clarity
+  if (step === 2 && step1Data) {
+    return (
+      <div className="min-h-screen bg-white px-6 pt-14 pb-20">
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS2File} />
+        <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleS2File} />
+
+        <button onClick={() => { setStep(1); setStep1Data(null); }} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+          <ArrowLeft className="w-5 h-5 text-gray-900" />
+        </button>
+
+        <div className="space-y-6">
+          <p className="text-3xl font-bold text-gray-900 leading-snug">
+            Almost there.
+          </p>
+          <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+            Now{' '}
+            <ScanButton label="📷 photograph the back" onClick={() => cameraRef.current?.click()} />{' '}
+            label or supplement facts panel of{' '}
+            <span className="font-bold">{step1Data.product_name || 'your supplement'}</span>.
+          </p>
+          <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+            Or{' '}
+            <ScanButton label="🖼 upload from gallery" onClick={() => uploadRef.current?.click()} />{' '}
+            if you already have a photo.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Landing page (Step 1) ───────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={step === 1 ? handleS1File : handleS2File} />
-      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={step === 1 ? handleS1File : handleS2File} />
+    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS1File} />
+      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleS1File} />
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-12 z-10">
-        <button onClick={step === 1 ? () => navigate(-1) : () => { setStep(1); setStep1Data(null); setS2File(null); setS2Preview(null); }}
-          className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <X className="w-5 h-5 text-white" />
-        </button>
-        <button className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <HelpCircle className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+        <ArrowLeft className="w-5 h-5 text-gray-900" />
+      </button>
 
-      {/* Center */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {/* Two step cards — adapted for dark bg */}
-        <div className="flex gap-4 w-full mb-6">
-          {/* Step 1 */}
-          <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
-            style={{
-              borderColor: step === 1 ? 'white' : step1Data ? '#22c55e' : 'rgba(255,255,255,0.2)',
-              background: step1Data ? 'rgba(34,197,94,0.15)' : step === 1 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
-            }}>
-            {step1Data
-              ? <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center"><Check className="w-6 h-6 text-white" /></div>
-              : <Pill className="w-10 h-10 text-white/60" strokeWidth={1.5} />
-            }
-            <p className="text-xs font-bold text-white/70 uppercase tracking-wide">Step 1</p>
-            <p className="text-[11px] text-white/40 leading-snug">Photograph the front of the bottle</p>
-          </div>
-
-          {/* Dotted connector */}
-          <div className="flex items-center self-center">
-            <div className="flex gap-0.5">{[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-white/20" />)}</div>
-          </div>
-
-          {/* Step 2 */}
-          <div className="flex-1 rounded-[24px] p-5 border-2 flex flex-col items-center text-center gap-2"
-            style={{
-              borderColor: step === 2 ? 'white' : 'rgba(255,255,255,0.2)',
-              background: step === 2 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
-              opacity: step === 1 && !step1Data ? 0.5 : 1,
-            }}>
-            <FileText className="w-10 h-10 text-white/60" strokeWidth={1.5} />
-            <p className="text-xs font-bold text-white/70 uppercase tracking-wide">Step 2</p>
-            <p className="text-[11px] text-white/40 leading-snug">Then photograph the back label</p>
-          </div>
-        </div>
-
-        <p className="text-xs text-white/30 font-semibold uppercase tracking-wider mb-3">Step {step} of 2</p>
-        <p className="text-center text-sm text-white/40 px-4 leading-relaxed">
-          {step === 1
-            ? 'Start by photographing the front of the supplement bottle so we can identify the product.'
-            : `Now photograph the back label or supplement facts panel of ${step1Data?.product_name || 'the supplement'}.`
-          }
+      <div className="space-y-6">
+        <p className="text-3xl font-bold text-gray-900 leading-snug">
+          Hi {userName}.
         </p>
-      </div>
 
-      {/* Bottom */}
-      <div className="pb-10 px-8">
-        <div className="flex items-center justify-between px-4">
-          <div className="w-11" />
-          <button
-            onClick={() => cameraRef.current?.click()}
-            className="w-20 h-20 rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform shadow-lg"
-          />
-          <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-white/40" />
-          </button>
-        </div>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Here you can{' '}
+          <ScanButton label="💊 scan a supplement" onClick={() => cameraRef.current?.click()} />{' '}
+          by photographing the front of the bottle.
+        </p>
+
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          We'll then check the{' '}
+          <ScanButton label="📋 ingredient label" onClick={() => cameraRef.current?.click()} />{' '}
+          for quality, dosage, and bioavailability.
+        </p>
+
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Or{' '}
+          <ScanButton label="🖼 upload from gallery" onClick={() => uploadRef.current?.click()} />{' '}
+          if you already have a photo.
+        </p>
       </div>
     </div>
   );

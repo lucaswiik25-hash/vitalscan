@@ -182,7 +182,7 @@ function ScannerCarousel({ cardKeys }) {
                 className="shrink-0 rounded-[22px] overflow-hidden relative transition-all duration-300 active:scale-[0.97]"
                 style={{
                   width: CARD_W,
-                  height: 190,
+                  height: 240,
                   background: `linear-gradient(145deg, ${c.gradient[0]}, ${c.gradient[1]})`,
                   opacity: isActive ? 1 : 0.65,
                   transform: isActive ? 'scale(1)' : 'scale(0.94)',

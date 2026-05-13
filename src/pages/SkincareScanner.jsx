@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, HelpCircle, ImageIcon, Shield, XCircle, Lightbulb, Sparkles } from 'lucide-react';
+import { X, ImageIcon, Shield, XCircle, Sparkles, ArrowLeft } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 const SAFETY_COLORS = {
@@ -9,6 +10,18 @@ const SAFETY_COLORS = {
   caution: { bg: '#fef9c3', text: '#ca8a04', label: 'Caution' },
   avoid: { bg: '#fee2e2', text: '#dc2626', label: 'Avoid' },
 };
+
+function ScanButton({ label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
+      style={{ verticalAlign: 'middle' }}
+    >
+      {label}
+    </button>
+  );
+}
 
 export default function SkincareScanner() {
   const navigate = useNavigate();
@@ -18,23 +31,12 @@ export default function SkincareScanner() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
-  const [scanLineAnim, setScanLineAnim] = useState(0);
 
-  // Slow scan line — 4 seconds per cycle
-  useEffect(() => {
-    let start = null;
-    let raf;
-    const animate = (ts) => {
-      if (!start) start = ts;
-      const elapsed = (ts - start) % 4000;
-      setScanLineAnim(elapsed / 4000);
-      raf = requestAnimationFrame(animate);
-    };
-    if (!capturedFile && !isAnalyzing) {
-      raf = requestAnimationFrame(animate);
-    }
-    return () => cancelAnimationFrame(raf);
-  }, [capturedFile, isAnalyzing]);
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => base44.entities.UserProfile.list(),
+  });
+  const userName = profiles[0]?.name || 'there';
 
   const handleFile = (e) => {
     const file = e.target.files[0];
@@ -47,7 +49,7 @@ export default function SkincareScanner() {
   const analyse = async () => {
     if (!capturedFile) return;
     setIsAnalyzing(true);
-    setPreviewUrl(null); // hide preview, show analyzing screen
+    setPreviewUrl(null);
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
 
@@ -61,7 +63,7 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
       response_json_schema: { type: 'object', properties: { brand: { type: 'string' }, product_name: { type: 'string' }, product_type: { type: 'string' }, safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' }, skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' }, pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' }, top_beneficial: { type: 'array', items: { type: 'string' } }, top_concerning: { type: 'array', items: { type: 'string' } }, ingredients: { type: 'array', items: { type: 'object' } } } },
     });
     const res = rraw.data?.result || rraw.data || {};
-    setResult(res);
+    setResult({ ...res, image_url: file_url });
     base44.entities.ScanResult.create({
       type: 'skincare',
       date: new Date().toISOString().split('T')[0],
@@ -74,12 +76,10 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
     setIsAnalyzing(false);
   };
 
-  // Analyzing screen
   if (isAnalyzing) {
     return <AnalyzingScreen type="skincare" message="Reading ingredients & analysing safety..." />;
   }
 
-  // Results
   if (result) {
     const sc = result.safety_score >= 70 ? '#16a34a' : result.safety_score >= 40 ? '#ca8a04' : '#dc2626';
     const verdictStyle = result.verdict === 'recommended'
@@ -197,10 +197,6 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
             className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
             <X className="w-5 h-5 text-white" />
           </button>
-          <div className="w-8 h-1 rounded-full bg-white/40" />
-          <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <HelpCircle className="w-5 h-5 text-white" />
-          </button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
           <button onClick={analyse}
@@ -217,62 +213,38 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
     );
   }
 
-  // Camera UI — black background
+  // ─── Landing page ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
       <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-12">
-        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <X className="w-5 h-5 text-white" />
-        </button>
-        <button className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <HelpCircle className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+        <ArrowLeft className="w-5 h-5 text-gray-900" />
+      </button>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {/* Tall rectangular frame — white corners */}
-        <div className="relative mb-5" style={{ width: '65vw', aspectRatio: '3/4' }}>
-          {[
-            'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl',
-            'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl',
-            'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl',
-            'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl',
-          ].map((cls, i) => (
-            <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
-          ))}
-          {/* Scan line — white, slow */}
-          <div
-            className="absolute left-2 right-2 h-0.5 rounded-full"
-            style={{
-              top: `${scanLineAnim * 100}%`,
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
-            }}
-          />
-        </div>
-
-        <p className="text-white/50 text-sm text-center px-4 mb-4">
-          Photograph the ingredient list on any skincare or cosmetic product
+      <div className="space-y-6">
+        <p className="text-3xl font-bold text-gray-900 leading-snug">
+          Hi {userName}.
         </p>
 
-        {/* Tip card */}
-        <div className="flex items-start gap-2 bg-white/10 border border-white/10 rounded-2xl px-4 py-3 w-full">
-          <Lightbulb className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
-          <p className="text-xs text-white/40">Tip — make sure all ingredients text is visible and in focus for best results.</p>
-        </div>
-      </div>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Here you can{' '}
+          <ScanButton label="📷 scan a product" onClick={() => cameraRef.current?.click()} />{' '}
+          by photographing its ingredient label.
+        </p>
 
-      <div className="pb-10 px-8">
-        <div className="flex items-center justify-between px-4">
-          <div className="w-11" />
-          <button onClick={() => cameraRef.current?.click()} className="w-20 h-20 rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform shadow-lg" />
-          <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-white/40" />
-          </button>
-        </div>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          We'll check every ingredient for{' '}
+          <ScanButton label="🧪 safety & concerns" onClick={() => cameraRef.current?.click()} />{' '}
+          including irritants, allergens, and hormone disruptors.
+        </p>
+
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Or{' '}
+          <ScanButton label="🖼 upload from gallery" onClick={() => uploadRef.current?.click()} />{' '}
+          if you already have a photo.
+        </p>
       </div>
     </div>
   );

@@ -2,7 +2,12 @@ import React, { useState, useRef } from 'react';
 import { ArrowLeft, Sparkles, Loader2, Plus } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
-// ─── Pill badge ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function parseIngredients(result) {
+  if (!result.ingredients_text) return [];
+  return result.ingredients_text.split(/,|;/).map(s => s.trim()).filter(Boolean).slice(0, 8);
+}
+
 const PillBadge = ({ value }) => {
   const v = (value || '').toLowerCase();
   const colors = {
@@ -11,9 +16,7 @@ const PillBadge = ({ value }) => {
     limit: 'bg-yellow-100 text-yellow-700', medium: 'bg-yellow-100 text-yellow-700',
     neutral: 'bg-gray-100 text-gray-600', processed: 'bg-orange-100 text-orange-700',
     high: 'bg-red-100 text-red-700', no: 'bg-red-100 text-red-700',
-    'ultra processed': 'bg-red-100 text-red-700', supports: 'bg-green-100 text-green-700',
-    damages: 'bg-red-100 text-red-700', reduces: 'bg-green-100 text-green-700',
-    increases: 'bg-red-100 text-red-700',
+    'ultra processed': 'bg-red-100 text-red-700',
   };
   return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${colors[v] || 'bg-gray-100 text-gray-600'}`}>{value}</span>;
 };
@@ -28,97 +31,54 @@ const Row = ({ label, value, note }) => (
   </div>
 );
 
-function parseIngredients(result) {
-  if (!result.ingredients_text) return [];
-  return result.ingredients_text.split(/,|;/).map(s => s.trim()).filter(Boolean).slice(0, 8);
-}
-
-// ─── C-shaped rainbow dot arc ─────────────────────────────────────────────────
-function DottedArcScore({ score, label }) {
-  const total = 70;
-  const size = 190;
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = 82;
-  const startDeg = 210;
-  const sweepDeg = 240;
-
-  const lerpColor = (t) => {
-    const stops = [
-      { t: 0,    r: 34,  g: 197, b: 94  },
-      { t: 0.33, r: 132, g: 204, b: 22  },
-      { t: 0.6,  r: 249, g: 115, b: 22  },
-      { t: 1,    r: 234, g: 179, b: 8   },
-    ];
-    let i = 0;
-    while (i < stops.length - 2 && t > stops[i + 1].t) i++;
-    const a = stops[i], b = stops[i + 1];
-    const f = (t - a.t) / (b.t - a.t);
-    return `rgb(${Math.round(a.r + (b.r - a.r) * f)},${Math.round(a.g + (b.g - a.g) * f)},${Math.round(a.b + (b.b - a.b) * f)})`;
-  };
-
-  const dots = Array.from({ length: total }, (_, i) => {
-    const t = i / (total - 1);
-    const deg = startDeg - sweepDeg * t;
-    const rad = deg * (Math.PI / 180);
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad), color: lerpColor(t) };
-  });
-
-  return (
-    <div style={{ width: size, height: size, position: 'relative', flexShrink: 0 }}>
-      <svg width={size} height={size}>
-        {dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r={4.5} fill={d.color} />)}
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 72, fontWeight: 900, color: '#111', lineHeight: 1 }}>{score}</span>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginTop: 4, letterSpacing: '0.02em' }}>{label || 'Score'}</span>
-      </div>
-    </div>
-  );
-}
-
-function MacroBarRow({ label, value, unit, max, color }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  const display = value != null ? (Number.isInteger(value) ? value : value.toFixed(1)) : 0;
-  return (
-    <div>
-      <span className="text-[11px] text-gray-400 font-medium">{label}</span>
-      <div className="text-[26px] font-black text-gray-900 leading-tight">
-        {display}<span className="text-sm font-semibold text-gray-400 ml-0.5">{unit || 'g'}</span>
-      </div>
-      <div className="mt-1 rounded-full overflow-hidden" style={{ width: '55%', height: 4, background: '#e5e7eb' }}>
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-      </div>
-    </div>
-  );
-}
-
-// ─── Verdict badge (YES / NO / VALID) ────────────────────────────────────────
-function VerdictBadge({ verdict, dietCompatibility, appearanceImpact }) {
-  const raw = verdict || dietCompatibility || appearanceImpact || '';
-  const v = raw.toLowerCase();
-
-  let label, bg, color;
-  if (['yes', 'excellent', 'good', 'clean', 'recommended'].some(k => v.includes(k))) {
-    label = 'YES'; bg = '#22c55e'; color = '#fff';
-  } else if (['limit', 'moderate', 'mixed', 'neutral', 'maybe', 'caution'].some(k => v.includes(k))) {
-    label = 'VALID'; bg = '#f97316'; color = '#fff';
+// ─── Verdict badge ─────────────────────────────────────────────────────────────
+function VerdictBadge({ result }) {
+  const raw = (result.diet_compatibility || result.appearance_impact || result.verdict || '').toLowerCase();
+  let label, bg;
+  if (['yes', 'excellent', 'good', 'clean', 'recommended'].some(k => raw.includes(k))) {
+    label = 'YES'; bg = '#22c55e';
+  } else if (['limit', 'moderate', 'mixed', 'neutral', 'maybe', 'caution'].some(k => raw.includes(k))) {
+    label = 'VALID'; bg = '#f97316';
   } else {
-    label = 'NO'; bg = '#ef4444'; color = '#fff';
+    label = 'NO'; bg = '#ef4444';
   }
-
   return (
-    <div className="shrink-0 rounded-xl px-4 py-2.5 flex items-center justify-center"
-      style={{ background: bg, minWidth: 64 }}>
-      <span className="text-xl font-black" style={{ color }}>{label}</span>
+    <div className="shrink-0 rounded-2xl px-5 py-3 flex items-center justify-center"
+      style={{ background: bg, minWidth: 72, alignSelf: 'flex-end', marginBottom: 4 }}>
+      <span className="text-2xl font-black text-white leading-none">{label}</span>
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Macro ring ───────────────────────────────────────────────────────────────
+function MacroRing({ label, emoji, value, max, color }) {
+  const r = 32;
+  const circ = 2 * Math.PI * r;
+  const pct = max > 0 ? Math.min(1, value / max) : 0;
+  const dash = pct * circ;
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative" style={{ width: 80, height: 80 }}>
+        <svg width={80} height={80}>
+          <circle cx={40} cy={40} r={r} fill="none" stroke="#e5e7eb" strokeWidth={7} />
+          <circle cx={40} cy={40} r={r} fill="none" stroke={color} strokeWidth={7}
+            strokeDasharray={`${dash} ${circ}`}
+            strokeLinecap="round"
+            transform="rotate(-90 40 40)" />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span style={{ fontSize: 22 }}>{emoji}</span>
+        </div>
+      </div>
+      <p className="text-xs font-bold text-gray-800">{label}</p>
+      <p className="text-[11px] text-gray-400">{value}/<span style={{ color }}>{max}g</span></p>
+    </div>
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onScanAnother, onBack }) {
   const [slide, setSlide] = useState(0);
-  const [servings, setServings] = useState(1);
   const [ingredientResult, setIngredientResult] = useState(null);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -126,29 +86,19 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
 
   const verdictColor = { Clean: '#16a34a', 'Mostly Clean': '#22c55e', Mixed: '#ca8a04', 'Mostly Processed': '#ea580c', Avoid: '#dc2626' };
 
-  const cal = Math.round((result.calories || 0) * servings);
-  const prot = Math.round((result.protein || 0) * servings * 10) / 10;
-  const carbs = Math.round((result.carbs || 0) * servings * 10) / 10;
-  const fat = Math.round((result.fat || 0) * servings * 10) / 10;
-  const sugar = Math.round((result.sugar || 0) * servings * 10) / 10;
-  const sodium = Math.round((result.sodium || 0) * servings);
+  const cal = Math.round(result.calories || 0);
+  const prot = Math.round((result.protein || 0) * 10) / 10;
+  const carbs = Math.round((result.carbs || 0) * 10) / 10;
+  const fat = Math.round((result.fat || 0) * 10) / 10;
+  const sugar = Math.round((result.sugar || 0) * 10) / 10;
+  const sodium = Math.round(result.sodium || 0);
   const parsedIngredients = parseIngredients(result);
 
-  const scoreLabel = () => {
-    const s = result.health_score ? result.health_score * 10 : 0;
-    if (s >= 85) return 'Ultra Clean';
-    if (s >= 70) return 'Very Good';
-    if (s >= 50) return 'Moderate';
-    if (s >= 30) return 'Limit';
-    return 'Avoid';
-  };
-
-  const tip = result.appearance_tip || result.diet_reason || result.bloat_reason || null;
+  const descText = result.diet_reason || result.appearance_reason || result.bloat_reason || result.appearance_tip || '';
 
   const analyzeIngredients = async () => {
     if (ingredientResult || loadingIngredients) return;
     setLoadingIngredients(true);
-    const safetyColor = { Green: { bg: '#dcfce7', text: '#16a34a' }, Yellow: { bg: '#fef9c3', text: '#ca8a04' }, Red: { bg: '#fee2e2', text: '#dc2626' } };
     const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: `Analyze every ingredient in: "${result.name}". Ingredients: "${result.ingredients_text || 'typical for this product type'}". For each: name, body_effect, safety_rating ("Green"/"Yellow"/"Red"), is_seed_oil, is_hidden_sugar, is_emulsifier, is_hormone_disruptor, is_allergen, allergen_name, is_artificial_sweetener, is_preservative, is_artificial_color, is_whole_food. Also: overall_verdict ("Clean"/"Mostly Clean"/"Mixed"/"Mostly Processed"/"Avoid"), verdict_reason. NEVER fail.`,
       response_json_schema: {
@@ -158,7 +108,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
         },
       },
     });
-    setIngredientResult(r.result);
+    setIngredientResult(r?.result || r);
     setLoadingIngredients(false);
   };
 
@@ -167,26 +117,50 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     Neutral: { bg: '#f3f4f6', text: '#6b7280' }, Avoid: { bg: '#fee2e2', text: '#dc2626' },
   };
 
-  const descText = tip || result.diet_reason || result.bloat_reason || result.appearance_tip || '';
-
-  // ─── Slide 0: Score ──────────────────────────────────────────────────────────
+  // ─── Slide 0: Macros (main page matching design) ────────────────────────────
   const slide0 = (
-    <div className="pb-4 fade-in-up flex flex-col gap-5">
-      <div className="flex items-center gap-0">
-        <div className="flex flex-col gap-4" style={{ flex: '0 0 42%' }}>
-          <MacroBarRow label="Sugar" value={sugar} max={(result.sugar || 1) * 5} color="#ef4444" />
-          <MacroBarRow label="Fats" value={fat} max={(result.fat || 1) * 5} color="#eab308" />
-          <MacroBarRow label="Carbs" value={carbs} max={(result.carbs || 1) * 5} color="#22c55e" />
-          <MacroBarRow label="Protein" value={prot} max={(result.protein || 1) * 5} color="#38bdf8" />
-        </div>
-        <div style={{ flex: '0 0 58%', display: 'flex', justifyContent: 'center' }}>
-          <DottedArcScore score={result.health_score ? Math.round(result.health_score * 10) : 0} label={scoreLabel()} />
+    <div className="pb-6 fade-in-up space-y-4">
+      {/* Calorie hero card */}
+      <div className="bg-white rounded-[24px] border border-gray-100 p-5 shadow-sm">
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Per Serving</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-5xl font-black text-gray-900">{cal.toLocaleString()}</span>
+              <span className="text-base font-semibold text-gray-400 ml-1">kcal</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{result.serving_size || 'per serving'}</p>
+          </div>
+          <span style={{ fontSize: 48 }}>🔥</span>
         </div>
       </div>
+
+      {/* Macro rings */}
+      <div className="bg-white rounded-[24px] border border-gray-100 p-5 shadow-sm">
+        <div className="flex justify-around">
+          <MacroRing label="Protein" emoji="🫘" value={prot} max={Math.max(prot * 2, 50)} color="#3b82f6" />
+          <MacroRing label="Carbs" emoji="🌾" value={carbs} max={Math.max(carbs * 2, 100)} color="#22c55e" />
+          <MacroRing label="Fat" emoji="💧" value={fat} max={Math.max(fat * 2, 40)} color="#f59e0b" />
+        </div>
+      </div>
+
+      {/* More macros */}
+      <div className="bg-white rounded-[24px] border border-gray-100 p-5 shadow-sm">
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[['Sugar', `${sugar}g`, '#ef4444'], ['Sodium', `${sodium}mg`, '#8b5cf6'], ['Fiber', `${Math.round((result.fiber || 0) * 10) / 10}g`, '#10b981']].map(([l, v, c]) => (
+            <div key={l}>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">{l}</p>
+              <p className="text-lg font-black mt-0.5" style={{ color: c }}>{v}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Description / diet reason */}
       {descText ? (
-        <p className="text-sm text-gray-400 leading-relaxed">
-          {descExpanded ? descText : descText.slice(0, 120)}
-          {!descExpanded && descText.length > 120 && (
+        <p className="text-sm text-gray-400 leading-relaxed px-1">
+          {descExpanded ? descText : descText.slice(0, 130)}
+          {!descExpanded && descText.length > 130 && (
             <> <button onClick={() => setDescExpanded(true)} className="font-bold text-gray-700">Read More</button></>
           )}
         </p>
@@ -194,7 +168,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     </div>
   );
 
-  // ─── Slide 1: Body/Appearance ────────────────────────────────────────────────
+  // ─── Slide 1: Body / Appearance ──────────────────────────────────────────────
   const slide1 = result.is_appearance_mode ? (
     <div className="pb-4 space-y-2 fade-in-up">
       {result.appearance_impact && (() => {
@@ -217,21 +191,22 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
       {result.tomorrow_face && <div className="bg-purple-50 rounded-2xl p-3"><p className="text-[10px] font-bold text-purple-600 uppercase mb-0.5">😴 Tomorrow's Face</p><p className="text-xs text-purple-700">{result.tomorrow_face}</p></div>}
     </div>
   ) : (
-    <div className="pb-4 fade-in-up">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Body & Diet Analysis</p>
+    <div className="pb-4 fade-in-up space-y-1">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Body & Diet</p>
       <Row label="Diet Compatibility" value={result.diet_compatibility} note={result.diet_reason} />
       <Row label="Bloat Risk" value={result.bloat_risk} note={result.bloat_reason} />
       <Row label="Glycemic Impact" value={result.glycemic_impact} note={result.glycemic_reason} />
       <Row label="Gut Health" value={result.gut_health} note={result.gut_note} />
       <Row label="Inflammation" value={result.inflammation} />
       <Row label="Processing" value={result.processing_level} />
+      {result.allergens?.length > 0 && <div className="bg-red-50 rounded-2xl p-3 mt-2"><p className="text-xs font-bold text-red-700 mb-1">⚠️ Allergens</p><div className="flex flex-wrap gap-1">{result.allergens.map(a => <span key={a} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 capitalize">{a}</span>)}</div></div>}
     </div>
   );
 
-  // ─── Slide 2: Appearance/Macros ──────────────────────────────────────────────
+  // ─── Slide 2: Appearance tips / Macros detail ────────────────────────────────
   const slide2 = result.is_appearance_mode ? (
     <div className="pb-4 space-y-3 fade-in-up">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Macros (Reference Only)</p>
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Macros</p>
       <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
         {[['Calories', `${cal} kcal`], ['Protein', `${prot}g`], ['Carbs', `${carbs}g`], ['Fat', `${fat}g`], ['Sugar', `${sugar}g`], ['Sodium', `${sodium}mg`]].map(([l, v]) => (
           <div key={l} className="flex items-center justify-between"><span className="text-xs text-gray-500">{l}</span><span className="text-xs font-semibold text-gray-700">{v}</span></div>
@@ -241,11 +216,10 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     </div>
   ) : (
     <div className="pb-4 space-y-3 fade-in-up">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Appearance & More</p>
-      {result.appearance_tip && <div className="bg-gray-50 rounded-2xl p-4"><p className="text-xs font-bold text-gray-700 mb-1">✨ Appearance Tip</p><p className="text-xs text-gray-500 leading-relaxed">{result.appearance_tip}</p></div>}
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Appearance & Skin</p>
+      {result.appearance_tip && <div className="bg-gray-50 rounded-2xl p-4"><p className="text-xs font-bold text-gray-700 mb-1">✨ Tip</p><p className="text-xs text-gray-500 leading-relaxed">{result.appearance_tip}</p></div>}
       {result.tomorrow_face && <div className="bg-gray-50 rounded-2xl p-4"><p className="text-xs font-bold text-gray-700 mb-1">😴 Tomorrow's Face</p><p className="text-xs text-gray-500 leading-relaxed">{result.tomorrow_face_note || result.tomorrow_face}</p></div>}
-      {result.hormone_impact && <div className="bg-gray-50 rounded-2xl p-4"><p className="text-xs font-bold text-gray-700 mb-1">⚡ Hormone Impact</p><p className="text-xs text-gray-500 leading-relaxed">{result.hormone_note || result.hormone_impact}</p></div>}
-      {result.allergens?.length > 0 && <div className="bg-red-50 rounded-2xl p-3"><p className="text-xs font-bold text-red-700 mb-1">⚠️ Allergens</p><div className="flex flex-wrap gap-1">{result.allergens.map(a => <span key={a} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 capitalize">{a}</span>)}</div></div>}
+      {result.hormone_impact && <div className="bg-gray-50 rounded-2xl p-4"><p className="text-xs font-bold text-gray-700 mb-1">⚡ Hormone</p><p className="text-xs text-gray-500 leading-relaxed">{result.hormone_note || result.hormone_impact}</p></div>}
     </div>
   );
 
@@ -255,7 +229,8 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ingredients</p>
         {!ingredientResult && (
-          <button onClick={analyzeIngredients} disabled={loadingIngredients} className="flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
+          <button onClick={analyzeIngredients} disabled={loadingIngredients}
+            className="flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
             {loadingIngredients ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
             {loadingIngredients ? 'Analyzing...' : 'Analyze'}
           </button>
@@ -263,20 +238,33 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
       </div>
       {parsedIngredients.length > 0 && !ingredientResult && (
         <div className="space-y-1.5 mb-3">
-          {parsedIngredients.map((name, i) => <div key={i} className="bg-gray-50 rounded-xl px-4 py-2.5"><span className="text-sm font-medium text-gray-800">{name}</span></div>)}
+          {parsedIngredients.map((name, i) => (
+            <div key={i} className="bg-gray-50 rounded-xl px-4 py-2.5">
+              <span className="text-sm font-medium text-gray-800">{name}</span>
+            </div>
+          ))}
         </div>
       )}
       {ingredientResult && (
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-1">
             <p className="text-sm font-bold text-gray-800">Full Analysis</p>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: (verdictColor[ingredientResult.overall_verdict] || '#888') + '20', color: verdictColor[ingredientResult.overall_verdict] || '#888' }}>{ingredientResult.overall_verdict}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: (verdictColor[ingredientResult.overall_verdict] || '#888') + '20', color: verdictColor[ingredientResult.overall_verdict] || '#888' }}>
+              {ingredientResult.overall_verdict}
+            </span>
           </div>
           <p className="text-[10px] text-gray-400 mb-2">{ingredientResult.verdict_reason}</p>
           {(ingredientResult.ingredients || []).map((ing, i) => {
             const safetyColor = { Green: { bg: '#dcfce7', text: '#16a34a' }, Yellow: { bg: '#fef9c3', text: '#ca8a04' }, Red: { bg: '#fee2e2', text: '#dc2626' } };
             const sc = safetyColor[ing.safety_rating] || safetyColor.Yellow;
-            const flags = [ing.is_seed_oil && 'Seed Oil', ing.is_hidden_sugar && 'Hidden Sugar', ing.is_emulsifier && 'Emulsifier', ing.is_hormone_disruptor && 'Hormone Disruptor', ing.is_allergen && `Allergen${ing.allergen_name ? `: ${ing.allergen_name}` : ''}`, ing.is_artificial_sweetener && 'Artificial Sweetener', ing.is_preservative && 'Preservative', ing.is_artificial_color && 'Artificial Color', ing.is_whole_food && '✓ Whole Food'].filter(Boolean);
+            const flags = [
+              ing.is_seed_oil && 'Seed Oil', ing.is_hidden_sugar && 'Hidden Sugar',
+              ing.is_emulsifier && 'Emulsifier', ing.is_hormone_disruptor && 'Hormone Disruptor',
+              ing.is_allergen && `Allergen${ing.allergen_name ? `: ${ing.allergen_name}` : ''}`,
+              ing.is_artificial_sweetener && 'Artificial Sweetener', ing.is_preservative && 'Preservative',
+              ing.is_artificial_color && 'Artificial Color', ing.is_whole_food && '✓ Whole Food',
+            ].filter(Boolean);
             return (
               <div key={i} className="bg-gray-50 rounded-2xl p-3">
                 <div className="flex items-start justify-between gap-2">
@@ -284,7 +272,11 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: sc.bg, color: sc.text }}>{ing.safety_rating}</span>
                 </div>
                 <p className="text-[10px] text-gray-500 mt-0.5">{ing.body_effect}</p>
-                {flags.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{flags.map(f => <span key={f} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">{f}</span>)}</div>}
+                {flags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {flags.map(f => <span key={f} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">{f}</span>)}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -295,8 +287,8 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
 
   const allSlides = [slide0, slide1, slide2, slide3];
   const slideLabels = result.is_appearance_mode
-    ? ['Score', 'Appearance', 'Macros', 'Ingredients']
-    : ['Score', 'Body', 'Appearance', 'Ingredients'];
+    ? ['Macros', 'Appearance', 'Detail', 'Ingredients']
+    : ['Macros', 'Body', 'Appearance', 'Ingredients'];
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -308,47 +300,40 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   };
 
   return (
-    <div className="fixed inset-0 bg-white flex flex-col" style={{ maxWidth: 480, margin: '0 auto' }}>
+    <div className="fixed inset-0 bg-white flex flex-col overflow-hidden" style={{ maxWidth: 480, margin: '0 auto' }}>
 
-      {/* ── 1. Rectangular product image ── */}
-      <div className="shrink-0 relative bg-gray-100" style={{ height: 220 }}>
+      {/* ── 1. Product image — full width, no border-radius ── */}
+      <div className="shrink-0 relative bg-gray-50" style={{ height: 210 }}>
         {result.image_url ? (
           <img src={result.image_url} alt={result.name}
-            className="w-full h-full object-contain"
-            style={{ background: '#f9f9f9' }} />
+            className="w-full h-full object-contain" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-7xl bg-gray-50">🍽️</div>
+          <div className="w-full h-full flex items-center justify-center text-8xl">🍽️</div>
         )}
-        {/* Back button */}
         <button onClick={onBack}
           className="absolute top-12 left-4 w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}>
+          style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
       </div>
 
-      {/* ── 2. Product name + verdict badge ── */}
-      <div className="shrink-0 px-4 pt-4 pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold text-gray-900 leading-tight flex-1" style={{ fontSize: 26 }}>
+      {/* ── 2. Name + verdict badge (aligned like design: name left, badge bottom-right) ── */}
+      <div className="shrink-0 px-5 pt-4 pb-1">
+        <div className="flex items-end justify-between gap-3">
+          <h1 className="text-[28px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
             {result.name}
           </h1>
-          <VerdictBadge
-            verdict={result.verdict}
-            dietCompatibility={result.diet_compatibility}
-            appearanceImpact={result.appearance_impact}
-          />
+          <VerdictBadge result={result} />
         </div>
-        <p className="text-xs text-gray-400 mt-1">{result.serving_size || 'per serving'}</p>
       </div>
 
       {/* ── 3. Dot page indicators ── */}
-      <div className="shrink-0 flex items-center gap-1.5 px-4 pb-2">
+      <div className="shrink-0 flex items-center gap-1.5 px-5 pb-2 pt-1">
         {allSlides.map((_, i) => (
           <button key={i} onClick={() => setSlide(i)}
-            className="rounded-full transition-all"
+            className="rounded-full transition-all duration-200"
             style={{
-              width: i === slide ? 20 : 7,
+              width: i === slide ? 22 : 7,
               height: 7,
               background: i === slide ? '#1a1a1a' : '#d1d5db',
             }} />
@@ -356,7 +341,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
       </div>
 
       {/* ── 4. Tab pills ── */}
-      <div className="shrink-0 px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="shrink-0 px-5 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
         {slideLabels.map((label, i) => (
           <button key={label} onClick={() => setSlide(i)}
             className="text-xs font-semibold px-4 py-1.5 rounded-full shrink-0 transition-all"
@@ -368,22 +353,23 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
 
       {/* ── 5. Swipeable content ── */}
       <div className="flex-1 overflow-hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        <div className="flex h-full transition-transform duration-300" style={{ transform: `translateX(-${slide * 100}%)` }}>
+        <div className="flex h-full transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(-${slide * 100}%)` }}>
           {allSlides.map((s, i) => (
-            <div key={i} className="min-w-full h-full overflow-y-auto px-4 pt-3">{s}</div>
+            <div key={i} className="min-w-full h-full overflow-y-auto px-5 pt-3">{s}</div>
           ))}
         </div>
       </div>
 
       {/* ── 6. Bottom buttons ── */}
-      <div className="shrink-0 px-4 pb-8 pt-3 border-t border-gray-100 bg-white">
+      <div className="shrink-0 px-5 pb-8 pt-3 border-t border-gray-100 bg-white">
         <div className="flex gap-2 mb-2">
           <button onClick={onScanAnother}
-            className="flex-1 h-11 rounded-full border border-gray-200 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 bg-white">
+            className="flex-1 h-11 rounded-full border border-gray-200 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600">
             <Sparkles className="w-3.5 h-3.5" /> Rescan
           </button>
           <button onClick={() => onLogAnalysisOnly && onLogAnalysisOnly()}
-            className="flex-1 h-11 rounded-full border border-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 bg-white">
+            className="flex-1 h-11 rounded-full border border-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">
             Analysis Only
           </button>
         </div>

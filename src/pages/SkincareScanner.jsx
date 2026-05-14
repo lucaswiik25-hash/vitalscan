@@ -1,15 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, ImageIcon, Shield, XCircle, Sparkles, ArrowLeft } from 'lucide-react';
+import { X, Sparkles, ArrowLeft, ShoppingBag, Shield, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
-
-const SAFETY_COLORS = {
-  safe: { bg: '#dcfce7', text: '#16a34a', label: 'Safe' },
-  caution: { bg: '#fef9c3', text: '#ca8a04', label: 'Caution' },
-  avoid: { bg: '#fee2e2', text: '#dc2626', label: 'Avoid' },
-};
 
 function ScanButton({ label, onClick }) {
   return (
@@ -23,13 +17,28 @@ function ScanButton({ label, onClick }) {
   );
 }
 
+const safetyColor = (r) => {
+  const v = (r || '').toLowerCase();
+  if (v === 'safe') return { bg: '#dcfce7', text: '#16a34a' };
+  if (v === 'caution') return { bg: '#fef9c3', text: '#ca8a04' };
+  return { bg: '#fee2e2', text: '#dc2626' };
+};
+
 export default function SkincareScanner() {
   const navigate = useNavigate();
-  const cameraRef = useRef(null);
-  const uploadRef = useRef(null);
-  const [capturedFile, setCapturedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const cam1Ref = useRef(null);
+  const up1Ref = useRef(null);
+  const cam2Ref = useRef(null);
+  const up2Ref = useRef(null);
+
+  const [step, setStep] = useState(1);
+  const [step1Data, setStep1Data] = useState(null);
+  const [s1File, setS1File] = useState(null);
+  const [s1Preview, setS1Preview] = useState(null);
+  const [s2File, setS2File] = useState(null);
+  const [s2Preview, setS2Preview] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzingMsg, setAnalyzingMsg] = useState('');
   const [result, setResult] = useState(null);
 
   const { data: profiles = [] } = useQuery({
@@ -38,142 +47,214 @@ export default function SkincareScanner() {
   });
   const userName = profiles[0]?.name || 'there';
 
-  const handleFile = (e) => {
+  const handleS1File = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setCapturedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setS1File(file);
+    setS1Preview(URL.createObjectURL(file));
     e.target.value = '';
   };
 
-  const analyse = async () => {
-    if (!capturedFile) return;
+  const handleS2File = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setS2File(file);
+    setS2Preview(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
+  const analyseStep1 = async () => {
+    if (!s1File) return;
     setIsAnalyzing(true);
-    setPreviewUrl(null);
-
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
-
+    setS1Preview(null);
+    setAnalyzingMsg('Identifying product...');
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: s1File });
     const rraw = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
-      prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze this skincare/cosmetic product image.
+      prompt: `You are a cosmetic dermatologist. Look at this FRONT image of a skincare/cosmetic product. Read ALL visible text.
+Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moisturiser", "serum", "cleanser", "sunscreen"), marketing_claims (array), confidence ("high"/"medium"/"low"). NEVER fail.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          brand: { type: 'string' }, product_name: { type: 'string' },
+          product_type: { type: 'string' }, marketing_claims: { type: 'array', items: { type: 'string' } },
+          confidence: { type: 'string' },
+        },
+      },
+    });
+    setStep1Data({ ...(rraw.data?.result || rraw.data || {}), image_url: file_url });
+    setIsAnalyzing(false);
+    setStep(2);
+    setS1File(null);
+  };
 
-First identify the product, then read EVERY ingredient visible. Evaluate each for the appropriate product type (rinse-off vs leave-on).
+  const analyseStep2 = async () => {
+    if (!s2File) return;
+    setIsAnalyzing(true);
+    setS2Preview(null);
+    setAnalyzingMsg('Reading ingredients & analysing safety...');
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: s2File });
+    const rraw = await base44.functions.invoke('analyzeWithClaude', {
+      image_url: file_url,
+      prompt: `You are a cosmetic dermatologist and ingredient toxicologist. This is the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type}).
 
-Return JSON with: brand, product_name, product_type, safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason, skin_type_suitability, eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary, top_beneficial (array of 3 strings), top_concerning (array of 3 strings), ingredients (array with: name, inci_name, skin_effect, safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating 0-5, is_hormone_disruptor, hormone_concern, has_fragrance, is_drying_alcohol, is_active_beneficial). NEVER fail.`,
-      response_json_schema: { type: 'object', properties: { brand: { type: 'string' }, product_name: { type: 'string' }, product_type: { type: 'string' }, safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' }, skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' }, pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' }, top_beneficial: { type: 'array', items: { type: 'string' } }, top_concerning: { type: 'array', items: { type: 'string' } }, ingredients: { type: 'array', items: { type: 'object' } } } },
+Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason, skin_type_suitability, eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary, top_beneficial (array 3 strings), top_concerning (array 3 strings), ingredients (array: name, inci_name, skin_effect, body_benefit (brief positive benefit string), body_risk (brief risk string or empty), safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating 0-5, is_hormone_disruptor, has_fragrance, is_active_beneficial). NEVER fail.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' },
+          skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' },
+          pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' },
+          top_beneficial: { type: 'array', items: { type: 'string' } },
+          top_concerning: { type: 'array', items: { type: 'string' } },
+          ingredients: { type: 'array', items: { type: 'object' } },
+        },
+      },
     });
     const res = rraw.data?.result || rraw.data || {};
-    setResult({ ...res, image_url: file_url });
+    const combined = { ...step1Data, ...res, label_image_url: file_url };
+    setResult(combined);
     base44.entities.ScanResult.create({
       type: 'skincare',
       date: new Date().toISOString().split('T')[0],
-      image_url: file_url,
-      product_name: res.product_name,
-      brand: res.brand || null,
-      safety_score: res.safety_score || null,
-      verdict: res.verdict || null,
+      image_url: step1Data?.image_url || null,
+      product_name: combined.product_name,
+      brand: combined.brand || null,
+      safety_score: combined.safety_score || null,
+      verdict: combined.verdict || null,
     }).catch(() => {});
     setIsAnalyzing(false);
   };
 
-  if (isAnalyzing) {
-    return <AnalyzingScreen type="skincare" message="Reading ingredients & analysing safety..." />;
-  }
+  const reset = () => {
+    setResult(null); setStep1Data(null); setStep(1);
+    setS1File(null); setS1Preview(null); setS2File(null); setS2Preview(null);
+  };
 
+  if (isAnalyzing) return <AnalyzingScreen type="skincare" message={analyzingMsg} />;
+
+  // ─── Results page ───────────────────────────────────────────────────────────
   if (result) {
     const sc = result.safety_score >= 70 ? '#16a34a' : result.safety_score >= 40 ? '#ca8a04' : '#dc2626';
     const verdictStyle = result.verdict === 'recommended'
-      ? { bg: '#dcfce7', color: '#16a34a', icon: Shield, label: 'Recommended' }
+      ? { bg: '#dcfce7', color: '#16a34a', label: 'Recommended', VIcon: CheckCircle }
       : result.verdict === 'use with caution'
-        ? { bg: '#fef9c3', color: '#ca8a04', icon: Shield, label: 'Use With Caution' }
-        : { bg: '#fee2e2', color: '#dc2626', icon: XCircle, label: 'Avoid' };
-    const VIcon = verdictStyle.icon;
+        ? { bg: '#fef9c3', color: '#ca8a04', label: 'Use With Caution', VIcon: AlertTriangle }
+        : { bg: '#fee2e2', color: '#dc2626', label: 'Avoid', VIcon: XCircle };
+    const { VIcon } = verdictStyle;
+
     return (
-      <div className="min-h-screen bg-white">
-        <div className="flex items-center gap-3 px-5 pt-12 pb-4 border-b border-gray-100 fade-in-up">
-          <button onClick={() => { setResult(null); setCapturedFile(null); setPreviewUrl(null); }}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-            <X className="w-5 h-5 text-gray-700" />
+      <div className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden" style={{ maxWidth: 480, margin: '0 auto' }}>
+        {/* Hero image */}
+        <div className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
+          style={{ height: 210, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
+          {result.image_url
+            ? <img src={result.image_url} alt={result.product_name} className="w-full h-full object-cover" />
+            : <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <ShoppingBag className="w-16 h-16 text-gray-300" />
+              </div>
+          }
+          <button onClick={reset}
+            className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
+            <ArrowLeft style={{ width: 16, height: 16, color: 'white', strokeWidth: 2.5 }} />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">Skincare Analysis</h1>
         </div>
-        <div className="px-5 space-y-4 pb-16 fade-in-up-2">
-          <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-xs text-muted-foreground">{result.brand} · {result.product_type}</p>
-                <h2 className="text-lg font-bold text-foreground mt-0.5">{result.product_name}</h2>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Safety Score</p>
-                <p className="text-3xl font-extrabold" style={{ color: sc }}>{result.safety_score}</p>
-              </div>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold" style={{ background: verdictStyle.bg, color: verdictStyle.color }}>
+
+        {/* Product name + verdict */}
+        <div className="shrink-0 px-5 pt-4 pb-2">
+          <h1 className="text-[28px] font-black text-gray-900 leading-tight" style={{ letterSpacing: '-0.02em' }}>
+            {result.product_name}
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">{result.brand} · {result.product_type}</p>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
+              style={{ background: verdictStyle.bg, color: verdictStyle.color }}>
               <VIcon className="w-4 h-4" />{verdictStyle.label}
             </div>
-            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{result.verdict_reason}</p>
+            <span className="text-2xl font-black" style={{ color: sc }}>{result.safety_score}</span>
+            <span className="text-xs text-gray-400">/ 100</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <p className="text-xs text-gray-500 mt-2 leading-relaxed">{result.verdict_reason}</p>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+          {/* Quick stats */}
+          <div className="grid grid-cols-3 gap-2">
             {[
               { label: 'Skin Type', value: result.skin_type_suitability || '—' },
-              { label: 'Eye Area Safe', value: result.eye_area_safe ? '✓ Yes' : '✗ No', color: result.eye_area_safe ? '#16a34a' : '#dc2626' },
-              { label: 'Pregnancy Safe', value: result.pregnancy_safe ? '✓ Yes' : '✗ No', color: result.pregnancy_safe ? '#16a34a' : '#dc2626' },
-              { label: 'Ingredients', value: `${result.ingredients?.length || 0} analyzed` },
+              { label: 'Eye Safe', value: result.eye_area_safe ? 'Yes' : 'No', color: result.eye_area_safe ? '#16a34a' : '#dc2626' },
+              { label: 'Pregnancy', value: result.pregnancy_safe ? 'Safe' : 'Check', color: result.pregnancy_safe ? '#16a34a' : '#ca8a04' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-white border border-border rounded-[20px] p-3 shadow-sm">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
-                <p className="text-xs font-bold mt-0.5" style={{ color: color || 'hsl(var(--foreground))' }}>{value}</p>
+              <div key={label} className="bg-white rounded-[16px] p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
+                <p className="text-xs font-bold mt-0.5" style={{ color: color || '#1a1a1a' }}>{value}</p>
               </div>
             ))}
           </div>
+
+          {/* Beneficial / Concerning */}
           {(result.top_beneficial?.length > 0 || result.top_concerning?.length > 0) && (
             <div className="grid grid-cols-2 gap-2">
               {result.top_beneficial?.length > 0 && (
-                <div className="bg-green-50 border border-green-100 rounded-[20px] p-4">
-                  <p className="text-xs font-bold text-green-700 mb-2">✓ Top Beneficial</p>
+                <div className="bg-green-50 rounded-[16px] p-3">
+                  <p className="text-[10px] font-bold text-green-700 mb-1.5">Top Beneficial</p>
                   {result.top_beneficial.map(b => <p key={b} className="text-[10px] text-green-600 mb-0.5">• {b}</p>)}
                 </div>
               )}
               {result.top_concerning?.length > 0 && (
-                <div className="bg-red-50 border border-red-100 rounded-[20px] p-4">
-                  <p className="text-xs font-bold text-red-700 mb-2">⚠ Top Concerns</p>
+                <div className="bg-red-50 rounded-[16px] p-3">
+                  <p className="text-[10px] font-bold text-red-700 mb-1.5">Top Concerns</p>
                   {result.top_concerning.map(c => <p key={c} className="text-[10px] text-red-600 mb-0.5">• {c}</p>)}
                 </div>
               )}
             </div>
           )}
-          <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Long-term Effects</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{result.long_term_summary}</p>
-          </div>
-          <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Full Ingredient List ({result.ingredients?.length || 0})</h3>
+
+          {/* Long term */}
+          {result.long_term_summary && (
+            <div className="bg-white rounded-[16px] p-4" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <p className="text-xs font-bold text-gray-700 mb-1">Long-term Effects</p>
+              <p className="text-xs text-gray-500 leading-relaxed">{result.long_term_summary}</p>
+            </div>
+          )}
+
+          {/* Full ingredient list */}
+          <div className="bg-white rounded-[20px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <p className="text-xs font-bold text-gray-700 mb-3">Ingredients ({result.ingredients?.length || 0})</p>
             <div className="space-y-3">
               {(result.ingredients || []).map((ing, i) => {
-                const s = SAFETY_COLORS[(ing.safety_rating || '').toLowerCase()] || SAFETY_COLORS.safe;
+                const sc = safetyColor(ing.safety_rating);
                 const flags = [
                   ing.is_irritant && 'Irritant', ing.is_allergen && 'Allergen',
                   ing.is_comedogenic && `Comedogenic ${ing.comedogenic_rating > 0 ? `(${ing.comedogenic_rating}/5)` : ''}`,
-                  ing.is_hormone_disruptor && `Hormone Disruptor${ing.hormone_concern ? `: ${ing.hormone_concern}` : ''}`,
-                  ing.has_fragrance && 'Fragrance', ing.is_drying_alcohol && 'Drying Alcohol',
-                  ing.is_active_beneficial && '✓ Active Ingredient',
+                  ing.is_hormone_disruptor && 'Hormone Disruptor',
+                  ing.has_fragrance && 'Fragrance',
+                  ing.is_active_beneficial && 'Active Ingredient',
                 ].filter(Boolean);
                 return (
-                  <div key={i} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-semibold text-foreground">{ing.name}</p>
-                        {ing.inci_name && ing.inci_name !== ing.name && <p className="text-[9px] text-muted-foreground/60">{ing.inci_name}</p>}
-                      </div>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: s.bg, color: s.text }}>{s.label}</span>
+                  <div key={i} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-2 mb-0.5">
+                      <p className="text-xs font-semibold text-gray-800">{ing.name}</p>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                        style={{ background: sc.bg, color: sc.text }}>{ing.safety_rating}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{ing.skin_effect}</p>
+                    {ing.skin_effect && <p className="text-[10px] text-gray-500 leading-relaxed">{ing.skin_effect}</p>}
+                    {ing.body_benefit && (
+                      <p className="text-[10px] text-green-600 mt-0.5">+ {ing.body_benefit}</p>
+                    )}
+                    {ing.body_risk && (
+                      <p className="text-[10px] text-red-500 mt-0.5">- {ing.body_risk}</p>
+                    )}
                     {flags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {flags.map(f => (
                           <span key={f} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                            style={{ background: f.includes('✓') ? '#dcfce7' : f.includes('Hormone') || f.includes('Drying') ? '#fee2e2' : '#f3f4f6', color: f.includes('✓') ? '#16a34a' : f.includes('Hormone') || f.includes('Drying') ? '#dc2626' : '#555' }}>{f}</span>
+                            style={{
+                              background: f === 'Active Ingredient' ? '#dcfce7' : f.includes('Hormone') ? '#fee2e2' : '#f3f4f6',
+                              color: f === 'Active Ingredient' ? '#16a34a' : f.includes('Hormone') ? '#dc2626' : '#555',
+                            }}>{f}</span>
                         ))}
                       </div>
                     )}
@@ -187,62 +268,80 @@ Return JSON with: brand, product_name, product_type, safety_score (1-100), verdi
     );
   }
 
-  // Photo preview screen
-  if (previewUrl) {
+  // ─── Photo preview (step 1 or 2) ───────────────────────────────────────────
+  const activePreview = step === 1 ? s1Preview : s2Preview;
+  const activeAnalyse = step === 1 ? analyseStep1 : analyseStep2;
+  const activeRetake = step === 1 ? () => { setS1File(null); setS1Preview(null); } : () => { setS2File(null); setS2Preview(null); };
+
+  if (activePreview) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col">
-        <img src={previewUrl} className="flex-1 w-full object-cover" alt="Captured" />
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12">
-          <button onClick={() => { setCapturedFile(null); setPreviewUrl(null); }}
-            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+        <img src={activePreview} className="flex-1 w-full object-cover" alt="Captured" />
+        <div className="absolute top-0 left-0 right-0 flex items-center px-5 pt-12">
+          <button onClick={activeRetake} className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
-          <button onClick={analyse}
+          <button onClick={activeAnalyse}
             className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
-            <Sparkles className="w-5 h-5" />
-            Analyse
+            <Sparkles className="w-5 h-5" /> Analyse
           </button>
-          <button onClick={() => { setCapturedFile(null); setPreviewUrl(null); }}
-            className="text-white/70 text-sm font-medium">
-            Retake photo
-          </button>
+          <button onClick={activeRetake} className="text-white/70 text-sm font-medium">Retake photo</button>
         </div>
       </div>
     );
   }
 
-  // ─── Landing page ────────────────────────────────────────────────────────────
+  // ─── Step 2: photograph ingredient label ───────────────────────────────────
+  if (step === 2 && step1Data) {
+    return (
+      <div className="min-h-screen bg-white px-6 pt-14 pb-20">
+        <input ref={cam2Ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS2File} />
+        <input ref={up2Ref} type="file" accept="image/*" className="hidden" onChange={handleS2File} />
+        <button onClick={() => { setStep(1); setStep1Data(null); }} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+          <ArrowLeft className="w-5 h-5 text-gray-900" />
+        </button>
+        <div className="space-y-6">
+          <p className="text-3xl font-bold text-gray-900 leading-snug">Almost there.</p>
+          <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+            Now{' '}
+            <ScanButton label="📷 photograph the ingredients" onClick={() => cam2Ref.current?.click()} />{' '}
+            label on the back of <span className="font-bold">{step1Data.product_name || 'your product'}</span>.
+          </p>
+          <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+            Or{' '}
+            <ScanButton label="🖼 upload from gallery" onClick={() => up2Ref.current?.click()} />{' '}
+            if you already have a photo.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Step 1: landing ───────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white px-6 pt-14 pb-20">
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-
+      <input ref={cam1Ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS1File} />
+      <input ref={up1Ref} type="file" accept="image/*" className="hidden" onChange={handleS1File} />
       <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
         <ArrowLeft className="w-5 h-5 text-gray-900" />
       </button>
-
       <div className="space-y-6">
-        <p className="text-3xl font-bold text-gray-900 leading-snug">
-          Hi {userName}.
-        </p>
-
+        <p className="text-3xl font-bold text-gray-900 leading-snug">Hi {userName}.</p>
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           Here you can{' '}
-          <ScanButton label="📷 scan a product" onClick={() => cameraRef.current?.click()} />{' '}
-          by photographing its ingredient label.
+          <ScanButton label="📷 scan a product" onClick={() => cam1Ref.current?.click()} />{' '}
+          by photographing the front of the product.
         </p>
-
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          We'll check every ingredient for{' '}
-          <ScanButton label="🧪 safety & concerns" onClick={() => cameraRef.current?.click()} />{' '}
+          We'll then check every ingredient for{' '}
+          <ScanButton label="🧪 safety & concerns" onClick={() => cam1Ref.current?.click()} />{' '}
           including irritants, allergens, and hormone disruptors.
         </p>
-
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           Or{' '}
-          <ScanButton label="🖼 upload from gallery" onClick={() => uploadRef.current?.click()} />{' '}
+          <ScanButton label="🖼 upload from gallery" onClick={() => up1Ref.current?.click()} />{' '}
           if you already have a photo.
         </p>
       </div>

@@ -74,8 +74,14 @@ export default function Home() {
       <div className="mt-3 mb-2">
         <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
       </div>
+      <div className="px-5 mt-3 mb-1">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Macros</p>
+      </div>
       <div className="mt-1 mb-4">
         <NutriCarousel profile={profile} consumed={consumed} />
+      </div>
+      <div className="px-5 mb-2">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Calories</p>
       </div>
       <CaloriesBurnedModule profile={profile} />
       {selectedDay && (

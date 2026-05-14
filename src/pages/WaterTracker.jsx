@@ -1,10 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
-import { Droplets, X, Calendar, Plus } from 'lucide-react';
+import { X, Calendar, Plus, Target, Zap } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
+
+const DEHYDRATING_DRINKS = [
+  { emoji: '☕', name: 'Coffee', ml: -150, type: 'coffee' },
+  { emoji: '🍺', name: 'Alcohol', ml: -250, type: 'alcohol' },
+  { emoji: '⚡', name: 'Energy Drink', ml: -200, type: 'energy_drink' },
+  { emoji: '🥤', name: 'Soda', ml: -100, type: 'soda' },
+  { emoji: '🍵', name: 'Tea', ml: -50, type: 'tea' },
+];
+
+// Drop SVG — bold filled when active
+function DropIcon({ filled, color, size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'}
+      stroke={filled ? color : '#9ca3af'} strokeWidth={filled ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2C12 2 5 9.5 5 14a7 7 0 0 0 14 0C19 9.5 12 2 12 2z" />
+    </svg>
+  );
+}
 
 function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
   const days = Array.from({ length: 30 }, (_, i) => {
@@ -41,14 +59,6 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
             <X className="w-4 h-4 text-white/70" />
           </button>
-        </div>
-        <div className="flex items-center gap-4 mb-4">
-          {[['#6CC5A0', '≥80%'], ['#F5C842', '50–79%'], ['#F47C7C', '<50%'], ['rgba(255,255,255,0.12)', 'None']].map(([c, l]) => (
-            <div key={l} className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
-              <span className="text-xs text-white/60">{l}</span>
-            </div>
-          ))}
         </div>
         <div className="grid grid-cols-7 gap-1 mb-1">
           {dayLabels.map((d, i) => (
@@ -130,7 +140,12 @@ export default function WaterTracker() {
   });
 
   const totalToday = todayLogs.reduce((s, l) => s + (l.amount_ml || 0), 0);
-  const pct = Math.min(100, Math.round((totalToday / dailyTarget) * 100));
+  // Effective = only positive (water) logs
+  const consumed = todayLogs.filter(l => l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
+  const deducted = todayLogs.filter(l => l.amount_ml < 0).reduce((s, l) => s + Math.abs(l.amount_ml), 0);
+  const effective = Math.max(0, consumed - deducted);
+  const remaining = Math.max(0, dailyTarget - effective);
+  const pct = Math.min(100, Math.round((effective / dailyTarget) * 100));
 
   const addWater = async (ml) => {
     await base44.entities.WaterLog.create({ date: TODAY, amount_ml: ml, type: 'water' });
@@ -138,18 +153,37 @@ export default function WaterTracker() {
     queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
-  const glassColor = pct >= 80 ? '#6CC5A0' : pct >= 50 ? '#F5C842' : '#60A5FA';
+  const addDehydrating = async (drink) => {
+    await base44.entities.WaterLog.create({ date: TODAY, amount_ml: drink.ml, type: drink.type });
+    queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
+    queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
+  };
 
-  // Big circular ring dimensions
-  const size = 200;
-  const stroke = 14;
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - pct / 100);
+  const removeLog = async (id) => {
+    await base44.entities.WaterLog.delete(id);
+    queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
+    queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
+  };
 
-  // Cup grid: each cup = 250ml, show enough cups to cover target
+  const ringColor = '#3b82f6'; // solid blue always
+  const ringSize = 280;
+  const ringStroke = 20;
+  const ringR = (ringSize - ringStroke) / 2;
+  const ringCirc = 2 * Math.PI * ringR;
+
   const cupsNeeded = Math.ceil(dailyTarget / 250);
-  const cupsFilled = Math.floor(totalToday / 250);
+  const cupsFilled = Math.floor(effective / 250);
+
+  const dehydratingLogs = todayLogs.filter(l => l.amount_ml < 0);
+
+  const statCard = (icon, label, value, unit = 'ml') => (
+    <div className="flex-1 rounded-[12px] flex flex-col items-center justify-center py-3 px-2 gap-1"
+      style={{ background: '#f3f4f6' }}>
+      <div className="text-gray-400">{icon}</div>
+      <p className="text-[10px] text-gray-400 font-medium">{label}</p>
+      <p className="text-sm font-black text-gray-900">{value}<span className="text-[10px] font-medium text-gray-400 ml-0.5">{unit}</span></p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -163,36 +197,42 @@ export default function WaterTracker() {
       </div>
 
       <div className="px-5 mt-4 space-y-4">
-        {/* Big circular progress — no background card */}
-        <div className="flex flex-col items-center py-6">
-          <div className="relative" style={{ width: 320, height: 320 }}>
-            <svg width={320} height={320} style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx={160} cy={160} r={136} fill="none" stroke="hsl(var(--muted))" strokeWidth={22} strokeLinecap="round" />
+        {/* Circular ring */}
+        <div className="flex flex-col items-center pt-4 pb-2">
+          <div className="relative" style={{ width: ringSize, height: ringSize }}>
+            <svg width={ringSize} height={ringSize} style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx={ringSize / 2} cy={ringSize / 2} r={ringR} fill="none" stroke="#e5e7eb" strokeWidth={ringStroke} strokeLinecap="round" />
               <circle
-                cx={160} cy={160} r={136}
+                cx={ringSize / 2} cy={ringSize / 2} r={ringR}
                 fill="none"
-                stroke={glassColor}
-                strokeWidth={22}
-                strokeDasharray={2 * Math.PI * 136}
-                strokeDashoffset={2 * Math.PI * 136 * (1 - pct / 100)}
+                stroke={ringColor}
+                strokeWidth={ringStroke}
+                strokeDasharray={ringCirc}
+                strokeDashoffset={ringCirc * (1 - pct / 100)}
                 strokeLinecap="round"
                 style={{ transition: 'stroke-dashoffset 0.6s ease' }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-6xl font-extrabold text-foreground">{pct}%</span>
+              <span className="text-5xl font-extrabold text-foreground">{pct}%</span>
               <span className="text-sm text-muted-foreground font-medium">of goal</span>
-              <p className="text-2xl font-extrabold text-foreground mt-2">
-                {totalToday}<span className="text-sm font-medium text-muted-foreground"> ml</span>
+              <p className="text-xl font-extrabold text-foreground mt-1">
+                {effective}<span className="text-sm font-medium text-muted-foreground"> ml</span>
               </p>
               <p className="text-xs text-muted-foreground">of {dailyTarget} ml</p>
             </div>
           </div>
         </div>
 
-        {/* Cup grid — each cup = 250ml */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm"
-          style={{ animation: 'slideUp 0.5s cubic-bezier(0.4,0,0.2,1) both' }}>
+        {/* Stat cards row */}
+        <div className="flex gap-2">
+          {statCard(<svg width={16} height={16} viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 2C12 2 5 9.5 5 14a7 7 0 0 0 14 0C19 9.5 12 2 12 2z"/></svg>, 'Consumed', consumed)}
+          {statCard(<Zap size={16} className="text-yellow-500" />, 'Effective', effective)}
+          {statCard(<Target size={16} className="text-gray-400" />, 'Remaining', remaining)}
+        </div>
+
+        {/* Cup grid */}
+        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-foreground">Tap cups to log • 250ml each</p>
             <button onClick={() => setShowCustom(true)}
@@ -209,32 +249,84 @@ export default function WaterTracker() {
                   onClick={() => addWater(250)}
                   className="aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-90"
                   style={{
-                    background: filled ? `${glassColor}33` : 'hsl(var(--secondary))',
-                    border: filled ? `2px solid ${glassColor}` : '2px solid transparent',
+                    background: filled ? '#eff6ff' : 'hsl(var(--secondary))',
+                    border: filled ? '2px solid #3b82f6' : '2px solid transparent',
                   }}
                 >
-                  <Droplets className="w-6 h-6" style={{ color: filled ? glassColor : 'hsl(var(--muted-foreground))' }} />
+                  <DropIcon filled={filled} color="#3b82f6" size={28} />
                 </button>
               );
             })}
           </div>
           <p className="text-xs text-muted-foreground mt-3 text-center">
-            {cupsFilled} / {cupsNeeded} cups filled · {totalToday} ml logged
+            {cupsFilled} / {cupsNeeded} cups · {effective} ml effective
           </p>
         </div>
 
-        {/* Today's log */}
-        {todayLogs.length > 0 && (
+        {/* Hydration Quality — dehydrating drinks */}
+        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+          <p className="text-sm font-bold text-foreground">Hydration Quality</p>
+          <p className="text-xs text-muted-foreground mt-0.5 mb-3">Log drinks that reduce hydration</p>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {DEHYDRATING_DRINKS.map(drink => {
+              const loggedCount = todayLogs.filter(l => l.type === drink.type && l.amount_ml < 0).length;
+              const isLogged = loggedCount > 0;
+              return (
+                <button
+                  key={drink.type}
+                  onClick={() => addDehydrating(drink)}
+                  className="shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-[12px] transition-all active:scale-95"
+                  style={{
+                    background: isLogged ? '#fef2f2' : '#f3f4f6',
+                    border: isLogged ? '1.5px solid #fca5a5' : '1.5px solid transparent',
+                  }}
+                >
+                  <span className="text-lg">{drink.emoji}</span>
+                  <span className="text-[10px] font-semibold text-gray-700">{drink.name}</span>
+                  <span className="text-[10px] font-bold text-red-500">{drink.ml}ml</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Logged dehydrating drinks */}
+          {dehydratingLogs.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100">
+              {dehydratingLogs.map(log => {
+                const drink = DEHYDRATING_DRINKS.find(d => d.type === log.type);
+                return (
+                  <div key={log.id}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+                    style={{ background: '#fef2f2', border: '1px solid #fca5a5' }}>
+                    <span>{drink?.emoji || '🥤'}</span>
+                    <span className="text-red-700">{drink?.name || log.type} ({log.amount_ml}ml)</span>
+                    <button onClick={() => removeLog(log.id)} className="text-red-400 hover:text-red-600 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Today's water log */}
+        {todayLogs.filter(l => l.amount_ml > 0).length > 0 && (
           <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
             <p className="text-sm font-semibold text-foreground mb-3">Today's Log</p>
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {[...todayLogs].reverse().map(log => (
+              {[...todayLogs].filter(l => l.amount_ml > 0).reverse().map(log => (
                 <div key={log.id} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <Droplets className="w-4 h-4" style={{ color: glassColor }} />
+                    <DropIcon filled color="#3b82f6" size={16} />
                     <span className="text-foreground font-medium">{log.amount_ml} ml</span>
                   </div>
-                  <span className="text-muted-foreground text-xs">{format(new Date(log.created_date), 'h:mm a')}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-xs">{format(new Date(log.created_date), 'h:mm a')}</span>
+                    <button onClick={() => removeLog(log.id)} className="text-gray-300 hover:text-gray-500">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -243,18 +335,10 @@ export default function WaterTracker() {
       </div>
 
       {showCalendar && (
-        <HydrationCalendarModal
-          onClose={() => setShowCalendar(false)}
-          waterLogs={allLogs}
-          dailyTarget={dailyTarget}
-        />
+        <HydrationCalendarModal onClose={() => setShowCalendar(false)} waterLogs={allLogs} dailyTarget={dailyTarget} />
       )}
-
       {showCustom && (
-        <CustomAmountModal
-          onClose={() => setShowCustom(false)}
-          onAdd={addWater}
-        />
+        <CustomAmountModal onClose={() => setShowCustom(false)} onAdd={addWater} />
       )}
     </div>
   );

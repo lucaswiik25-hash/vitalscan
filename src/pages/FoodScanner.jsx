@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import BarcodeInput from '../components/scanner/BarcodeInput';
+import { buildCall2Prompt, call2Schema, dietPreamble } from '../lib/dietPrompts';
 
 export default function FoodScanner() {
   const navigate = useNavigate();
@@ -62,6 +63,22 @@ export default function FoodScanner() {
     e.target.value = '';
   };
 
+  const getTodayContext = async (dietMode) => {
+    if (dietMode !== 'appearance_mode') return {};
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const [meals, waterLogs, exercises] = await Promise.all([
+      base44.entities.Meal.filter({ date: today, logged: true }),
+      base44.entities.WaterLog.filter({ date: today }),
+      base44.entities.Exercise.filter({ date: today }),
+    ]);
+    return {
+      sodiumToday: meals.reduce((s, m) => s + (m.sodium || 0), 0),
+      sugarToday: meals.reduce((s, m) => s + (m.sugar || 0), 0),
+      waterMl: waterLogs.filter(l => l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0),
+      caloriesBurned: exercises.reduce((s, e) => s + (e.calories_burned || 0), 0),
+    };
+  };
+
   const analyse = async () => {
     if (!capturedFile) return;
     setIsAnalyzing(true);
@@ -72,6 +89,7 @@ export default function FoodScanner() {
     const userProfile = profile;
     const dietMode = userProfile.diet_mode || 'standard';
     const isAppearance = dietMode === 'appearance_mode';
+    const pre = dietPreamble(dietMode);
 
     const extraContext = extraNotes.trim()
       ? `\n\nAdditional context from user: "${extraNotes.trim()}". Include this in your nutritional estimate.`
@@ -79,32 +97,15 @@ export default function FoodScanner() {
 
     const r1raw = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
-      prompt: `You are a professional nutritionist and food scientist. Analyze this image carefully.
+      prompt: `${pre}You are a professional nutritionist and food scientist. Analyze this image carefully.
 
 If you can see a BARCODE on the packaging, read and return the exact barcode number digits.
 If this is a NUTRITION LABEL, extract every value precisely from the label.
 If this is a FOOD PHOTO, identify the food and estimate all values accurately.
 
-Return JSON with:
-- name: exact product name or food name including brand if visible
-- confidence: "high", "medium", or "low"
-- serving_size: e.g. "1 cup (240ml)" or "100g"
-- calories: total kcal per serving
-- protein: grams
-- carbs: total carbohydrates grams
-- fat: total fat grams
-- saturated_fat: saturated fat grams
-- sugar: total sugars grams
-- fiber: dietary fiber grams
-- sodium: milligrams
-- potassium: milligrams
-- cholesterol: milligrams
-- allergens: array of detected allergens from: milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame
-- has_barcode: true only if you can read actual barcode digits
-- barcode_number: string of barcode digits if visible
-- ingredients_text: full ingredient list text if visible on label
+Return JSON with: name (exact product/food name including brand), confidence ("high"/"medium"/"low"), serving_size, calories (kcal), protein (g), carbs (g), fat (g), saturated_fat (g), sugar (g), fiber (g), sodium (mg), potassium (mg), cholesterol (mg), allergens (array from: milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame), has_barcode (boolean), barcode_number (string), ingredients_text (full ingredient list if visible).
 
-NEVER fail. Always estimate from visual cues if exact values are not readable.${isAppearance ? '\n\nAPPEARANCE MODE: Also return sodium and potassium as required numeric fields (mg).' : ''}${extraContext}`,
+NEVER fail. Always estimate from visual cues if exact values are not readable.${extraContext}`,
       response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
     });
     const call1 = r1raw.data?.result || r1raw.data || {};
@@ -138,19 +139,16 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       } catch (_) { }
     }
 
-    const appearancePrompt = isAppearance ? `You are a dermatologist and appearance optimization expert. Food: "${enriched.name}". Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. User sex: ${userProfile.sex || 'unknown'}. Return appearance_impact ("Excellent"/"Good"/"Neutral"/"Avoid"), appearance_reason, bloat_risk ("Low"/"Medium"/"High"), bloat_reason, skin_impact, collagen_effect, collagen_reason, hormone_effect, hormone_reason, tomorrow_face, glycemic_impact ("Low"/"Medium"/"High"), glycemic_reason, health_score (1-10), processing_level. NEVER fail.`
-      : `You are a clinical nutritionist. User's diet: ${dietMode}. Food: "${enriched.name}". Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. Return diet_compatibility ("yes"/"limit"/"no"), diet_reason, bloat_risk ("low"/"medium"/"high"), bloat_reason, glycemic_impact ("low"/"medium"/"high"), glycemic_reason, collagen_effect, inflammation ("Low"/"Medium"/"High"), sebum_effect, skin_summary, appearance_tip, tomorrow_face, tomorrow_face_note, hormone_impact, hormone_note, gut_health, gut_note, processing_level ("Whole Food"/"Minimally Processed"/"Processed"/"Ultra Processed"), health_score (1-10). NEVER fail.`;
-
-    const appearanceSchema = { type: 'object', properties: { appearance_impact: { type: 'string' }, appearance_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, skin_impact: { type: 'string' }, collagen_effect: { type: 'string' }, collagen_reason: { type: 'string' }, hormone_effect: { type: 'string' }, hormone_reason: { type: 'string' }, tomorrow_face: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, health_score: { type: 'number' }, processing_level: { type: 'string' } } };
-    const standardSchema = { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, inflammation: { type: 'string' }, sebum_effect: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, tomorrow_face_note: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } };
+    const todayContext = await getTodayContext(dietMode);
+    const call2Prompt = buildCall2Prompt(dietMode, enriched, userProfile, todayContext);
 
     const r2raw = await base44.functions.invoke('analyzeWithClaude', {
-      prompt: appearancePrompt,
-      response_json_schema: isAppearance ? appearanceSchema : standardSchema,
+      prompt: call2Prompt,
+      response_json_schema: call2Schema,
     });
     const r2result = r2raw.data?.result || r2raw.data || {};
 
-    const finalResult = { ...enriched, ...r2result, image_url: file_url, step: 2, is_appearance_mode: isAppearance };
+    const finalResult = { ...enriched, ...r2result, image_url: file_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
     setResult(finalResult);
     base44.entities.ScanResult.create({
       type: 'food',
@@ -198,13 +196,12 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     const userProfile = profile;
     const dietMode = userProfile.diet_mode || 'standard';
     const isAppearance = dietMode === 'appearance_mode';
+    const todayCtx = await getTodayContext(dietMode);
     const r2braw = await base44.functions.invoke('analyzeWithClaude', {
-      prompt: isAppearance
-        ? `Appearance Mode analysis for: "${enriched.name}". Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. Return appearance_impact, appearance_reason, bloat_risk, bloat_reason, skin_impact, collagen_effect, collagen_reason, hormone_effect, hormone_reason, tomorrow_face, glycemic_impact, glycemic_reason, health_score (1-10), processing_level.`
-        : `Diet compatibility for "${enriched.name}" on ${dietMode} diet. Nutrition: ${enriched.calories}kcal, ${enriched.protein}g protein, ${enriched.carbs}g carbs, ${enriched.fat}g fat, ${enriched.sugar}g sugar, ${enriched.sodium}mg sodium. Return diet_compatibility, diet_reason, bloat_risk, bloat_reason, glycemic_impact, glycemic_reason, collagen_effect, inflammation, sebum_effect, skin_summary, appearance_tip, tomorrow_face, hormone_impact, hormone_note, gut_health, gut_note, processing_level, health_score (1-10).`,
-      response_json_schema: { type: 'object', properties: { diet_compatibility: { type: 'string' }, diet_reason: { type: 'string' }, appearance_impact: { type: 'string' }, appearance_reason: { type: 'string' }, bloat_risk: { type: 'string' }, bloat_reason: { type: 'string' }, glycemic_impact: { type: 'string' }, glycemic_reason: { type: 'string' }, collagen_effect: { type: 'string' }, collagen_reason: { type: 'string' }, inflammation: { type: 'string' }, skin_impact: { type: 'string' }, skin_summary: { type: 'string' }, appearance_tip: { type: 'string' }, tomorrow_face: { type: 'string' }, hormone_effect: { type: 'string' }, hormone_reason: { type: 'string' }, hormone_impact: { type: 'string' }, hormone_note: { type: 'string' }, gut_health: { type: 'string' }, gut_note: { type: 'string' }, processing_level: { type: 'string' }, health_score: { type: 'number' } } },
+      prompt: buildCall2Prompt(dietMode, enriched, userProfile, todayCtx),
+      response_json_schema: call2Schema,
     });
-    const finalResult = { ...enriched, ...(r2braw.data?.result || r2braw.data || {}), step: 2, is_appearance_mode: isAppearance };
+    const finalResult = { ...enriched, ...(r2braw.data?.result || r2braw.data || {}), step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
     setResult(finalResult);
     base44.entities.ScanResult.create({
       type: 'food',

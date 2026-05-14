@@ -8,6 +8,7 @@ import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
 import CaloriesBurnedModule from '../components/home/CaloriesBurnedModule';
 import DayDetailModal from '../components/home/DayDetailModal';
+import AllergyBanner from '../components/home/AllergyBanner';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -71,6 +72,11 @@ export default function Home() {
   return (
     <div className="warm-glow min-h-screen pb-24">
       <Header streak={profile.streak || 0} />
+      {profile.diet_mode === 'allergy_mode' && (
+        <div className="mt-3">
+          <AllergyBanner allergens={profile.allergens || []} />
+        </div>
+      )}
       <div className="mt-3 mb-2">
         <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
       </div>
@@ -78,7 +84,7 @@ export default function Home() {
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Macros</p>
       </div>
       <div className="mt-1 mb-4">
-        <NutriCarousel profile={profile} consumed={consumed} />
+        <NutriCarousel profile={profile} consumed={consumed} waterLogs={allWaterLogs} todayMeals={todayMeals} />
       </div>
       <div className="px-5 mb-2">
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Calories</p>

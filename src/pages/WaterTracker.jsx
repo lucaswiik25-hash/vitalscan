@@ -47,9 +47,9 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
   const cells = [...Array(startPad).fill(null), ...days];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-t-[32px] px-5 pt-6 pb-10"
+      <div className="relative w-full max-w-lg rounded-[28px] px-5 pt-6 pb-8"
         style={{ background: 'rgba(30,30,30,0.92)', backdropFilter: 'blur(40px)' }}>
         <div className="flex items-start justify-between mb-4">
           <div>

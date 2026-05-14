@@ -121,14 +121,55 @@ const DIET_OPTIONS = [
   },
 ];
 
+const ALLERGEN_OPTIONS = [
+  // Food allergens
+  { id: 'milk', label: 'Milk / Dairy', category: 'Food' },
+  { id: 'eggs', label: 'Eggs', category: 'Food' },
+  { id: 'peanuts', label: 'Peanuts', category: 'Food' },
+  { id: 'tree_nuts', label: 'Tree Nuts', category: 'Food' },
+  { id: 'wheat', label: 'Wheat / Gluten', category: 'Food' },
+  { id: 'soy', label: 'Soy', category: 'Food' },
+  { id: 'fish', label: 'Fish', category: 'Food' },
+  { id: 'shellfish', label: 'Shellfish', category: 'Food' },
+  { id: 'sesame', label: 'Sesame', category: 'Food' },
+  { id: 'mustard', label: 'Mustard', category: 'Food' },
+  { id: 'celery', label: 'Celery', category: 'Food' },
+  { id: 'lupin', label: 'Lupin', category: 'Food' },
+  { id: 'molluscs', label: 'Molluscs', category: 'Food' },
+  { id: 'sulphites', label: 'Sulphites / SO₂', category: 'Food' },
+  // Intolerances
+  { id: 'lactose', label: 'Lactose', category: 'Intolerance' },
+  { id: 'fructose', label: 'Fructose', category: 'Intolerance' },
+  { id: 'histamine', label: 'Histamine', category: 'Intolerance' },
+  { id: 'fodmap', label: 'FODMAPs', category: 'Intolerance' },
+  { id: 'nightshades', label: 'Nightshades', category: 'Intolerance' },
+  { id: 'caffeine', label: 'Caffeine', category: 'Intolerance' },
+  // E-additives
+  { id: 'artificial_colors', label: 'Artificial Colors (E1xx)', category: 'Additives' },
+  { id: 'artificial_preservatives', label: 'Preservatives (E2xx)', category: 'Additives' },
+  { id: 'antioxidants_e3xx', label: 'Antioxidants (E3xx)', category: 'Additives' },
+  { id: 'emulsifiers', label: 'Emulsifiers (E4xx)', category: 'Additives' },
+  { id: 'flavor_enhancers', label: 'Flavor Enhancers / MSG (E6xx)', category: 'Additives' },
+  { id: 'sweeteners', label: 'Sweeteners (E9xx)', category: 'Additives' },
+  { id: 'titanium_dioxide', label: 'Titanium Dioxide (E171)', category: 'Additives' },
+  { id: 'carrageenan', label: 'Carrageenan (E407)', category: 'Additives' },
+];
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [text, setText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [step, setStep] = useState('input'); // 'input' | 'analyzing' | 'diet' | 'review'
+  const [step, setStep] = useState('input'); // 'input' | 'analyzing' | 'diet' | 'allergens' | 'review'
   const [parsedProfile, setParsedProfile] = useState(null);
   const [selectedDiet, setSelectedDiet] = useState('standard');
+  const [selectedAllergens, setSelectedAllergens] = useState([]);
+
+  const toggleAllergen = (id) => {
+    setSelectedAllergens(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
 
   const analyzeProfile = async () => {
     if (!text.trim()) return;
@@ -187,6 +228,7 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
     await base44.entities.UserProfile.create({
       ...parsedProfile,
       diet_mode: selectedDiet,
+      allergens: selectedAllergens,
       fiber_target: 30,
       sugar_target: selectedDiet === 'low_sugar' ? 25 : 50,
       sodium_target: selectedDiet === 'low_sodium' ? 1500 : 2300,
@@ -215,6 +257,12 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
           <>
             <h1 className="text-3xl font-extrabold text-foreground mt-6">Choose your diet</h1>
             <p className="text-muted-foreground mt-2">This shapes your scanner verdicts, meal plans, and shopping lists.</p>
+          </>
+        )}
+        {step === 'allergens' && (
+          <>
+            <h1 className="text-3xl font-extrabold text-foreground mt-6">Allergens & Intolerances</h1>
+            <p className="text-muted-foreground mt-2">Select everything you're allergic or sensitive to. The scanner will flag these in every product.</p>
           </>
         )}
         {step === 'review' && (
@@ -293,6 +341,38 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
           </div>
         )}
 
+        {step === 'allergens' && (
+          <div className="space-y-5 pb-32">
+            {['Food', 'Intolerance', 'Additives'].map(cat => (
+              <div key={cat}>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{cat}</p>
+                <div className="flex flex-wrap gap-2">
+                  {ALLERGEN_OPTIONS.filter(a => a.category === cat).map(a => {
+                    const selected = selectedAllergens.includes(a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => toggleAllergen(a.id)}
+                        className="px-3 py-1.5 rounded-full text-sm font-semibold border transition-all"
+                        style={{
+                          background: selected ? '#1a1a1a' : 'white',
+                          color: selected ? 'white' : 'hsl(var(--foreground))',
+                          borderColor: selected ? '#1a1a1a' : 'hsl(var(--border))',
+                        }}
+                      >
+                        {selected && <span className="mr-1">✓</span>}{a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {selectedAllergens.length === 0 && (
+              <p className="text-xs text-muted-foreground">You can skip this if you have no known allergens.</p>
+            )}
+          </div>
+        )}
+
         {step === 'review' && parsedProfile && (
           <div className="space-y-4 pb-8">
             <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
@@ -349,14 +429,14 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
         )}
       </div>
 
-      {/* Fixed bottom CTA for diet step */}
-      {step === 'diet' && (
+      {/* Fixed bottom CTA for diet and allergens steps */}
+      {(step === 'diet' || step === 'allergens') && (
         <div className="fixed bottom-0 left-0 right-0 px-6 pb-10 pt-4 bg-gradient-to-t from-background to-transparent">
           <Button
-            onClick={() => setStep('review')}
+            onClick={() => step === 'diet' ? setStep('allergens') : setStep('review')}
             className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base gap-2"
           >
-            Continue <ArrowRight className="w-5 h-5" />
+            {step === 'allergens' && selectedAllergens.length === 0 ? 'Skip' : 'Continue'} <ArrowRight className="w-5 h-5" />
           </Button>
         </div>
       )}

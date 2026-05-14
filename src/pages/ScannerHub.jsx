@@ -24,11 +24,11 @@ export { registerScan };
 
 // ─── Scanner card gradients & icons ───────────────────────────────────────────
 const CARD_CONFIGS = {
-  food: { gradient: ['#FF8C42', '#FF4F6E'], emoji: '🥩', title: 'Food Scanner', description: 'Scan any food or barcode for full nutrition info', path: '/food-scanner' },
-  skincare: { gradient: ['#C084FC', '#EC4899'], emoji: '🧴', title: 'Skincare Analyzer', description: 'Analyze ingredients in any cosmetic product', path: '/skincare-scanner' },
-  supplement: { gradient: ['#38BDF8', '#818CF8'], emoji: '💊', title: 'Supplement Scanner', description: 'Check quality and dosage of any supplement', path: '/supplement-scanner' },
-  face: { gradient: ['#D946EF', '#F97316'], emoji: '🪞', title: 'Face Analyser', description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
-  body: { gradient: ['#10B981', '#0EA5E9'], emoji: '🏃', title: 'Body Analyser', description: 'Find the areas you need to work on most', path: '/body-scanner' },
+  food: { gradient: ['#FF8C42', '#FF4F6E'], title: 'Food Scanner', description: 'Scan any food or barcode for full nutrition info', path: '/food-scanner' },
+  skincare: { gradient: ['#C084FC', '#EC4899'], title: 'Skincare Analyzer', description: 'Analyze ingredients in any cosmetic product', path: '/skincare-scanner' },
+  supplement: { gradient: ['#38BDF8', '#818CF8'], title: 'Supplement Scanner', description: 'Check quality and dosage of any supplement', path: '/supplement-scanner' },
+  face: { gradient: ['#D946EF', '#F97316'], title: 'Face Analyser', description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
+  body: { gradient: ['#10B981', '#0EA5E9'], title: 'Body Analyser', description: 'Find the areas you need to work on most', path: '/body-scanner' },
 };
 
 // ─── Food search ──────────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ function ScannerCarousel({ cardKeys }) {
 
   const CARD_W = 275;
   const CARD_GAP = 12;
-  const PEEK = 28;
+  const PEEK = 20;
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -182,22 +182,17 @@ function ScannerCarousel({ cardKeys }) {
                 className="shrink-0 rounded-[22px] overflow-hidden relative transition-all duration-300 active:scale-[0.97]"
                 style={{
                   width: CARD_W,
-                  height: 240,
+                  height: 320,
                   background: `linear-gradient(145deg, ${c.gradient[0]}, ${c.gradient[1]})`,
                   opacity: isActive ? 1 : 0.65,
                   transform: isActive ? 'scale(1)' : 'scale(0.94)',
                   boxShadow: isActive ? '0 8px 28px rgba(0,0,0,0.18)' : '0 2px 10px rgba(0,0,0,0.08)',
                 }}
               >
-                {/* Bg emoji */}
-                <div className="absolute right-2 bottom-0 text-[72px] opacity-20 select-none pointer-events-none leading-none">
-                  {c.emoji}
-                </div>
-                <div className="relative z-10 p-4 h-full flex flex-col justify-between">
-                  <span className="text-3xl">{c.emoji}</span>
+                <div className="relative z-10 p-6 h-full flex flex-col justify-end">
                   <div>
-                    <p className="text-sm font-extrabold text-white leading-tight">{c.title}</p>
-                    <p className="text-[11px] text-white/70 mt-0.5 leading-snug line-clamp-2">{c.description}</p>
+                    <p className="text-xl font-extrabold text-white leading-tight">{c.title}</p>
+                    <p className="text-sm text-white/70 mt-1 leading-snug">{c.description}</p>
                   </div>
                 </div>
               </Link>

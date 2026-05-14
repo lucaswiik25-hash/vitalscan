@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, X, Plus, Droplets, Pill, UtensilsCrossed, ShoppingCart, ShieldAlert, Settings, Moon, Dumbbell } from 'lucide-react';
+import { Home, X, Plus, Droplets, Pill, UtensilsCrossed, ShoppingCart, ShieldAlert, Settings, Moon, Dumbbell } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
@@ -11,7 +11,6 @@ const navItems = [
   { path: '/meal-planner', icon: UtensilsCrossed, label: 'Meal Planner' },
   { path: '/shopping', icon: ShoppingCart, label: 'Shopping List' },
   { path: '/health-risk', icon: ShieldAlert, label: 'Health Risk' },
-  { path: '/profile', icon: User, label: 'Profile' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 

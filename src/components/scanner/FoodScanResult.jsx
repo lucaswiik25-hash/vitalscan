@@ -428,7 +428,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
 
       {/* ── 1. Product image — white card, image covers full area ── */}
       <div className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
-        style={{ height: 210, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
+        style={{ height: 170, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
         {result.image_url ? (
           <img src={result.image_url} alt={result.name}
             className="w-full h-full object-cover" />
@@ -446,8 +446,8 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
 
       {/* ── 2. Name (full width) + verdict badge + action FAB inline ── */}
       <div className="shrink-0 px-5 pt-4 pb-2">
-        <h1 className="text-[32px] font-black text-gray-900 leading-tight w-full" style={{ letterSpacing: '-0.02em' }}>
-          {result.name}
+        <h1 className="text-[22px] font-black text-gray-900 leading-tight w-full" style={{ letterSpacing: '-0.02em' }}>
+          {result.name?.length > 40 ? result.name.slice(0, 40).trim() + '…' : result.name}
         </h1>
         <div className="flex items-center gap-2 mt-2">
           <VerdictBadge result={result} />

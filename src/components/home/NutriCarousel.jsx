@@ -136,6 +136,21 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
         )}
       </div>
     </div>,
+    <div key="a3" className="min-w-full px-5 space-y-3">
+      <GlassCalorieCard
+        caloriesLeft={(profile.calorie_target || 2000) - (consumed.calories || 0)}
+        caloriesTarget={profile.calorie_target || 2000}
+        caloriesConsumed={consumed.calories || 0}
+      />
+      <div className="flex gap-2">
+        <GlassMacroCard value={consumed.protein || 0} unit="g" label="Protein" progress={((consumed.protein || 0) / (profile.protein_target || 150)) * 100} />
+        <GlassMacroCard value={consumed.fat || 0} unit="g" label="Fat" progress={((consumed.fat || 0) / (profile.fat_target || 80)) * 100} />
+      </div>
+      <div className="flex gap-2">
+        <GlassMacroCard value={consumed.carbs || 0} unit="g" label="Carbs" progress={((consumed.carbs || 0) / (profile.carbs_target || 200)) * 100} />
+        <GlassMacroCard value={consumed.fiber || 0} unit="g" label="Fiber" progress={((consumed.fiber || 0) / (profile.fiber_target || 30)) * 100} />
+      </div>
+    </div>,
   ];
 }
 

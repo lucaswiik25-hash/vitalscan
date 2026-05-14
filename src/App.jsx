@@ -12,7 +12,6 @@ import ScannerHub from './pages/ScannerHub';
 import FoodScanner from './pages/FoodScanner';
 import SkincareScanner from './pages/SkincareScanner';
 import SupplementScanner from './pages/SupplementScanner';
-import Profile from './pages/Profile';
 import WaterTracker from './pages/WaterTracker';
 import SupplementTracker from './pages/SupplementTracker';
 import MealPlanner from './pages/MealPlanner';
@@ -48,7 +47,6 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<Home />} />
-        <Route path="/profile" element={<Profile />} />
         <Route path="/scanner" element={<ScannerHub />} />
         <Route path="/water" element={<WaterTracker />} />
         <Route path="/supplements" element={<SupplementTracker />} />

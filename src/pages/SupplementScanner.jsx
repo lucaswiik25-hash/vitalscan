@@ -314,12 +314,12 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
           <p className="text-3xl font-bold text-gray-900 leading-snug">Almost there.</p>
           <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
             Now{' '}
-            <ScanButton label="📷 photograph the back" onClick={() => cam2Ref.current?.click()} />{' '}
+            <ScanButton label="Photograph Label" onClick={() => cam2Ref.current?.click()} />{' '}
             label or supplement facts panel of <span className="font-bold">{step1Data.product_name || 'your supplement'}</span>.
           </p>
           <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
             Or{' '}
-            <ScanButton label="🖼 upload from gallery" onClick={() => up2Ref.current?.click()} />{' '}
+            <ScanButton label="Upload from Gallery" onClick={() => up2Ref.current?.click()} />{' '}
             if you already have a photo.
           </p>
         </div>
@@ -339,17 +339,17 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
         <p className="text-3xl font-bold text-gray-900 leading-snug">Hi {userName}.</p>
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           Here you can{' '}
-          <ScanButton label="💊 scan a supplement" onClick={() => cam1Ref.current?.click()} />{' '}
+          <ScanButton label="Scan Supplement" onClick={() => cam1Ref.current?.click()} />{' '}
           by photographing the front of the bottle.
         </p>
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           We'll then check the{' '}
-          <ScanButton label="📋 ingredient label" onClick={() => cam1Ref.current?.click()} />{' '}
+          <ScanButton label="Ingredient Label" onClick={() => cam1Ref.current?.click()} />{' '}
           for quality, dosage, and bioavailability.
         </p>
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           Or{' '}
-          <ScanButton label="🖼 upload from gallery" onClick={() => up1Ref.current?.click()} />{' '}
+          <ScanButton label="Upload from Gallery" onClick={() => up1Ref.current?.click()} />{' '}
           if you already have a photo.
         </p>
       </div>

@@ -356,7 +356,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           Here you can{' '}
           <ScanButton
-            label="📷 photo scan"
+            label="Photo Scan"
             onClick={() => cameraInputRef.current?.click()}
           />{' '}
           your foods by just taking a picture.
@@ -366,7 +366,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           Also you can{' '}
           <ScanButton
-            label="▌▌▌ barcode"
+            label="Barcode Scan"
             onClick={() => setShowBarcodeInput(true)}
           />{' '}
           scan a barcode for the most accurate verdict.
@@ -376,7 +376,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
         <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
           Lastly you can{' '}
           <ScanButton
-            label="☰ nutrition label"
+            label="Nutrition Label"
             onClick={() => labelInputRef.current?.click()}
           />{' '}
           scan a nutrition label.

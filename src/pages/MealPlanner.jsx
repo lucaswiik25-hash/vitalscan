@@ -127,7 +127,7 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
   const toggleExpand = (i) => setExpanded(prev => ({ ...prev, [i]: !prev[i] }));
 
   return (
-    <div className="min-h-screen bg-background pb-10">
+    <div className="min-h-screen pb-10">
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Meal Planner</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised meals for today' : 'AI-generated meals for your diet & goals'}</p>

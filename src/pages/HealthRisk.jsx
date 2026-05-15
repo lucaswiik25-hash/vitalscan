@@ -125,7 +125,7 @@ Identify ALL health risks. For each risk provide:
   };
 
   return (
-    <div className="min-h-screen bg-background pb-10">
+    <div className="min-h-screen pb-10">
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">{profile.diet_mode === 'appearance_mode' ? 'Appearance Score' : 'Health Risk Analysis'}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'How your diet is affecting your face & skin' : 'AI-powered diet risk assessment'}</p>

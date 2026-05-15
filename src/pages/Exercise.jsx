@@ -120,7 +120,7 @@ export default function Exercise() {
   const visibleExercises = showAll ? QUICK_EXERCISES : QUICK_EXERCISES.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-white pb-28">
+    <div className="min-h-screen pb-28">
       {/* Header */}
       <div className="px-5 pt-12 pb-4 flex items-center">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">

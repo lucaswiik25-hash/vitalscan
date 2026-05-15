@@ -116,7 +116,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
   const sevColor = { high: { bg: '#fee2e2', text: '#dc2626' }, medium: { bg: '#fef9c3', text: '#ca8a04' }, low: { bg: '#dcfce7', text: '#16a34a' } };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen pb-24">
       <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }} className="px-5 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Supplements</h1>
         <button onClick={() => setShowAdd(true)}

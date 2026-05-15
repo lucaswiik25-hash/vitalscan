@@ -113,7 +113,7 @@ Provide:
   };
 
   return (
-    <div className="min-h-screen bg-background pb-10">
+    <div className="min-h-screen pb-10">
       {/* Header */}
       <motion.div {...fadeUp(0)} className="px-5 pt-6 pb-4 flex items-center justify-between">
         <div>

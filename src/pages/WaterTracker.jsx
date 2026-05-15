@@ -191,6 +191,8 @@ export default function WaterTracker() {
     </div>
   );
 
+  const [showCupsModule, setShowCupsModule] = useState(true);
+
   return (
     <div className="min-h-screen pb-10">
       {/* Header */}
@@ -253,8 +255,10 @@ export default function WaterTracker() {
           ))}
         </div>
 
-        {/* Cup grid */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.7 }} className="rounded-[24px] p-5"
+        {/* Cup grid — opens as bottom sheet */}
+        <motion.button initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.7 }}
+          onClick={() => setShowCupsModule(true)}
+          className="w-full rounded-[24px] p-5 text-left"
           style={{
             background: 'rgba(255,255,255,0.52)',
             backdropFilter: 'blur(24px) saturate(200%) brightness(1.06)',
@@ -264,34 +268,25 @@ export default function WaterTracker() {
           }}>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-foreground">Tap cups to log • 250ml each</p>
-            <button onClick={() => setShowCustom(true)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-secondary text-xs font-semibold text-foreground">
-              <Plus className="w-3.5 h-3.5" /> Custom
-            </button>
+            <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-secondary text-xs font-semibold text-foreground">
+              <Plus className="w-3.5 h-3.5" /> Log
+            </div>
           </div>
           <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: cupsNeeded }, (_, i) => {
+            {Array.from({ length: Math.min(cupsNeeded, 10) }, (_, i) => {
               const filled = i < cupsFilled;
               return (
-                <motion.button
-                  key={i}
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 + i * 0.03, duration: 0.25 }}
-                  onClick={() => addWater(250)}
-                  className="aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-90"
-                  style={{
-                    background: filled ? '#eff6ff' : 'hsl(var(--secondary))',
-                    border: filled ? '2px solid #3b82f6' : '2px solid transparent',
-                  }}
-                >
+                <div key={i} className="aspect-square rounded-2xl flex items-center justify-center"
+                  style={{ background: filled ? '#eff6ff' : 'hsl(var(--secondary))', border: filled ? '2px solid #3b82f6' : '2px solid transparent' }}>
                   <DropIcon filled={filled} color="#3b82f6" size={28} />
-                </motion.button>
+                </div>
               );
             })}
           </div>
           <p className="text-xs text-muted-foreground mt-3 text-center">
             {cupsFilled} / {cupsNeeded} cups · {effective} ml effective
           </p>
-        </motion.div>
+        </motion.button>
 
         {/* Hydration Quality — dehydrating drinks */}
         <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
@@ -369,6 +364,41 @@ export default function WaterTracker() {
       )}
       {showCustom && (
         <CustomAmountModal onClose={() => setShowCustom(false)} onAdd={addWater} />
+      )}
+
+      {/* Cups bottom sheet */}
+      {showCupsModule && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} onClick={() => setShowCupsModule(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10 space-y-4"
+            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-bold text-foreground">Log Water</h3>
+              <button onClick={() => setShowCupsModule(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground">Tap a cup to add 250ml</p>
+            <div className="grid grid-cols-5 gap-2">
+              {Array.from({ length: cupsNeeded }, (_, i) => {
+                const filled = i < cupsFilled;
+                return (
+                  <motion.button key={i}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 + i * 0.03, duration: 0.25, ease: 'easeOut' }}
+                    onClick={() => addWater(250)}
+                    className="aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-90"
+                    style={{ background: filled ? '#eff6ff' : 'hsl(var(--secondary))', border: filled ? '2px solid #3b82f6' : '2px solid transparent' }}>
+                    <DropIcon filled={filled} color="#3b82f6" size={28} />
+                  </motion.button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground text-center">{cupsFilled} / {cupsNeeded} cups · {effective} ml effective</p>
+            <button onClick={() => { setShowCupsModule(false); setShowCustom(true); }}
+              className="w-full h-12 rounded-2xl bg-foreground text-white text-sm font-semibold flex items-center justify-center gap-2">
+              <Plus className="w-4 h-4" /> Custom Amount
+            </button>
+          </motion.div>
+        </div>
       )}
     </div>
   );

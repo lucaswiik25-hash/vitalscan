@@ -353,14 +353,16 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
 }
 
 function useTypingEffect(lines, speed = 28) {
+  const linesRef = useRef(lines);
   const [displayed, setDisplayed] = useState(() => lines.map(() => ''));
   const [lineIdx, setLineIdx] = useState(0);
   const [charIdx, setCharIdx] = useState(0);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    if (lineIdx >= lines.length) return;
-    const line = lines[lineIdx];
+    const ls = linesRef.current;
+    if (lineIdx >= ls.length) return;
+    const line = ls[lineIdx];
     if (charIdx < line.length) {
       timeoutRef.current = setTimeout(() => {
         setDisplayed(prev => {
@@ -374,10 +376,10 @@ function useTypingEffect(lines, speed = 28) {
       timeoutRef.current = setTimeout(() => {
         setLineIdx(l => l + 1);
         setCharIdx(0);
-      }, 320);
+      }, 220);
     }
     return () => clearTimeout(timeoutRef.current);
-  }, [lineIdx, charIdx, lines, speed]);
+  }, [lineIdx, charIdx, speed]);
 
   return displayed;
 }

@@ -56,8 +56,8 @@ function VerdictBadge({ result }) {
     label = 'NO'; bg = '#ef4444';
   }
   return (
-    <div className="shrink-0 rounded-xl px-3 py-1.5 flex items-center justify-center"
-      style={{ background: bg }}>
+    <div className="shrink-0 rounded-2xl px-3 py-2 flex items-center justify-center"
+      style={{ background: bg, minHeight: 44 }}>
       <span className="text-sm font-black text-white leading-none">{label}</span>
     </div>
   );
@@ -290,8 +290,8 @@ Apply these corrections and return an updated JSON with the same fields: name, c
       <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
         <Row label="Bloat Risk" value={result.bloat_risk} note={result.bloat_reason} />
         <Row label="Glycemic Impact" value={result.glycemic_impact} note={result.glycemic_reason} />
-        {currentResult.skin_impact && typeof currentResult.skin_impact === 'string' && <Row label="Skin Impact" value={currentResult.skin_impact} />}
-        {currentResult.skin_impact && typeof currentResult.skin_impact === 'object' && currentResult.skin_impact.summary && <Row label="Skin Impact" value={currentResult.skin_impact.summary?.length > 30 ? 'See below' : currentResult.skin_impact.summary} note={currentResult.skin_impact.summary} />}
+        {currentResult.skin_impact && typeof currentResult.skin_impact === 'string' && <Row label="Skin Impact" value={currentResult.skin_impact.length > 20 ? 'See below' : currentResult.skin_impact} note={currentResult.skin_impact.length > 20 ? currentResult.skin_impact : undefined} />}
+        {currentResult.skin_impact && typeof currentResult.skin_impact === 'object' && currentResult.skin_impact.summary && <Row label="Skin Impact" value="See below" note={currentResult.skin_impact.summary} />}
         {result.collagen_effect && <Row label="Collagen" value={result.collagen_effect} note={result.collagen_reason} />}
         {result.hormone_effect && <Row label="Hormone" value={result.hormone_effect} note={result.hormone_reason} />}
       </div>
@@ -478,22 +478,22 @@ Apply these corrections and return an updated JSON with the same fields: name, c
 
         {/* ── 2. Name + verdict badge (right of name) + action FAB + edit ── */}
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.2 }} className="shrink-0 px-5 pt-4 pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-[22px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
-            {currentResult.name?.length > 40 ? currentResult.name.slice(0, 40).trim() + '…' : currentResult.name}
-          </h1>
-          <div className="flex flex-col items-end gap-1.5 shrink-0 mt-0.5">
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.3 }}>
+        <div className="flex items-start gap-2">
+          <div className="flex-1 flex items-start gap-2">
+            <h1 className="text-[22px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
+              {currentResult.name?.length > 40 ? currentResult.name.slice(0, 40).trim() + '…' : currentResult.name}
+            </h1>
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.3 }} className="shrink-0 mt-0.5">
               <VerdictBadge result={currentResult} />
             </motion.div>
-            <div className="flex gap-1.5">
-              <button onClick={() => setShowEditSheet(true)}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                <Pencil style={{ width: 14, height: 14, color: '#374151', strokeWidth: 2 }} />
-              </button>
-              <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
-            </div>
+          </div>
+          <div className="flex gap-1.5 shrink-0 mt-0.5">
+            <button onClick={() => setShowEditSheet(true)}
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <Pencil style={{ width: 14, height: 14, color: '#374151', strokeWidth: 2 }} />
+            </button>
+            <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
           </div>
         </div>
         </motion.div>

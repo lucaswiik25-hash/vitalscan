@@ -6,23 +6,25 @@ import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 function useTypingEffect(lines, speed = 28) {
+  const linesRef = useRef(lines);
   const [displayed, setDisplayed] = useState(() => lines.map(() => ''));
   const [lineIdx, setLineIdx] = useState(0);
   const [charIdx, setCharIdx] = useState(0);
   const timeoutRef = useRef(null);
   useEffect(() => {
-    if (lineIdx >= lines.length) return;
-    const line = lines[lineIdx];
+    const ls = linesRef.current;
+    if (lineIdx >= ls.length) return;
+    const line = ls[lineIdx];
     if (charIdx < line.length) {
       timeoutRef.current = setTimeout(() => {
         setDisplayed(prev => { const next = [...prev]; next[lineIdx] = line.slice(0, charIdx + 1); return next; });
         setCharIdx(c => c + 1);
       }, speed);
     } else {
-      timeoutRef.current = setTimeout(() => { setLineIdx(l => l + 1); setCharIdx(0); }, 320);
+      timeoutRef.current = setTimeout(() => { setLineIdx(l => l + 1); setCharIdx(0); }, 220);
     }
     return () => clearTimeout(timeoutRef.current);
-  }, [lineIdx, charIdx, lines, speed]);
+  }, [lineIdx, charIdx, speed]);
   return displayed;
 }
 
@@ -143,6 +145,7 @@ Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict (
       brand: combined.brand || null,
       safety_score: combined.safety_score || null,
       verdict: combined.verdict || null,
+      result_data: combined,
     }).catch(() => {});
     setIsAnalyzing(false);
   };

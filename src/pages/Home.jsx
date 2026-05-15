@@ -14,7 +14,7 @@ import AllergyBanner from '../components/home/AllergyBanner';
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: 'easeOut', delay }
+  transition: { duration: 0.4, ease: 'easeOut', delay },
 });
 
 export default function Home() {
@@ -25,7 +25,7 @@ export default function Home() {
 
   const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list()
+    queryFn: () => base44.entities.UserProfile.list(),
   });
 
   const profile = profiles[0] || {};
@@ -53,17 +53,17 @@ export default function Home() {
 
   const { data: todayMeals = [] } = useQuery({
     queryKey: ['meals', today],
-    queryFn: () => base44.entities.Meal.filter({ date: today, logged: true })
+    queryFn: () => base44.entities.Meal.filter({ date: today, logged: true }),
   });
 
   const { data: allMeals = [] } = useQuery({
     queryKey: ['allMeals'],
-    queryFn: () => base44.entities.Meal.filter({ logged: true })
+    queryFn: () => base44.entities.Meal.filter({ logged: true }),
   });
 
   const { data: allWaterLogs = [] } = useQuery({
     queryKey: ['allWaterLogs'],
-    queryFn: () => base44.entities.WaterLog.list()
+    queryFn: () => base44.entities.WaterLog.list(),
   });
 
   const consumed = todayMeals.reduce((acc, meal) => ({
@@ -73,17 +73,17 @@ export default function Home() {
     fat: (acc.fat || 0) + (meal.fat || 0),
     fiber: (acc.fiber || 0) + (meal.fiber || 0),
     sugar: (acc.sugar || 0) + (meal.sugar || 0),
-    sodium: (acc.sodium || 0) + (meal.sodium || 0)
+    sodium: (acc.sodium || 0) + (meal.sodium || 0),
   }), {});
 
   return (
-    <div className="min-h-screen pb-24 bg-[#782525]">
+    <div className="min-h-screen pb-24">
       <motion.div {...fadeUp(0)}><Header streak={profile.streak || 0} /></motion.div>
-      {profile.diet_mode === 'allergy_mode' &&
-      <motion.div className="mt-3" {...fadeUp(0.1)}>
+      {profile.diet_mode === 'allergy_mode' && (
+        <motion.div className="mt-3" {...fadeUp(0.1)}>
           <AllergyBanner allergens={profile.allergens || []} />
         </motion.div>
-      }
+      )}
       <motion.div className="mt-3 mb-2" {...fadeUp(0.15)}>
         <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
       </motion.div>
@@ -97,15 +97,15 @@ export default function Home() {
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Calories</p>
       </motion.div>
       <motion.div {...fadeUp(0.44)}><CaloriesBurnedModule profile={profile} /></motion.div>
-      {selectedDay &&
-      <DayDetailModal
-        date={selectedDay}
-        meals={allMeals.filter((m) => m.date === selectedDay)}
-        waterLogs={allWaterLogs.filter((w) => w.date === selectedDay)}
-        profile={profile}
-        onClose={() => setSelectedDay(null)} />
-
-      }
-    </div>);
-
+      {selectedDay && (
+        <DayDetailModal
+          date={selectedDay}
+          meals={allMeals.filter(m => m.date === selectedDay)}
+          waterLogs={allWaterLogs.filter(w => w.date === selectedDay)}
+          profile={profile}
+          onClose={() => setSelectedDay(null)}
+        />
+      )}
+    </div>
+  );
 }

@@ -13,7 +13,7 @@ import FoodScanner from './pages/FoodScanner';
 import SkincareScanner from './pages/SkincareScanner';
 import SupplementScanner from './pages/SupplementScanner';
 import WaterTracker from './pages/WaterTracker';
-import SupplementTracker from './pages/SupplementTracker.jsx';
+import SupplementTracker from './pages/SupplementTracker';
 import MealPlanner from './pages/MealPlanner';
 import ShoppingList from './pages/ShoppingList';
 import HealthRisk from './pages/HealthRisk';

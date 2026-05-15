@@ -32,9 +32,11 @@ export default function WeekCalendar({ meals = [], profile = {}, waterLogs = [],
       <div
         className="rounded-[22px] px-4 py-4"
         style={{
-          background: 'rgba(230,237,245,0.85)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(220,232,248,0.55)',
+          backdropFilter: 'blur(28px) saturate(180%) brightness(1.06)',
+          WebkitBackdropFilter: 'blur(28px) saturate(180%) brightness(1.06)',
+          border: '1px solid rgba(255,255,255,0.7)',
+          boxShadow: '0 4px 20px rgba(160,190,230,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
         }}
       >
         {/* Header row */}

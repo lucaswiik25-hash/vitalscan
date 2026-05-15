@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 
 const glassStyle = {
-  background: 'rgba(255,255,255,0.60)',
-  backdropFilter: 'blur(24px) saturate(200%)',
-  WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-  border: '1px solid rgba(0,0,0,0.09)',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,1)',
+  background: 'rgba(255,255,255,0.45)',
+  backdropFilter: 'blur(32px) saturate(220%) brightness(1.08)',
+  WebkitBackdropFilter: 'blur(32px) saturate(220%) brightness(1.08)',
+  border: '1px solid rgba(255,255,255,0.75)',
+  boxShadow: '0 4px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)',
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {
@@ -52,6 +52,24 @@ function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
             <span className="text-sm font-bold" style={{ color }}>{Math.round(pct)}%</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GlassSleepCard({ profile }) {
+  const hours = profile.last_sleep_hours;
+  const hasData = hours != null;
+  const color = !hasData ? '#aaa' : hours >= 7 ? '#6CC5A0' : hours >= 5 ? '#F5C842' : '#F47C7C';
+  return (
+    <div className="flex-1 rounded-[22px] p-4 flex flex-col gap-3" style={glassStyle}>
+      <p className="text-xs font-semibold text-foreground/50 leading-none">Sleep</p>
+      <p className="text-3xl font-light text-foreground leading-none" style={{ color: hasData ? color : undefined }}>
+        {hasData ? hours : '—'}<span className="text-sm font-semibold text-foreground/50 ml-0.5">h</span>
+      </p>
+      <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+        <div className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${hasData ? Math.min(100, (hours / 9) * 100) : 0}%`, background: color }} />
       </div>
     </div>
   );
@@ -116,6 +134,7 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
       <div className="flex gap-2">
         <GlassMacroCard value={sodiumConsumed} unit="mg" label="Sodium today" progress={(sodiumConsumed / sodiumTarget) * 100} />
         <GlassMacroCard value={potassiumConsumed} unit="mg" label="Potassium" progress={(potassiumConsumed / 3500) * 100} />
+        <GlassSleepCard profile={profile} />
       </div>
       <div className="rounded-[22px] p-4" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50 mb-1">Bloat Risk Today</p>
@@ -127,6 +146,7 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
       <div className="flex gap-2">
         <GlassMacroCard value={sugarConsumed} unit="g" label="Sugar today" progress={(sugarConsumed / sugarTarget) * 100} />
         <GlassMacroCard value={Math.round((waterConsumed / waterTarget) * 100)} unit="%" label="Water %" progress={(waterConsumed / waterTarget) * 100} />
+        <GlassSleepCard profile={profile} />
       </div>
       <div className="rounded-[22px] p-4" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50 mb-1">Tomorrow Face Prediction</p>
@@ -137,19 +157,16 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
       </div>
     </div>,
     <div key="a3" className="min-w-full px-5 space-y-3">
+      <div className="flex gap-2">
+        <GlassMacroCard value={consumed.protein || 0} unit="g" label="Protein" progress={((consumed.protein || 0) / (profile.protein_target || 150)) * 100} />
+        <GlassMacroCard value={consumed.carbs || 0} unit="g" label="Carbs" progress={((consumed.carbs || 0) / (profile.carbs_target || 200)) * 100} />
+        <GlassMacroCard value={consumed.fat || 0} unit="g" label="Fat" progress={((consumed.fat || 0) / (profile.fat_target || 80)) * 100} />
+      </div>
       <GlassCalorieCard
         caloriesLeft={(profile.calorie_target || 2000) - (consumed.calories || 0)}
         caloriesTarget={profile.calorie_target || 2000}
         caloriesConsumed={consumed.calories || 0}
       />
-      <div className="flex gap-2">
-        <GlassMacroCard value={consumed.protein || 0} unit="g" label="Protein" progress={((consumed.protein || 0) / (profile.protein_target || 150)) * 100} />
-        <GlassMacroCard value={consumed.fat || 0} unit="g" label="Fat" progress={((consumed.fat || 0) / (profile.fat_target || 80)) * 100} />
-      </div>
-      <div className="flex gap-2">
-        <GlassMacroCard value={consumed.carbs || 0} unit="g" label="Carbs" progress={((consumed.carbs || 0) / (profile.carbs_target || 200)) * 100} />
-        <GlassMacroCard value={consumed.fiber || 0} unit="g" label="Fiber" progress={((consumed.fiber || 0) / (profile.fiber_target || 30)) * 100} />
-      </div>
     </div>,
   ];
 }
@@ -271,7 +288,6 @@ function StandardCarousel({ consumed, profile }) {
   const proteinLeft = (profile.protein_target || 191) - (consumed.protein || 0);
   const carbsLeft = (profile.carbs_target || 438) - (consumed.carbs || 0);
   const fatLeft = (profile.fat_target || 93) - (consumed.fat || 0);
-  const fiberLeft = (profile.fiber_target || 38) - (consumed.fiber || 0);
   const sugarLeft = (profile.sugar_target || 118) - (consumed.sugar || 0);
   const sodiumLeft = (profile.sodium_target || 2300) - (consumed.sodium || 0);
 
@@ -286,9 +302,9 @@ function StandardCarousel({ consumed, profile }) {
     </div>,
     <div key="s2" className="min-w-full px-5 space-y-3">
       <div className="flex gap-2">
-        <GlassMacroCard value={Math.max(0, fiberLeft)} label="Fiber left" progress={consumed.fiber ? (consumed.fiber / (profile.fiber_target || 38)) * 100 : 0} />
         <GlassMacroCard value={Math.max(0, sugarLeft)} label="Sugar left" progress={consumed.sugar ? (consumed.sugar / (profile.sugar_target || 118)) * 100 : 0} />
         <GlassMacroCard value={Math.max(0, sodiumLeft)} unit="mg" label="Sodium left" progress={consumed.sodium ? (consumed.sodium / (profile.sodium_target || 2300)) * 100 : 0} />
+        <GlassSleepCard profile={profile} />
       </div>
       <GlassHealthScore consumed={consumed} profile={profile} />
     </div>,

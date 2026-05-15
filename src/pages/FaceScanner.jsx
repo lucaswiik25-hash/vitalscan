@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { X, HelpCircle, ImageIcon, Sparkles, Lightbulb } from 'lucide-react';
+import { X, ImageIcon, Sparkles, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
@@ -225,57 +225,58 @@ NEVER fail. If image quality is too low to assess a concern, skip it.`,
     );
   }
 
+  const userName = profile.name || 'there';
+
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
       <input ref={cameraRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handleFile} />
       <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
-      <div className="flex items-center justify-between px-5 pt-12">
-        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <X className="w-5 h-5 text-white" />
-        </button>
-        <button className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <HelpCircle className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+        <ArrowLeft className="w-5 h-5 text-gray-900" />
+      </button>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {/* Oval face frame */}
-        <div className="relative mb-6" style={{ width: '55vw', height: '75vw', maxWidth: 220, maxHeight: 300 }}>
-          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 220 300" fill="none">
-            <ellipse cx="110" cy="150" rx="105" ry="145" stroke="white" strokeWidth="3" strokeDasharray="12 8" />
-          </svg>
-          {/* Scan line */}
-          <div className="absolute left-4 right-4 h-0.5 rounded-full overflow-hidden"
-            style={{ top: `${scanLineAnim * 100}%`, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)' }} />
-        </div>
+      <div className="space-y-6">
+        <p className="text-3xl font-bold text-gray-900 leading-snug">Hi {userName}.</p>
 
-        <p className="text-white/70 text-sm text-center px-4 mb-4">
-          Take a front-facing selfie in natural lighting with no filters
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Here you can{' '}
+          <ScanButton label="Take Selfie" onClick={() => cameraRef.current?.click()} />{' '}
+          to analyse your skin health and detect concerns.
         </p>
 
-        <div className="flex items-start gap-2 bg-white/10 border border-white/10 rounded-2xl px-4 py-3 w-full">
-          <Lightbulb className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
-          <p className="text-xs text-white/40">Best results in daylight, no makeup, neutral expression.</p>
-        </div>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          The AI will{' '}
+          <ScanButton label="Analyse Your Skin" onClick={() => cameraRef.current?.click()} />{' '}
+          and link it to your diet and lifestyle.
+        </p>
 
         {isAppearanceMode && (
-          <div className="mt-3 flex items-center gap-2 bg-purple-500/20 border border-purple-400/30 rounded-2xl px-4 py-2 w-full">
-            <span className="text-xs">✨</span>
-            <p className="text-xs text-purple-300">Appearance Mode active — today's food will be linked to your skin analysis.</p>
-          </div>
+          <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+            Appearance Mode is active — your food log will be{' '}
+            <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-purple-100 text-purple-800 text-lg font-bold mx-1" style={{ verticalAlign: 'middle' }}>
+              connected
+            </span>{' '}
+            to your skin reading.
+          </p>
         )}
       </div>
 
-      <div className="pb-10 px-8">
-        <div className="flex items-center justify-between px-4">
-          <div className="w-11" />
-          <button onClick={() => cameraRef.current?.click()} className="w-20 h-20 rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform shadow-lg" />
-          <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-white/40" />
-          </button>
-        </div>
-      </div>
+      <button onClick={() => uploadRef.current?.click()} className="mt-12 w-full text-center text-sm text-gray-400 font-medium">
+        Or choose from gallery →
+      </button>
     </div>
+  );
+}
+
+function ScanButton({ label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
+      style={{ verticalAlign: 'middle' }}
+    >
+      {label}
+    </button>
   );
 }

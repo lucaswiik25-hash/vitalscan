@@ -175,8 +175,14 @@ export default function Exercise() {
               const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
               return (
                 <motion.button key={ex.name} {...fadeUp(0.6 + i * 0.06)} onClick={() => handleQuickSelect(ex)}
-                  className="w-full bg-white border border-gray-150 rounded-[14px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
-                  style={{ border: '1px solid #e5e7eb' }}>
+                  className="w-full rounded-[14px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+                  style={{
+                    background: 'rgba(255,255,255,0.55)',
+                    backdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
+                    border: '1px solid rgba(255,255,255,0.75)',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
+                  }}>
                   <div className="w-10 h-10 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
                     <Icon className="w-5 h-5 text-gray-900" strokeWidth={1.8} />
                   </div>

@@ -46,7 +46,14 @@ export default function BottomNav() {
         </div>
         <Link
           to="/scanner"
-          className="w-14 h-14 bg-foreground rounded-2xl flex items-center justify-center shadow-lg -mt-4 ml-2"
+          className="w-14 h-14 rounded-2xl flex items-center justify-center -mt-4 ml-2"
+          style={{
+            background: 'rgba(26,26,26,0.70)',
+            backdropFilter: 'blur(24px) saturate(180%) brightness(1.1)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%) brightness(1.1)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.15)',
+          }}
         >
           <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
         </Link>

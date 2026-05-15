@@ -237,7 +237,14 @@ export default function WaterTracker() {
             { icon: <Target size={16} className="text-gray-400" />, label: 'Remaining', value: remaining },
           ].map(({ icon, label, value }, i) => (
             <motion.div key={label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.6 + i * 0.08 }}
-              className="flex-1 rounded-[12px] flex flex-col items-center justify-center py-3 px-2 gap-1" style={{ background: '#f3f4f6' }}>
+              className="flex-1 rounded-[12px] flex flex-col items-center justify-center py-3 px-2 gap-1"
+              style={{
+                background: 'rgba(255,255,255,0.52)',
+                backdropFilter: 'blur(20px) saturate(200%) brightness(1.06)',
+                WebkitBackdropFilter: 'blur(20px) saturate(200%) brightness(1.06)',
+                border: '1px solid rgba(255,255,255,0.78)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
+              }}>
               <div className="text-gray-400">{icon}</div>
               <p className="text-[10px] text-gray-400 font-medium">{label}</p>
               <p className="text-sm font-black text-gray-900">{value}<span className="text-[10px] font-medium text-gray-400 ml-0.5">ml</span></p>
@@ -246,7 +253,14 @@ export default function WaterTracker() {
         </div>
 
         {/* Cup grid */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.7 }} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.7 }} className="rounded-[24px] p-5"
+          style={{
+            background: 'rgba(255,255,255,0.52)',
+            backdropFilter: 'blur(24px) saturate(200%) brightness(1.06)',
+            WebkitBackdropFilter: 'blur(24px) saturate(200%) brightness(1.06)',
+            border: '1px solid rgba(255,255,255,0.78)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+          }}>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-foreground">Tap cups to log • 250ml each</p>
             <button onClick={() => setShowCustom(true)}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -338,68 +338,113 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
 
   // ─── Landing page ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
-      {foodInput}{labelInput}{uploadInput}
-
-      {/* Back button */}
-      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
-        <ArrowLeft className="w-5 h-5 text-gray-900" />
-      </button>
-
-      {/* Intro text */}
-      <div className="space-y-6">
-        <p className="text-3xl font-bold text-gray-900 leading-snug">
-          Hi {userName}.
-        </p>
-
-        {/* Line 1: food picture scan */}
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          Here you can{' '}
-          <ScanButton
-            label="Photo Scan"
-            onClick={() => cameraInputRef.current?.click()}
-          />{' '}
-          your foods by just taking a picture.
-        </p>
-
-        {/* Line 2: barcode */}
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          Also you can{' '}
-          <ScanButton
-            label="Barcode Scan"
-            onClick={() => setShowBarcodeInput(true)}
-          />{' '}
-          scan a barcode for the most accurate verdict.
-        </p>
-
-        {/* Line 3: nutrition label */}
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          Lastly you can{' '}
-          <ScanButton
-            label="Nutrition Label"
-            onClick={() => labelInputRef.current?.click()}
-          />{' '}
-          scan a nutrition label.
-        </p>
-      </div>
-
-      {/* Upload from gallery link */}
-      <button onClick={() => uploadInputRef.current?.click()}
-        className="mt-12 w-full text-center text-sm text-gray-400 font-medium">
-        Or choose from gallery →
-      </button>
-    </div>
+    <FoodScannerLanding
+      userName={userName}
+      foodInput={foodInput}
+      labelInput={labelInput}
+      uploadInput={uploadInput}
+      onBack={() => navigate(-1)}
+      onCamera={() => cameraInputRef.current?.click()}
+      onBarcode={() => setShowBarcodeInput(true)}
+      onLabel={() => labelInputRef.current?.click()}
+      onGallery={() => uploadInputRef.current?.click()}
+    />
   );
 }
 
-function ScanButton({ label, onClick }) {
+function useTypingEffect(lines, speed = 28) {
+  const [displayed, setDisplayed] = useState([]);
+  const [lineIdx, setLineIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (lineIdx >= lines.length) return;
+    if (charIdx === 0) {
+      setDisplayed(prev => {
+        const next = [...prev];
+        next[lineIdx] = '';
+        return next;
+      });
+    }
+    const line = lines[lineIdx];
+    if (charIdx < line.length) {
+      timeoutRef.current = setTimeout(() => {
+        setDisplayed(prev => {
+          const next = [...prev];
+          next[lineIdx] = line.slice(0, charIdx + 1);
+          return next;
+        });
+        setCharIdx(c => c + 1);
+      }, speed);
+    } else {
+      timeoutRef.current = setTimeout(() => {
+        setLineIdx(l => l + 1);
+        setCharIdx(0);
+      }, 320);
+    }
+    return () => clearTimeout(timeoutRef.current);
+  }, [lineIdx, charIdx, lines, speed]);
+
+  return displayed;
+}
+
+function FoodScannerLanding({ userName, foodInput, labelInput, uploadInput, onBack, onCamera, onBarcode, onLabel, onGallery }) {
+  const lines = [
+    `Hi ${userName}.`,
+    `Here you can [Photo Scan] your foods by just taking a picture.`,
+    `Also you can [Barcode Scan] scan a barcode for the most accurate verdict.`,
+    `Lastly you can [Nutrition Label] scan a nutrition label.`,
+  ];
+  const displayed = useTypingEffect(lines, 26);
+
+  const renderLine = (text, idx) => {
+    if (!text) return null;
+    if (idx === 0) return <p key={idx} className="text-3xl font-bold text-gray-900 leading-snug">{text}</p>;
+
+    const actions = {
+      '[Photo Scan]': { label: 'Photo Scan', onClick: onCamera },
+      '[Barcode Scan]': { label: 'Barcode Scan', onClick: onBarcode },
+      '[Nutrition Label]': { label: 'Nutrition Label', onClick: onLabel },
+    };
+
+    const parts = [];
+    let remaining = text;
+    Object.entries(actions).forEach(([token, { label, onClick }]) => {
+      const ti = remaining.indexOf(token);
+      if (ti !== -1) {
+        if (ti > 0) parts.push(<span key={`pre-${token}`}>{remaining.slice(0, ti)}</span>);
+        parts.push(
+          <button key={token} onClick={onClick}
+            className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
+            style={{ verticalAlign: 'middle' }}>
+            {label}
+          </button>
+        );
+        remaining = remaining.slice(ti + token.length);
+      }
+    });
+    if (remaining) parts.push(<span key="tail">{remaining}</span>);
+
+    return (
+      <p key={idx} className="text-2xl font-semibold text-gray-900 leading-relaxed">
+        {parts}
+      </p>
+    );
+  };
+
   return (
-    <button
-      onClick={onClick}
-      className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
-      style={{ verticalAlign: 'middle' }}
-    >
-      {label}
-    </button>
+    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
+      {foodInput}{labelInput}{uploadInput}
+      <button onClick={onBack} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+        <ArrowLeft className="w-5 h-5 text-gray-900" />
+      </button>
+      <div className="space-y-6">
+        {lines.map((_, idx) => renderLine(displayed[idx] || '', idx))}
+      </div>
+      <button onClick={onGallery} className="mt-12 w-full text-center text-sm text-gray-400 font-medium">
+        Or choose from gallery →
+      </button>
+    </div>
   );
 }

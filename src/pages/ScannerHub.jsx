@@ -184,10 +184,13 @@ function ScannerCarousel({ cardKeys }) {
                 style={{
                   width: CARD_W,
                   height: 320,
-                  background: `linear-gradient(145deg, ${c.gradient[0]}, ${c.gradient[1]})`,
+                  background: `linear-gradient(145deg, ${c.gradient[0]}cc, ${c.gradient[1]}cc)`,
+                  backdropFilter: 'blur(24px) saturate(200%) brightness(1.15)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(200%) brightness(1.15)',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  boxShadow: isActive ? '0 8px 32px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.3)' : '0 2px 12px rgba(0,0,0,0.10)',
                   opacity: isActive ? 1 : 0.65,
                   transform: isActive ? 'scale(1)' : 'scale(0.94)',
-                  boxShadow: isActive ? '0 8px 28px rgba(0,0,0,0.18)' : '0 2px 10px rgba(0,0,0,0.08)',
                 }}
               >
                 <div className="relative z-10 p-6 h-full flex flex-col justify-end">
@@ -250,11 +253,24 @@ function RecentScans() {
   return (
     <div className="mt-6 px-5 fade-in-up-4">
       <h2 className="text-sm font-bold text-foreground mb-3">Recent Scans</h2>
-      <div className="flex gap-1 mb-3 bg-secondary rounded-2xl p-1">
+      <div className="flex gap-1 mb-3 rounded-2xl p-1"
+        style={{
+          background: 'rgba(255,255,255,0.35)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.6)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+        }}>
         {tabs.map((t, i) => (
           <button key={t} onClick={() => setActiveTab(i)}
             className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-            style={{ background: activeTab === i ? 'white' : 'transparent', color: activeTab === i ? '#1a1a1a' : 'hsl(var(--muted-foreground))' }}>
+            style={{
+              background: activeTab === i ? 'rgba(255,255,255,0.75)' : 'transparent',
+              backdropFilter: activeTab === i ? 'blur(12px)' : 'none',
+              WebkitBackdropFilter: activeTab === i ? 'blur(12px)' : 'none',
+              color: activeTab === i ? '#1a1a1a' : 'hsl(var(--muted-foreground))',
+              boxShadow: activeTab === i ? '0 1px 6px rgba(0,0,0,0.08)' : 'none',
+            }}>
             {typeLabels[t]}
           </button>
         ))}

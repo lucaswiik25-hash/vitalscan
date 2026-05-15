@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { X, HelpCircle, ImageIcon, Sparkles, Lightbulb } from 'lucide-react';
+import { X, ImageIcon, Sparkles, ArrowLeft } from 'lucide-react';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 const SEV_COLORS = {
@@ -216,54 +216,56 @@ NEVER fail. Be honest but constructive. If photo quality is low, do your best wi
     );
   }
 
+  const userName = profile.name || 'there';
+
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
       <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
-      <div className="flex items-center justify-between px-5 pt-12">
-        <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <X className="w-5 h-5 text-white" />
-        </button>
-        <button className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-          <HelpCircle className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+        <ArrowLeft className="w-5 h-5 text-gray-900" />
+      </button>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {/* Full-body rectangular frame */}
-        <div className="relative mb-6" style={{ width: '55vw', aspectRatio: '9/16', maxWidth: 200 }}>
-          {[
-            'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-2xl',
-            'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-2xl',
-            'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-2xl',
-            'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-2xl',
-          ].map((cls, i) => (
-            <div key={i} className={`absolute w-10 h-10 border-white ${cls}`} />
-          ))}
-          <div className="absolute left-2 right-2 h-0.5 rounded-full"
-            style={{ top: `${scanLineAnim * 100}%`, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)' }} />
-        </div>
+      <div className="space-y-6">
+        <p className="text-3xl font-bold text-gray-900 leading-snug">Hi {userName}.</p>
 
-        <p className="text-white/70 text-sm text-center px-4 mb-4">
-          Take a full-body photo in natural lighting, standing straight
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Here you can{' '}
+          <ScanButton label="Photo Scan" onClick={() => cameraRef.current?.click()} />{' '}
+          your full body to get a personalised fitness analysis.
         </p>
 
-        <div className="flex items-start gap-2 bg-white/10 border border-white/10 rounded-2xl px-4 py-3 w-full">
-          <Lightbulb className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
-          <p className="text-xs text-white/40">Tip — wear fitted clothing for the most accurate body composition analysis.</p>
-        </div>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          The AI will{' '}
+          <ScanButton label="Detect Areas" onClick={() => cameraRef.current?.click()} />{' '}
+          you need to work on most and give you an action plan.
+        </p>
+
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Wear fitted clothing and stand in{' '}
+          <span className="inline-flex items-center px-4 py-1.5 rounded-full border border-gray-200 text-gray-700 text-lg font-bold mx-1 bg-gray-50" style={{ verticalAlign: 'middle' }}>
+            natural light
+          </span>{' '}
+          for best results.
+        </p>
       </div>
 
-      <div className="pb-10 px-8">
-        <div className="flex items-center justify-between px-4">
-          <div className="w-11" />
-          <button onClick={() => cameraRef.current?.click()} className="w-20 h-20 rounded-full bg-white border-4 border-white/30 active:scale-95 transition-transform shadow-lg" />
-          <button onClick={() => uploadRef.current?.click()} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-white/40" />
-          </button>
-        </div>
-      </div>
+      <button onClick={() => uploadRef.current?.click()} className="mt-12 w-full text-center text-sm text-gray-400 font-medium">
+        Or choose from gallery →
+      </button>
     </div>
+  );
+}
+
+function ScanButton({ label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
+      style={{ verticalAlign: 'middle' }}
+    >
+      {label}
+    </button>
   );
 }

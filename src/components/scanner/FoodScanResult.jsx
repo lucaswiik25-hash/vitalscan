@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple, Pencil } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 // ─── Icon Module (replaces all emojis) ───────────────────────────────────────
@@ -147,18 +147,48 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   const [slide, setSlide] = useState(0);
   const [ingredientResult, setIngredientResult] = useState(null);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
+  const [showEditSheet, setShowEditSheet] = useState(false);
+  const [editNote, setEditNote] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editedResult, setEditedResult] = useState(null);
   const touchStartX = useRef(null);
+
+  const currentResult = editedResult || result;
+
+  const handleEdit = async () => {
+    if (!editNote.trim()) return;
+    setEditLoading(true);
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a nutritionist. A food was scanned with these values: name="${currentResult.name}", calories=${currentResult.calories}, protein=${currentResult.protein}, carbs=${currentResult.carbs}, fat=${currentResult.fat}, fiber=${currentResult.fiber}, sugar=${currentResult.sugar}, sodium=${currentResult.sodium}.
+
+The user says: "${editNote}"
+
+Apply these corrections and return an updated JSON with the same fields: name, calories, protein, carbs, fat, fiber, sugar, sodium, serving_size. Keep unchanged values the same.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' },
+          carbs: { type: 'number' }, fat: { type: 'number' }, fiber: { type: 'number' },
+          sugar: { type: 'number' }, sodium: { type: 'number' }, serving_size: { type: 'string' },
+        },
+      },
+    });
+    setEditedResult({ ...currentResult, ...res });
+    setEditNote('');
+    setShowEditSheet(false);
+    setEditLoading(false);
+  };
 
   const verdictColor = { Clean: '#16a34a', 'Mostly Clean': '#22c55e', Mixed: '#ca8a04', 'Mostly Processed': '#ea580c', Avoid: '#dc2626' };
 
-  const cal = Math.round(result.calories || 0);
-  const prot = Math.round((result.protein || 0) * 10) / 10;
-  const carbs = Math.round((result.carbs || 0) * 10) / 10;
-  const fat = Math.round((result.fat || 0) * 10) / 10;
-  const sugar = Math.round((result.sugar || 0) * 10) / 10;
-  const fiber = Math.round((result.fiber || 0) * 10) / 10;
-  const sodium = Math.round(result.sodium || 0);
-  const parsedIngredients = parseIngredients(result);
+  const cal = Math.round(currentResult.calories || 0);
+  const prot = Math.round((currentResult.protein || 0) * 10) / 10;
+  const carbs = Math.round((currentResult.carbs || 0) * 10) / 10;
+  const fat = Math.round((currentResult.fat || 0) * 10) / 10;
+  const sugar = Math.round((currentResult.sugar || 0) * 10) / 10;
+  const fiber = Math.round((currentResult.fiber || 0) * 10) / 10;
+  const sodium = Math.round(currentResult.sodium || 0);
+  const parsedIngredients = parseIngredients(currentResult);
 
   const analyzeIngredients = async () => {
     if (ingredientResult || loadingIngredients) return;
@@ -260,7 +290,8 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
       <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
         <Row label="Bloat Risk" value={result.bloat_risk} note={result.bloat_reason} />
         <Row label="Glycemic Impact" value={result.glycemic_impact} note={result.glycemic_reason} />
-        {result.skin_impact && <Row label="Skin Impact" value={result.skin_impact} />}
+        {currentResult.skin_impact && typeof currentResult.skin_impact === 'string' && <Row label="Skin Impact" value={currentResult.skin_impact} />}
+        {currentResult.skin_impact && typeof currentResult.skin_impact === 'object' && currentResult.skin_impact.summary && <Row label="Skin Impact" value={currentResult.skin_impact.summary?.length > 30 ? 'See below' : currentResult.skin_impact.summary} note={currentResult.skin_impact.summary} />}
         {result.collagen_effect && <Row label="Collagen" value={result.collagen_effect} note={result.collagen_reason} />}
         {result.hormone_effect && <Row label="Hormone" value={result.hormone_effect} note={result.hormone_reason} />}
       </div>
@@ -445,16 +476,25 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
         </button>
         </motion.div>
 
-        {/* ── 2. Name (full width) + verdict badge + action FAB inline ── */}
+        {/* ── 2. Name + verdict badge (right of name) + action FAB + edit ── */}
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.2 }} className="shrink-0 px-5 pt-4 pb-2">
-        <h1 className="text-[22px] font-black text-gray-900 leading-tight w-full" style={{ letterSpacing: '-0.02em' }}>
-        {result.name?.length > 40 ? result.name.slice(0, 40).trim() + '…' : result.name}
-        </h1>
-        <div className="flex items-center gap-2 mt-2">
-        <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.3 }}>
-          <VerdictBadge result={result} />
-        </motion.div>
-        <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-[22px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
+            {currentResult.name?.length > 40 ? currentResult.name.slice(0, 40).trim() + '…' : currentResult.name}
+          </h1>
+          <div className="flex flex-col items-end gap-1.5 shrink-0 mt-0.5">
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.3 }}>
+              <VerdictBadge result={currentResult} />
+            </motion.div>
+            <div className="flex gap-1.5">
+              <button onClick={() => setShowEditSheet(true)}
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                <Pencil style={{ width: 14, height: 14, color: '#374151', strokeWidth: 2 }} />
+              </button>
+              <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
+            </div>
+          </div>
         </div>
         </motion.div>
 
@@ -476,6 +516,36 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
           ))}
         </div>
       </div>
+
+      {/* ── Edit bottom sheet ── */}
+      {showEditSheet && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowEditSheet(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 space-y-4"
+            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Edit Scan Result</h3>
+              <button onClick={() => setShowEditSheet(false)}>
+                <X style={{ width: 20, height: 20, color: '#9ca3af' }} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400">Describe what needs to change — e.g. "add 20g of rice, remove the sauce, this is 200g not 100g"</p>
+            <textarea
+              value={editNote}
+              onChange={e => setEditNote(e.target.value)}
+              placeholder="What should be corrected?"
+              className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400"
+              rows={3}
+              autoFocus
+            />
+            <button onClick={handleEdit} disabled={editLoading || !editNote.trim()}
+              className="w-full h-12 rounded-2xl bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40">
+              {editLoading ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Pencil style={{ width: 16, height: 16 }} />}
+              {editLoading ? 'Updating...' : 'Apply Corrections'}
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

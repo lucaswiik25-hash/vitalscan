@@ -1,9 +1,30 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft, Pill, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+
+function useTypingEffect(lines, speed = 28) {
+  const [displayed, setDisplayed] = useState(() => lines.map(() => ''));
+  const [lineIdx, setLineIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const timeoutRef = useRef(null);
+  useEffect(() => {
+    if (lineIdx >= lines.length) return;
+    const line = lines[lineIdx];
+    if (charIdx < line.length) {
+      timeoutRef.current = setTimeout(() => {
+        setDisplayed(prev => { const next = [...prev]; next[lineIdx] = line.slice(0, charIdx + 1); return next; });
+        setCharIdx(c => c + 1);
+      }, speed);
+    } else {
+      timeoutRef.current = setTimeout(() => { setLineIdx(l => l + 1); setCharIdx(0); }, 320);
+    }
+    return () => clearTimeout(timeoutRef.current);
+  }, [lineIdx, charIdx, lines, speed]);
+  return displayed;
+}
 
 function ScanButton({ label, onClick }) {
   return (
@@ -128,6 +149,22 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
     }).catch(() => {});
     setIsAnalyzing(false);
   };
+
+  // Handle replay from scan history
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('replay') === '1') {
+      const stored = sessionStorage.getItem('replayScan');
+      if (stored) {
+        try {
+          const { scan } = JSON.parse(stored);
+          if (scan?.result_data) setResult(scan.result_data);
+          else if (scan) setResult({ ...scan, product_name: scan.product_name, brand: scan.brand, quality_score: scan.quality_score, verdict: scan.verdict, image_url: scan.image_url });
+        } catch (_) {}
+        sessionStorage.removeItem('replayScan');
+      }
+    }
+  }, []);
 
   const reset = () => {
     setResult(null); setStep1Data(null); setStep(1);
@@ -336,30 +373,49 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
   }
 
   // ─── Step 1: landing ───────────────────────────────────────────────────────
+  return <SupplementLanding userName={userName} cam1Ref={cam1Ref} up1Ref={up1Ref} onS1File={handleS1File} onBack={() => navigate(-1)} />;
+}
+
+function SupplementLanding({ userName, cam1Ref, up1Ref, onS1File, onBack }) {
+  const lines = [
+    `Hi ${userName}.`,
+    `Here you can [Scan Supplement] by photographing the front of the bottle.`,
+    `We'll then check the [Ingredient Label] for quality, dosage, and bioavailability.`,
+    `Or [Upload from Gallery] if you already have a photo.`,
+  ];
+  const displayed = useTypingEffect(lines, 26);
+
+  const renderLine = (text, idx) => {
+    if (!text) return null;
+    if (idx === 0) return <p key={idx} className="text-3xl font-bold text-gray-900 leading-snug">{text}</p>;
+    const actions = {
+      '[Scan Supplement]': { label: 'Scan Supplement', onClick: () => cam1Ref.current?.click() },
+      '[Ingredient Label]': { label: 'Ingredient Label', onClick: () => cam1Ref.current?.click() },
+      '[Upload from Gallery]': { label: 'Upload from Gallery', onClick: () => up1Ref.current?.click() },
+    };
+    const parts = [];
+    let remaining = text;
+    Object.entries(actions).forEach(([token, { label, onClick }]) => {
+      const ti = remaining.indexOf(token);
+      if (ti !== -1) {
+        if (ti > 0) parts.push(<span key={`pre-${token}`}>{remaining.slice(0, ti)}</span>);
+        parts.push(<button key={token} onClick={onClick} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1" style={{ verticalAlign: 'middle' }}>{label}</button>);
+        remaining = remaining.slice(ti + token.length);
+      }
+    });
+    if (remaining) parts.push(<span key="tail">{remaining}</span>);
+    return <p key={idx} className="text-2xl font-semibold text-gray-900 leading-relaxed">{parts}</p>;
+  };
+
   return (
     <div className="min-h-screen px-6 pt-14 pb-20">
-      <input ref={cam1Ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS1File} />
-      <input ref={up1Ref} type="file" accept="image/*" className="hidden" onChange={handleS1File} />
-      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+      <input ref={cam1Ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={onS1File} />
+      <input ref={up1Ref} type="file" accept="image/*" className="hidden" onChange={onS1File} />
+      <button onClick={onBack} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
         <ArrowLeft className="w-5 h-5 text-gray-900" />
       </button>
       <div className="space-y-6">
-        <p className="text-3xl font-bold text-gray-900 leading-snug">Hi {userName}.</p>
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          Here you can{' '}
-          <ScanButton label="Scan Supplement" onClick={() => cam1Ref.current?.click()} />{' '}
-          by photographing the front of the bottle.
-        </p>
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          We'll then check the{' '}
-          <ScanButton label="Ingredient Label" onClick={() => cam1Ref.current?.click()} />{' '}
-          for quality, dosage, and bioavailability.
-        </p>
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          Or{' '}
-          <ScanButton label="Upload from Gallery" onClick={() => up1Ref.current?.click()} />{' '}
-          if you already have a photo.
-        </p>
+        {lines.map((_, idx) => renderLine(displayed[idx] || '', idx))}
       </div>
     </div>
   );

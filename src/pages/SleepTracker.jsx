@@ -246,8 +246,9 @@ Provide:
       {/* Sleep Tips modal */}
       {showTips && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTips(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10">
+          <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} onClick={() => setShowTips(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10"
+            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.32, ease: 'easeOut' }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-foreground">Sleep Science Tips</h2>
               <button onClick={() => setShowTips(false)}>
@@ -256,13 +257,13 @@ Provide:
             </div>
             <div className="space-y-4">
               {SLEEP_TIPS.map((t, i) => (
-                <div key={i} className="flex items-start gap-3">
+                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.06, duration: 0.3, ease: 'easeOut' }} className="flex items-start gap-3">
                   <span className="text-xl shrink-0">{t.icon}</span>
                   <p className="text-sm text-muted-foreground leading-relaxed">{t.tip}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

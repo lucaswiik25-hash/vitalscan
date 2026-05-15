@@ -99,8 +99,9 @@ function CustomAmountModal({ onClose, onAdd }) {
   };
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10 space-y-4">
+      <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} onClick={onClose} />
+      <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10 space-y-4"
+        initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.32, ease: 'easeOut' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-foreground">Custom Amount</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
@@ -117,7 +118,7 @@ function CustomAmountModal({ onClose, onAdd }) {
           className="w-full h-12 rounded-2xl bg-foreground text-white font-semibold text-sm">
           Add Water
         </button>
-      </div>
+      </motion.div>
     </div>
   );
 }

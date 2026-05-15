@@ -8,7 +8,7 @@ import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
 import CaloriesBurnedModule from '../components/home/CaloriesBurnedModule';
-import DayDetailModal from '../components/home/DayDetailModal';
+import DayVerdictPage from '../components/home/DayVerdictPage';
 import AllergyBanner from '../components/home/AllergyBanner';
 
 const fadeUp = (delay = 0) => ({
@@ -38,6 +38,11 @@ export default function Home() {
       navigate('/onboarding');
     }
   }, [isLoadingProfiles, profiles.length, profile.onboarding_complete]);
+
+  // Trigger auto passive burn on load
+  useEffect(() => {
+    base44.functions.invoke('autoBurnCalories', {}).catch(() => {});
+  }, []);
 
   // Calculate and update streak
   useEffect(() => {
@@ -98,7 +103,7 @@ export default function Home() {
       </motion.div>
       <motion.div {...fadeUp(0.44)}><CaloriesBurnedModule profile={profile} /></motion.div>
       {selectedDay && (
-        <DayDetailModal
+        <DayVerdictPage
           date={selectedDay}
           meals={allMeals.filter(m => m.date === selectedDay)}
           waterLogs={allWaterLogs.filter(w => w.date === selectedDay)}

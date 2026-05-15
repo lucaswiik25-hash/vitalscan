@@ -353,20 +353,13 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
 }
 
 function useTypingEffect(lines, speed = 28) {
-  const [displayed, setDisplayed] = useState([]);
+  const [displayed, setDisplayed] = useState(() => lines.map(() => ''));
   const [lineIdx, setLineIdx] = useState(0);
   const [charIdx, setCharIdx] = useState(0);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
     if (lineIdx >= lines.length) return;
-    if (charIdx === 0) {
-      setDisplayed(prev => {
-        const next = [...prev];
-        next[lineIdx] = '';
-        return next;
-      });
-    }
     const line = lines[lineIdx];
     if (charIdx < line.length) {
       timeoutRef.current = setTimeout(() => {

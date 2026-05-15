@@ -434,7 +434,7 @@ function FoodScannerLanding({ userName, foodInput, labelInput, uploadInput, onBa
   };
 
   return (
-    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
+    <div className="min-h-screen px-6 pt-14 pb-20">
       {foodInput}{labelInput}{uploadInput}
       <button onClick={onBack} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
         <ArrowLeft className="w-5 h-5 text-gray-900" />

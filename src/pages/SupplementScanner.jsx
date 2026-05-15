@@ -148,7 +148,7 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
     const poorCount = (result.ingredients || []).filter(i => ['poor form', 'filler', 'overdose risk'].includes((i.flag || '').toLowerCase())).length;
 
     return (
-      <div className="min-h-screen bg-gray-50 pb-10">
+      <div className="min-h-screen pb-10">
         {/* Header */}
         <div className="px-5 pt-12 pb-3 flex items-center justify-between">
           <button onClick={reset} className="flex items-center gap-1.5 text-green-700 text-sm font-semibold">
@@ -312,7 +312,7 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
   // ─── Step 2: photograph label ──────────────────────────────────────────────
   if (step === 2 && step1Data) {
     return (
-      <div className="min-h-screen bg-white px-6 pt-14 pb-20">
+      <div className="min-h-screen px-6 pt-14 pb-20">
         <input ref={cam2Ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS2File} />
         <input ref={up2Ref} type="file" accept="image/*" className="hidden" onChange={handleS2File} />
         <button onClick={() => { setStep(1); setStep1Data(null); }} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
@@ -337,7 +337,7 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
 
   // ─── Step 1: landing ───────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
+    <div className="min-h-screen px-6 pt-14 pb-20">
       <input ref={cam1Ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS1File} />
       <input ref={up1Ref} type="file" accept="image/*" className="hidden" onChange={handleS1File} />
       <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">

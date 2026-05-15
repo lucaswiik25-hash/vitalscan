@@ -337,7 +337,7 @@ export default function ScannerHub() {
     : ['food', 'skincare', 'supplement', 'body'];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen pb-20">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-12 pb-2">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">

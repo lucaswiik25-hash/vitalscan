@@ -77,7 +77,7 @@ export default function Home() {
   }), {});
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: 'linear-gradient(160deg, #fce4ec 0%, #f9f0ff 18%, #f7f7f8 45%, #f7f7f8 100%)' }}>
+    <div className="min-h-screen pb-24">
       <motion.div {...fadeUp(0)}><Header streak={profile.streak || 0} /></motion.div>
       {profile.diet_mode === 'allergy_mode' && (
         <motion.div className="mt-3" {...fadeUp(0.1)}>

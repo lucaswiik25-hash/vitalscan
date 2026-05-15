@@ -83,21 +83,24 @@ function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother }) {
 
   return (
     <div className="relative shrink-0 flex flex-col items-center" style={{ alignSelf: 'flex-end', marginBottom: 4 }}>
-      {/* Action items — appear above the button */}
+      {/* Action items — appear above the button with staggered slide-in */}
       {open && (
         <div className="absolute bottom-14 right-0 flex flex-col gap-2 items-end" style={{ zIndex: 50 }}>
-          {actions.map(({ label, icon: Icon, bg, color, fn }) => (
-            <button
+          {actions.map(({ label, icon: Icon, bg, color, fn }, idx) => (
+            <motion.button
               key={label}
+              initial={{ opacity: 0, y: 16, scale: 0.88 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: idx * 0.07 }}
               onClick={() => { setOpen(false); fn && fn(); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl active:scale-95 transition-transform"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl active:scale-95"
               style={{ ...glassStyle, whiteSpace: 'nowrap' }}
             >
               <div style={{ width: 28, height: 28, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon style={{ width: 14, height: 14, color, strokeWidth: 2 }} />
               </div>
               <span className="text-sm font-semibold text-gray-800">{label}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
       )}

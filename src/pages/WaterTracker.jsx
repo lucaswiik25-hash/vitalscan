@@ -8,11 +8,11 @@ import { X, Calendar, Plus, Target, Zap } from 'lucide-react';
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
 const DEHYDRATING_DRINKS = [
-  { emoji: '☕', name: 'Coffee', ml: -150, type: 'coffee' },
-  { emoji: '🍺', name: 'Alcohol', ml: -250, type: 'alcohol' },
-  { emoji: '⚡', name: 'Energy Drink', ml: -200, type: 'energy_drink' },
-  { emoji: '🥤', name: 'Soda', ml: -100, type: 'soda' },
-  { emoji: '🍵', name: 'Tea', ml: -50, type: 'tea' },
+  { name: 'Coffee', ml: -150, type: 'coffee' },
+  { name: 'Alcohol', ml: -250, type: 'alcohol' },
+  { name: 'Energy Drink', ml: -200, type: 'energy_drink' },
+  { name: 'Soda', ml: -100, type: 'soda' },
+  { name: 'Tea', ml: -50, type: 'tea' },
 ];
 
 // Drop SVG — bold filled when active
@@ -191,7 +191,7 @@ export default function WaterTracker() {
     </div>
   );
 
-  const [showCupsModule, setShowCupsModule] = useState(true);
+  const [showCupsModule, setShowCupsModule] = useState(false);
 
   return (
     <div className="min-h-screen pb-10">
@@ -255,6 +255,9 @@ export default function WaterTracker() {
           ))}
         </div>
 
+        {/* Log Water title */}
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Log Water</p>
+
         {/* Cup grid — opens as bottom sheet */}
         <motion.button initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.7 }}
           onClick={() => setShowCupsModule(true)}
@@ -288,6 +291,9 @@ export default function WaterTracker() {
           </p>
         </motion.button>
 
+        {/* Quality title */}
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Quality and Quantity</p>
+
         {/* Hydration Quality — dehydrating drinks */}
         <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <p className="text-sm font-bold text-foreground">Hydration Quality</p>
@@ -306,7 +312,6 @@ export default function WaterTracker() {
                     border: isLogged ? '1.5px solid #fca5a5' : '1.5px solid transparent',
                   }}
                 >
-                  <span className="text-lg">{drink.emoji}</span>
                   <span className="text-[10px] font-semibold text-gray-700">{drink.name}</span>
                   <span className="text-[10px] font-bold text-red-500">{drink.ml}ml</span>
                 </button>
@@ -323,7 +328,6 @@ export default function WaterTracker() {
                   <div key={log.id}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
                     style={{ background: '#fef2f2', border: '1px solid #fca5a5' }}>
-                    <span>{drink?.emoji || '🥤'}</span>
                     <span className="text-red-700">{drink?.name || log.type} ({log.amount_ml}ml)</span>
                     <button onClick={() => removeLog(log.id)} className="text-red-400 hover:text-red-600 ml-0.5">
                       <X className="w-3 h-3" />

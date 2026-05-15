@@ -1,9 +1,32 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+
+function useTypingEffect(lines, speed = 28) {
+  const linesRef = useRef(lines);
+  const [displayed, setDisplayed] = useState(() => lines.map(() => ''));
+  const [lineIdx, setLineIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const timeoutRef = useRef(null);
+  useEffect(() => {
+    const ls = linesRef.current;
+    if (lineIdx >= ls.length) return;
+    const line = ls[lineIdx];
+    if (charIdx < line.length) {
+      timeoutRef.current = setTimeout(() => {
+        setDisplayed(prev => { const next = [...prev]; next[lineIdx] = line.slice(0, charIdx + 1); return next; });
+        setCharIdx(c => c + 1);
+      }, speed);
+    } else {
+      timeoutRef.current = setTimeout(() => { setLineIdx(l => l + 1); setCharIdx(0); }, 220);
+    }
+    return () => clearTimeout(timeoutRef.current);
+  }, [lineIdx, charIdx, speed]);
+  return displayed;
+}
 
 const SCORE_COLOR = (s) => s >= 70 ? '#22c55e' : s >= 40 ? '#f59e0b' : '#ef4444';
 
@@ -383,28 +406,49 @@ NEVER fail. Be honest and constructive.`,
   }
 
   const userName = profile.name || 'there';
+  return <BodyScannerLanding userName={userName} cameraRef={cameraRef} uploadRef={uploadRef} onFile={handleFile} onBack={() => navigate('/scanner')} />;
+}
+
+function BodyScannerLanding({ userName, cameraRef, uploadRef, onFile, onBack }) {
+  const lines = [
+    `Hi ${userName}.`,
+    `Here you can [Photo Scan] your full body to get a complete physique analysis.`,
+    `The AI will [Rate Your Body] across muscle development, posture, frame and more.`,
+    `Or [Upload from Gallery] if you already have a photo.`,
+  ];
+  const displayed = useTypingEffect(lines, 26);
+
+  const renderLine = (text, idx) => {
+    if (!text) return null;
+    if (idx === 0) return <p key={idx} className="text-3xl font-bold text-gray-900 leading-snug">{text}</p>;
+    const actions = {
+      '[Photo Scan]': { label: 'Photo Scan', onClick: () => cameraRef.current?.click() },
+      '[Rate Your Body]': { label: 'Rate Your Body', onClick: () => cameraRef.current?.click() },
+      '[Upload from Gallery]': { label: 'Upload from Gallery', onClick: () => uploadRef.current?.click() },
+    };
+    const parts = [];
+    let remaining = text;
+    Object.entries(actions).forEach(([token, { label, onClick }]) => {
+      const ti = remaining.indexOf(token);
+      if (ti !== -1) {
+        if (ti > 0) parts.push(<span key={`pre-${token}`}>{remaining.slice(0, ti)}</span>);
+        parts.push(<button key={token} onClick={onClick} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1" style={{ verticalAlign: 'middle' }}>{label}</button>);
+        remaining = remaining.slice(ti + token.length);
+      }
+    });
+    if (remaining) parts.push(<span key="tail">{remaining}</span>);
+    return <p key={idx} className="text-2xl font-semibold text-gray-900 leading-relaxed">{parts}</p>;
+  };
+
   return (
     <div className="min-h-screen bg-white px-6 pt-14 pb-20">
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
+      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+      <button onClick={onBack} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
         <ArrowLeft className="w-5 h-5 text-gray-900" />
       </button>
       <div className="space-y-6">
-        <p className="text-3xl font-bold text-gray-900 leading-snug">Hi {userName}.</p>
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          Here you can <ScanButton label="Photo Scan" onClick={() => cameraRef.current?.click()} /> your full body to get a complete physique analysis.
-        </p>
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          The AI will <ScanButton label="Rate Your Body" onClick={() => cameraRef.current?.click()} /> across muscle development, posture, frame and more.
-        </p>
-        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
-          Wear fitted clothing and stand in{' '}
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full border border-gray-200 text-gray-700 text-lg font-bold mx-1 bg-gray-50" style={{ verticalAlign: 'middle' }}>
-            natural light
-          </span>{' '}
-          for best results.
-        </p>
+        {lines.map((_, idx) => renderLine(displayed[idx] || '', idx))}
       </div>
       <button onClick={() => uploadRef.current?.click()} className="mt-12 w-full text-center text-sm text-gray-400 font-medium">
         Or choose from gallery →

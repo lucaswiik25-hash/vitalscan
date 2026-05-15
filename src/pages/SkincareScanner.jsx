@@ -190,7 +190,7 @@ Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict (
       <div className="min-h-screen pb-10">
         {/* Header */}
         <div className="px-5 pt-12 pb-3 flex items-center justify-between">
-          <button onClick={reset} className="flex items-center gap-1.5 text-green-700 text-sm font-semibold">
+          <button onClick={() => { reset(); navigate('/scanner'); }} className="flex items-center gap-1.5 text-green-700 text-sm font-semibold">
             <ArrowLeft className="w-4 h-4" /> Back to Scanner
           </button>
         </div>
@@ -340,7 +340,7 @@ Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict (
           })}
 
           {/* Analyse another */}
-          <button onClick={reset} className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">
+          <button onClick={() => { reset(); navigate('/scanner'); }} className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">
             Analyse Another Product
           </button>
         </div>

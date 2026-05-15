@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
 import { Moon, Sparkles, Loader2, Info, X } from 'lucide-react';
 
 const fadeUp = (delay = 0) => ({
@@ -127,25 +127,46 @@ Provide:
       </motion.div>
 
       <div className="px-5 space-y-4">
-        {/* 14-day chart — no card background */}
-        <motion.div {...fadeUp(0.2)} className="px-1 py-2">
-          <p className="text-sm font-bold text-foreground mb-4 px-1">14-Day Sleep Chart</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={2} />
-              <YAxis domain={[0, 12]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-              <Tooltip
-                contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', fontSize: 12 }}
-                formatter={(v) => [`${v}h`, 'Sleep']}
-              />
-              <Line type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={2.5}
-                dot={false} activeDot={{ r: 4 }} connectNulls={false} />
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="flex items-center gap-2 mt-2 px-1">
-            <div className="w-3 h-0.5 bg-blue-500 rounded-full" />
-            <span className="text-xs text-muted-foreground">Sleep hours · 7–9h optimal</span>
+        {/* 14-day chart — warm orange style */}
+        <motion.div {...fadeUp(0.2)} className="rounded-[24px] overflow-hidden" style={{ background: '#E8734A' }}>
+          <div className="px-5 pt-5 pb-2 flex items-start justify-between">
+            <div>
+              <span className="text-white text-base font-bold">Sleep Trend </span>
+              <span className="text-white/70 text-sm font-normal">· 14 days</span>
+            </div>
+            {todaySleep && (
+              <div className="px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                <span className="text-white text-xs font-semibold">{todaySleep}h last night</span>
+              </div>
+            )}
+          </div>
+          <div className="px-2 pb-1" style={{ height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 16, right: 12, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
+                    <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="day" axisLine={false} tickLine={false}
+                  tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.7)', fontWeight: 500 }}
+                  interval={1}
+                  tickFormatter={(v) => v.split(' ')[1]}
+                />
+                <YAxis domain={[0, 12]} hide />
+                <Tooltip
+                  contentStyle={{ borderRadius: 14, background: 'white', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', fontSize: 12, padding: '8px 14px' }}
+                  labelStyle={{ color: '#888', fontSize: 10, marginBottom: 2 }}
+                  formatter={(v) => v ? [`${v}h`, 'Sleep'] : ['—', 'No data']}
+                  cursor={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1 }}
+                />
+                <Line type="monotone" dataKey="hours" stroke="white" strokeWidth={2.5}
+                  dot={{ fill: 'white', stroke: 'white', strokeWidth: 2, r: 3.5 }}
+                  activeDot={{ fill: 'white', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 4, r: 5 }}
+                  connectNulls={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </motion.div>
 
@@ -168,6 +189,9 @@ Provide:
             </motion.div>
           ))}
         </div>
+
+        {/* Log Sleep title */}
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Log Sleep</p>
 
         {/* Log last night — UNDER chart */}
         <motion.div {...fadeUp(0.6)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
@@ -202,6 +226,9 @@ Provide:
           </div>
           {saved && <p className="text-xs text-green-600 mt-2 font-medium">Saved!</p>}
         </motion.div>
+
+        {/* Analysis title */}
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Analysis</p>
 
         {/* AI Analysis */}
         <motion.div {...fadeUp(0.72)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">

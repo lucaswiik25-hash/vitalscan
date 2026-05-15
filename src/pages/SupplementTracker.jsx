@@ -162,6 +162,9 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
           })
         )}
 
+        {/* Analysis title */}
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Analysis</p>
+
         {/* AI Analysis */}
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.4 }} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">

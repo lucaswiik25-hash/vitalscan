@@ -262,7 +262,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
         onLog={() => logMeal(true)}
         onLogAnalysisOnly={() => logMeal(false)}
         onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); setExtraNotes(''); }}
-        onBack={() => { setResult(null); navigate('/food-scanner'); }}
+        onBack={() => { setResult(null); navigate('/scanner'); }}
       />
     );
   }

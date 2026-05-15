@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { X, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check } from 'lucide-react';
+import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function registerScan(type, productName, brand, imageUrl, safetyScore, qualityScore, verdict) {
@@ -340,8 +340,8 @@ export default function ScannerHub() {
     <div className="min-h-screen pb-20">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-12 pb-2">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-          <X className="w-5 h-5 text-foreground" />
+        <button onClick={() => navigate('/')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <Home className="w-5 h-5 text-foreground" />
         </button>
         <span className="text-lg font-bold text-foreground">Scanner</span>
         <div className="w-10" />

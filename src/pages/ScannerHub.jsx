@@ -25,11 +25,12 @@ export { registerScan };
 
 // ─── Scanner card gradients & icons ───────────────────────────────────────────
 const CARD_CONFIGS = {
-  food:       { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Food Scanner',       description: 'Scan any food or barcode for full nutrition info',      path: '/food-scanner' },
-  skincare:   { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Skincare Analyzer',  description: 'Analyze ingredients in any cosmetic product',           path: '/skincare-scanner' },
-  supplement: { bg: '#ffffff', border: 'rgba(0,0,0,0.20)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Supplement Scanner', description: 'Check quality and dosage of any supplement',           path: '/supplement-scanner' },
-  face:       { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Face Analyser',      description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
-  body:       { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Body Analyser',      description: 'Find the areas you need to work on most',              path: '/body-scanner' },
+  food:         { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Food Scanner',        description: 'Scan any food or barcode for full nutrition info',      path: '/food-scanner' },
+  skincare:     { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Skincare Analyzer',   description: 'Analyze ingredients in any cosmetic product',           path: '/skincare-scanner' },
+  supplement:   { bg: '#ffffff', border: 'rgba(0,0,0,0.20)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Supplement Scanner',  description: 'Check quality and dosage of any supplement',           path: '/supplement-scanner' },
+  face:         { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Face Analyser',       description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
+  body:         { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Body Analyser',       description: 'Find the areas you need to work on most',              path: '/body-scanner' },
+  exerciseform: { bg: '#1a1a1a', border: 'rgba(255,255,255,0.12)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Form Analyzer',       description: 'Score your exercise form and get your #1 fix cue',     path: '/exercise-form-scanner' },
 };
 
 // ─── Food search ──────────────────────────────────────────────────────────────
@@ -333,8 +334,8 @@ export default function ScannerHub() {
   const isAppearanceMode = profile.diet_mode === 'appearance_mode';
 
   const cardKeys = isAppearanceMode
-    ? ['food', 'skincare', 'supplement', 'face', 'body']
-    : ['food', 'skincare', 'supplement', 'body'];
+    ? ['food', 'skincare', 'supplement', 'face', 'body', 'exerciseform']
+    : ['food', 'skincare', 'supplement', 'body', 'exerciseform'];
 
   return (
     <div className="min-h-screen pb-20">

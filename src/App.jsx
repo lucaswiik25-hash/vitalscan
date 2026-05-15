@@ -22,6 +22,7 @@ import SleepTracker from './pages/SleepTracker';
 import FaceScanner from './pages/FaceScanner';
 import BodyScanner from './pages/BodyScanner';
 import Exercise from './pages/Exercise';
+import ExerciseFormScanner from './pages/ExerciseFormScanner.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -63,6 +64,7 @@ const AuthenticatedApp = () => {
       <Route path="/supplement-scanner" element={<SupplementScanner />} />
       <Route path="/face-scanner" element={<FaceScanner />} />
       <Route path="/body-scanner" element={<BodyScanner />} />
+      <Route path="/exercise-form-scanner" element={<ExerciseFormScanner />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -83,7 +83,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-inter;
+    @apply text-foreground font-inter;
+    background: linear-gradient(135deg, #e8f5e9 0%, #f3e8ff 30%, #e8f0fe 60%, #fce8e8 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

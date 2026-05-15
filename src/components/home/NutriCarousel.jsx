@@ -136,10 +136,14 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
         <GlassMacroCard value={potassiumConsumed} unit="mg" label="Potassium" progress={(potassiumConsumed / 3500) * 100} />
         <GlassSleepCard profile={profile} />
       </div>
-      <div className="rounded-[22px] p-4" style={glassStyle}>
-        <p className="text-xs font-semibold text-foreground/50 mb-1">Bloat Risk Today</p>
-        <p className="text-2xl font-bold" style={{ color: bloatColor }}>{bloatLabel}</p>
-        <p className="text-xs text-foreground/40 mt-0.5">Based on {bloatRiskRaw.length} meals logged</p>
+      <div className="rounded-[22px] p-5" style={glassStyle}>
+        <p className="text-xs font-semibold text-foreground/50">Bloat Risk Today</p>
+        <p className="text-5xl font-light text-foreground leading-none mt-1" style={{ color: bloatColor }}>{bloatLabel}</p>
+        <p className="text-xs text-foreground/40 mt-2">Based on {bloatRiskRaw.length} meals logged</p>
+        <div className="w-full h-2.5 rounded-full overflow-hidden mt-3" style={{ background: 'rgba(0,0,0,0.08)' }}>
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: bloatHigh > 0 ? '100%' : bloatMed > 0 ? '55%' : bloatRiskRaw.length > 0 ? '15%' : '0%', background: bloatColor }} />
+        </div>
       </div>
     </div>,
     <div key="a2" className="min-w-full px-5 space-y-3">
@@ -148,12 +152,13 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
         <GlassMacroCard value={Math.round((waterConsumed / waterTarget) * 100)} unit="%" label="Water %" progress={(waterConsumed / waterTarget) * 100} />
         <GlassSleepCard profile={profile} />
       </div>
-      <div className="rounded-[22px] p-4" style={glassStyle}>
-        <p className="text-xs font-semibold text-foreground/50 mb-1">Tomorrow Face Prediction</p>
-        <p className="text-2xl font-bold" style={{ color: predColor }}>{prediction || 'Log food to predict'}</p>
-        {lastPrediction?.tomorrow_prediction_reason && (
-          <p className="text-xs text-foreground/40 mt-0.5 leading-relaxed">{lastPrediction.tomorrow_prediction_reason}</p>
-        )}
+      <div className="rounded-[22px] p-5" style={glassStyle}>
+        <p className="text-xs font-semibold text-foreground/50">Tomorrow Face Prediction</p>
+        <p className="text-5xl font-light text-foreground leading-none mt-1" style={{ color: predColor }}>{prediction || '—'}</p>
+        {lastPrediction?.tomorrow_prediction_reason
+          ? <p className="text-xs text-foreground/40 mt-2 leading-relaxed">{lastPrediction.tomorrow_prediction_reason}</p>
+          : <p className="text-xs text-foreground/40 mt-2">Log food to see prediction</p>
+        }
       </div>
     </div>,
     <div key="a3" className="min-w-full px-5 space-y-3">

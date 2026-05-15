@@ -184,19 +184,21 @@ function ScannerCarousel({ cardKeys }) {
                 style={{
                   width: CARD_W,
                   height: 320,
-                  background: `linear-gradient(145deg, ${c.gradient[0]}cc, ${c.gradient[1]}cc)`,
-                  backdropFilter: 'blur(24px) saturate(200%) brightness(1.15)',
-                  WebkitBackdropFilter: 'blur(24px) saturate(200%) brightness(1.15)',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                  boxShadow: isActive ? '0 8px 32px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.3)' : '0 2px 12px rgba(0,0,0,0.10)',
+                  background: 'rgba(255,255,255,0.25)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid rgba(255,255,255,0.6)',
+                  borderTop: '1px solid rgba(255,255,255,0.9)',
+                  borderLeft: '1px solid rgba(255,255,255,0.9)',
+                  boxShadow: isActive ? '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)' : '0 2px 12px rgba(0,0,0,0.06)',
                   opacity: isActive ? 1 : 0.65,
                   transform: isActive ? 'scale(1)' : 'scale(0.94)',
                 }}
               >
                 <div className="relative z-10 p-6 h-full flex flex-col justify-end">
                   <div>
-                    <p className="text-xl font-extrabold text-white leading-tight">{c.title}</p>
-                    <p className="text-sm text-white/70 mt-1 leading-snug">{c.description}</p>
+                    <p className="text-xl font-extrabold text-gray-900 leading-tight">{c.title}</p>
+                    <p className="text-sm text-gray-600 mt-1 leading-snug">{c.description}</p>
                   </div>
                 </div>
               </Link>

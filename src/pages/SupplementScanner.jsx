@@ -138,66 +138,83 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
 
   // ─── Results page ───────────────────────────────────────────────────────────
   if (result) {
-    const scoreColor = result.quality_score >= 70 ? '#16a34a' : result.quality_score >= 40 ? '#ca8a04' : '#dc2626';
-    const verdictStyle = result.verdict === 'YES'
-      ? { bg: '#dcfce7', color: '#16a34a', label: 'Worth Buying', VIcon: CheckCircle }
-      : result.verdict === 'MAYBE'
-        ? { bg: '#fef9c3', color: '#ca8a04', label: 'Maybe', VIcon: AlertTriangle }
-        : { bg: '#fee2e2', color: '#dc2626', label: 'Not Recommended', VIcon: XCircle };
-    const { VIcon } = verdictStyle;
+    const scoreNum = result.quality_score || 0;
+    const scoreColor = scoreNum >= 70 ? '#16a34a' : scoreNum >= 40 ? '#ca8a04' : '#dc2626';
+    const verdictLabel = result.verdict === 'YES' ? 'Worth Buying' : result.verdict === 'MAYBE' ? 'Maybe' : 'Not Recommended';
+    const VIcon = result.verdict === 'YES' ? CheckCircle : result.verdict === 'MAYBE' ? AlertTriangle : XCircle;
+
+    const correctCount = (result.ingredients || []).filter(i => (i.flag || '').toLowerCase() === 'correctly dosed').length;
+    const underdosedCount = (result.ingredients || []).filter(i => (i.flag || '').toLowerCase() === 'underdosed').length;
+    const poorCount = (result.ingredients || []).filter(i => ['poor form', 'filler', 'overdose risk'].includes((i.flag || '').toLowerCase())).length;
 
     return (
-      <div className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden" style={{ maxWidth: 480, margin: '0 auto' }}>
-        {/* Hero image */}
-        <div className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
-          style={{ height: 210, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
-          {result.image_url
-            ? <img src={result.image_url} alt={result.product_name} className="w-full h-full object-cover" />
-            : <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <Pill className="w-16 h-16 text-gray-300" />
-              </div>
-          }
-          <button onClick={reset}
-            className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
-            <ArrowLeft style={{ width: 16, height: 16, color: 'white', strokeWidth: 2.5 }} />
+      <div className="min-h-screen bg-gray-50 pb-10">
+        {/* Header */}
+        <div className="px-5 pt-12 pb-3 flex items-center justify-between">
+          <button onClick={reset} className="flex items-center gap-1.5 text-green-700 text-sm font-semibold">
+            <ArrowLeft className="w-4 h-4" /> Back to Scanner
           </button>
         </div>
 
-        {/* Name + verdict */}
-        <div className="shrink-0 px-5 pt-4 pb-2">
-          <p className="text-xs text-gray-400">{result.brand} · {result.format}</p>
-          <h1 className="text-[28px] font-black text-gray-900 leading-tight" style={{ letterSpacing: '-0.02em' }}>
-            {result.product_name}
-          </h1>
-          <div className="flex items-center gap-3 mt-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
-              style={{ background: verdictStyle.bg, color: verdictStyle.color }}>
-              <VIcon className="w-4 h-4" />{verdictStyle.label}
-            </div>
-            <span className="text-2xl font-black" style={{ color: scoreColor }}>{result.quality_score}</span>
-            <span className="text-xs text-gray-400">/ 100</span>
+        {/* Title */}
+        <div className="px-5 mb-4">
+          <p className="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">AI ANALYSIS</p>
+          <h1 className="text-2xl font-black text-gray-900">Supplement Scanner</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Two-step quality & dosage analysis</p>
+          <div className="flex gap-1.5 mt-3">
+            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
+            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
+            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
           </div>
-          {result.verdict_reason && <p className="text-xs text-gray-500 mt-2 leading-relaxed">{result.verdict_reason}</p>}
-          {result.marketing_claims?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {result.marketing_claims.map(c => (
-                <span key={c} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{c}</span>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+        <div className="px-4 space-y-3">
+          {/* Main verdict card */}
+          <div className="bg-white rounded-[20px] p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Quality Score</p>
+                <p className="text-5xl font-black leading-none" style={{ color: scoreColor }}>{scoreNum}</p>
+                <p className="text-xs text-gray-400 mt-0.5">out of 100</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-black text-gray-900">{result.brand}</p>
+                <p className="text-xs text-gray-500">{result.product_name}</p>
+                <div className="flex items-center gap-1 justify-end mt-1">
+                  <VIcon className="w-3.5 h-3.5" style={{ color: scoreColor }} />
+                  <span className="text-xs font-bold" style={{ color: scoreColor }}>{verdictLabel}</span>
+                </div>
+              </div>
+            </div>
+            {result.verdict_reason && (
+              <p className="text-xs text-gray-500 mt-3 leading-relaxed">{result.verdict_reason}</p>
+            )}
+          </div>
+
+          {/* Ingredient count pills */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-[16px] p-3 text-center" style={{ background: '#f0fdf4' }}>
+              <p className="text-2xl font-black text-green-600">{correctCount}</p>
+              <p className="text-xs text-green-600 font-medium mt-0.5">Correctly Dosed</p>
+            </div>
+            <div className="rounded-[16px] p-3 text-center" style={{ background: '#fefce8' }}>
+              <p className="text-2xl font-black text-yellow-600">{underdosedCount}</p>
+              <p className="text-xs text-yellow-600 font-medium mt-0.5">Underdosed</p>
+            </div>
+            <div className="rounded-[16px] p-3 text-center" style={{ background: '#fef2f2' }}>
+              <p className="text-2xl font-black text-red-500">{poorCount}</p>
+              <p className="text-xs text-red-500 font-medium mt-0.5">Poor Form</p>
+            </div>
+          </div>
+
           {/* Quick stats */}
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: 'Serving', value: result.serving_size || '—' },
-              { label: 'Servings', value: result.servings_per_container || '—' },
+              { label: 'Servings', value: String(result.servings_per_container || '—') },
               { label: 'Supply', value: result.estimated_duration || '—' },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-white rounded-[16px] p-3 text-center" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div key={label} className="bg-white rounded-[16px] p-3 text-center shadow-sm">
                 <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
                 <p className="text-xs font-bold text-gray-800 mt-0.5">{value}</p>
               </div>
@@ -205,72 +222,57 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
           </div>
 
           {/* How to take */}
-          <div className="bg-white rounded-[20px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-            <p className="text-xs font-bold text-gray-700 mb-2">How to Take</p>
+          <div className="bg-white rounded-[20px] p-4 shadow-sm">
+            <p className="text-sm font-bold text-gray-800 mb-2">How to Take</p>
             {[
               { label: 'Best Time', value: result.best_time_to_take },
-              { label: 'Food', value: result.food_note },
+              { label: 'With Food', value: result.food_note },
               { label: 'Absorption', value: result.absorption_tip },
             ].map(({ label, value }) => value && (
-              <div key={label} className="flex items-start gap-2 mb-1.5 last:mb-0">
-                <span className="text-xs font-semibold text-gray-500 w-20 shrink-0">{label}</span>
-                <p className="text-xs text-gray-500 leading-relaxed">{value}</p>
+              <div key={label} className="flex items-start gap-2 mb-2 last:mb-0">
+                <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">{label}</span>
+                <p className="text-xs text-gray-600 leading-relaxed">{value}</p>
               </div>
             ))}
             {result.interactions && (
-              <div className="flex items-start gap-2 p-3 rounded-xl mt-2" style={{ background: '#fef9c3' }}>
+              <div className="flex items-start gap-2 p-3 rounded-xl mt-2" style={{ background: '#fefce8' }}>
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-yellow-600" />
                 <p className="text-xs text-yellow-800">{result.interactions}</p>
               </div>
             )}
           </div>
 
-          {/* Other ingredient warnings */}
-          {result.other_ingredients_flags?.length > 0 && (
-            <div className="bg-orange-50 border border-orange-100 rounded-[16px] p-4">
-              <p className="text-xs font-bold text-orange-700 mb-2">Other Ingredients Concerns</p>
-              {result.other_ingredients_flags.map((f, i) => (
-                <p key={i} className="text-xs text-orange-700 flex items-start gap-1.5 mb-0.5">
-                  <span className="mt-0.5">•</span>{f}
-                </p>
-              ))}
-            </div>
-          )}
-
-          {/* Full ingredients list */}
-          <div className="bg-white rounded-[20px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-            <p className="text-xs font-bold text-gray-700 mb-3">Supplement Facts</p>
-            <div className="space-y-3">
+          {/* Supplement facts */}
+          <div className="bg-white rounded-[20px] p-4 shadow-sm">
+            <p className="text-sm font-bold text-gray-800 mb-3">Supplement Facts</p>
+            <div className="space-y-2">
               {(result.ingredients || []).map((ing, i) => {
                 const fc = flagColor(ing.flag);
+                const hasBadFlag = ing.flag && !['none', 'correctly dosed'].includes((ing.flag || '').toLowerCase());
                 return (
-                  <div key={i} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                    <div className="flex items-start justify-between gap-2 mb-0.5">
-                      <p className="text-xs font-semibold text-gray-800">{ing.name}</p>
+                  <div key={i} className="rounded-[14px] px-4 py-3"
+                    style={{ background: hasBadFlag ? (ing.flag?.toLowerCase() === 'underdosed' ? '#fefce8' : '#fef2f2') : '#f9fafb' }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{ing.name}</p>
+                        {ing.amount && <p className="text-xs text-gray-500 mt-0.5">{ing.amount}{ing.dri_percent && ing.dri_percent !== 'N/A' ? ` · DRI: ${ing.dri_percent}` : ''}</p>}
+                      </div>
                       {ing.flag && ing.flag.toLowerCase() !== 'none' && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                          style={{ background: fc.bg, color: fc.text }}>{ing.flag}</span>
+                        <span className="text-xs font-bold shrink-0" style={{ color: fc.text }}>{ing.flag}</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span className="text-xs font-semibold text-gray-700">{ing.amount}</span>
-                      {ing.dri_percent && ing.dri_percent !== 'N/A' && (
-                        <span className="text-[10px] text-gray-400">DRI: {ing.dri_percent}</span>
-                      )}
-                      {ing.bioavailability && (
-                        <span className="text-[10px] font-bold" style={{ color: bioColor(ing.bioavailability) }}>
-                          {ing.bioavailability} bioavailability
-                        </span>
-                      )}
-                    </div>
-                    {ing.form_quality && <p className="text-[10px] text-gray-400 leading-relaxed">{ing.form_quality}</p>}
-                    {ing.body_benefit && <p className="text-[10px] text-green-600 mt-0.5">+ {ing.body_benefit}</p>}
-                    {ing.body_risk && <p className="text-[10px] text-red-500 mt-0.5">- {ing.body_risk}</p>}
+                    {ing.form_quality && <p className="text-xs text-gray-400 mt-0.5">{ing.form_quality}</p>}
+                    {ing.body_benefit && <p className="text-xs text-green-600 mt-0.5">+ {ing.body_benefit}</p>}
+                    {ing.body_risk && <p className="text-xs text-red-500 mt-0.5">- {ing.body_risk}</p>}
                   </div>
                 );
               })}
             </div>
           </div>
+
+          <button onClick={reset} className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">
+            Analyse Another Product
+          </button>
         </div>
       </div>
     );

@@ -19,7 +19,7 @@ export default function AppShell() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen max-w-lg mx-auto relative" style={{ background: 'radial-gradient(ellipse at 0% 0%, rgba(255,210,220,0.18) 0%, transparent 50%), radial-gradient(ellipse at 0% 100%, rgba(190,210,255,0.13) 0%, transparent 45%), radial-gradient(ellipse at 100% 100%, rgba(240,240,255,0.10) 0%, transparent 40%), #f7f7f8', backgroundAttachment: 'fixed' }}>
+    <div className="min-h-screen max-w-lg mx-auto relative" style={{ background: 'transparent' }}>
       {!hideNav && <SideNav />}
       <div
         style={{

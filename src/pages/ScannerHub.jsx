@@ -25,11 +25,11 @@ export { registerScan };
 
 // ─── Scanner card gradients & icons ───────────────────────────────────────────
 const CARD_CONFIGS = {
-  food: { gradient: ['#FF8C42', '#FF4F6E'], title: 'Food Scanner', description: 'Scan any food or barcode for full nutrition info', path: '/food-scanner' },
-  skincare: { gradient: ['#C084FC', '#EC4899'], title: 'Skincare Analyzer', description: 'Analyze ingredients in any cosmetic product', path: '/skincare-scanner' },
-  supplement: { gradient: ['#38BDF8', '#818CF8'], title: 'Supplement Scanner', description: 'Check quality and dosage of any supplement', path: '/supplement-scanner' },
-  face: { gradient: ['#D946EF', '#F97316'], title: 'Face Analyser', description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
-  body: { gradient: ['#10B981', '#0EA5E9'], title: 'Body Analyser', description: 'Find the areas you need to work on most', path: '/body-scanner' },
+  food:       { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Food Scanner',       description: 'Scan any food or barcode for full nutrition info',      path: '/food-scanner' },
+  skincare:   { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Skincare Analyzer',  description: 'Analyze ingredients in any cosmetic product',           path: '/skincare-scanner' },
+  supplement: { bg: '#ffffff', border: 'rgba(0,0,0,0.20)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Supplement Scanner', description: 'Check quality and dosage of any supplement',           path: '/supplement-scanner' },
+  face:       { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Face Analyser',      description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
+  body:       { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Body Analyser',      description: 'Find the areas you need to work on most',              path: '/body-scanner' },
 };
 
 // ─── Food search ──────────────────────────────────────────────────────────────
@@ -184,21 +184,20 @@ function ScannerCarousel({ cardKeys }) {
                 style={{
                   width: CARD_W,
                   height: 320,
-                  background: 'rgba(255,255,255,0.25)',
-                  backdropFilter: 'blur(20px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                  border: '1px solid rgba(255,255,255,0.6)',
-                  borderTop: '1px solid rgba(255,255,255,0.9)',
-                  borderLeft: '1px solid rgba(255,255,255,0.9)',
-                  boxShadow: isActive ? '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)' : '0 2px 12px rgba(0,0,0,0.06)',
-                  opacity: isActive ? 1 : 0.65,
+                  background: c.bg,
+                  border: `1.5px solid ${c.border}`,
+                  boxShadow: isActive ? '0 8px 28px rgba(0,0,0,0.10)' : '0 2px 8px rgba(0,0,0,0.06)',
+                  opacity: isActive ? 1 : 0.6,
                   transform: isActive ? 'scale(1)' : 'scale(0.94)',
+                  borderRadius: 22,
+                  overflow: 'hidden',
+                  transition: 'all 0.3s',
                 }}
               >
                 <div className="relative z-10 p-6 h-full flex flex-col justify-end">
                   <div>
-                    <p className="text-xl font-extrabold text-gray-900 leading-tight">{c.title}</p>
-                    <p className="text-sm text-gray-600 mt-1 leading-snug">{c.description}</p>
+                    <p className="text-xl font-extrabold leading-tight" style={{ color: c.titleColor }}>{c.title}</p>
+                    <p className="text-sm mt-1 leading-snug" style={{ color: c.descColor }}>{c.description}</p>
                   </div>
                 </div>
               </Link>

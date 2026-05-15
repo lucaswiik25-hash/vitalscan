@@ -19,7 +19,7 @@ export default function AppShell() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-background max-w-lg mx-auto relative">
+    <div className="min-h-screen max-w-lg mx-auto relative" style={{ background: 'linear-gradient(160deg, #fce4ec 0%, #f9f0ff 18%, #f7f7f8 45%, #f7f7f8 100%)', backgroundAttachment: 'fixed' }}>
       {!hideNav && <SideNav />}
       <div
         style={{

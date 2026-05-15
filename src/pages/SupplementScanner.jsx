@@ -221,54 +221,60 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
             ))}
           </div>
 
-          {/* How to take */}
+          {/* How to take — bullet points */}
           <div className="bg-white rounded-[20px] p-4 shadow-sm">
             <p className="text-sm font-bold text-gray-800 mb-2">How to Take</p>
             {[
-              { label: 'Best Time', value: result.best_time_to_take },
-              { label: 'With Food', value: result.food_note },
-              { label: 'Absorption', value: result.absorption_tip },
-            ].map(({ label, value }) => value && (
+              { emoji: '⏰', label: 'Best Time', value: result.best_time_to_take },
+              { emoji: '🍽️', label: 'With Food', value: result.food_note },
+              { emoji: '💊', label: 'Absorption', value: result.absorption_tip },
+            ].map(({ emoji, label, value }) => value && (
               <div key={label} className="flex items-start gap-2 mb-2 last:mb-0">
-                <span className="text-xs font-semibold text-gray-400 w-20 shrink-0">{label}</span>
-                <p className="text-xs text-gray-600 leading-relaxed">{value}</p>
+                <span className="shrink-0 text-sm">{emoji}</span>
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{label}: </span>
+                  <span className="text-xs text-gray-600">{value}</span>
+                </div>
               </div>
             ))}
             {result.interactions && (
               <div className="flex items-start gap-2 p-3 rounded-xl mt-2" style={{ background: '#fefce8' }}>
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-yellow-600" />
-                <p className="text-xs text-yellow-800">{result.interactions}</p>
+                <p className="text-xs text-yellow-800">⚠️ {result.interactions}</p>
               </div>
             )}
           </div>
 
-          {/* Supplement facts */}
-          <div className="bg-white rounded-[20px] p-4 shadow-sm">
-            <p className="text-sm font-bold text-gray-800 mb-3">Supplement Facts</p>
-            <div className="space-y-2">
-              {(result.ingredients || []).map((ing, i) => {
-                const fc = flagColor(ing.flag);
-                const hasBadFlag = ing.flag && !['none', 'correctly dosed'].includes((ing.flag || '').toLowerCase());
-                return (
-                  <div key={i} className="rounded-[14px] px-4 py-3"
-                    style={{ background: hasBadFlag ? (ing.flag?.toLowerCase() === 'underdosed' ? '#fefce8' : '#fef2f2') : '#f9fafb' }}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-800">{ing.name}</p>
-                        {ing.amount && <p className="text-xs text-gray-500 mt-0.5">{ing.amount}{ing.dri_percent && ing.dri_percent !== 'N/A' ? ` · DRI: ${ing.dri_percent}` : ''}</p>}
+          {/* Supplement facts — grouped by flag */}
+          {[
+            { key: 'correctly dosed', label: '✅ Correctly Dosed', bg: '#f0fdf4', textColor: '#16a34a' },
+            { key: 'underdosed',      label: '⚠️ Underdosed',       bg: '#fefce8', textColor: '#ca8a04' },
+            { key: 'poor form',       label: '❌ Poor Form',         bg: '#fef2f2', textColor: '#dc2626' },
+            { key: 'overdose risk',   label: '🚨 Overdose Risk',     bg: '#fef2f2', textColor: '#dc2626' },
+            { key: 'filler',          label: '🔘 Fillers',           bg: '#f3f4f6', textColor: '#6b7280' },
+            { key: 'none',            label: '📋 Other Ingredients', bg: '#f9fafb', textColor: '#374151' },
+          ].map(({ key, label, bg, textColor }) => {
+            const group = (result.ingredients || []).filter(ing => (ing.flag || 'none').toLowerCase() === key);
+            if (!group.length) return null;
+            return (
+              <div key={key} className="bg-white rounded-[20px] p-4 shadow-sm">
+                <p className="text-sm font-bold mb-2" style={{ color: textColor }}>{label} ({group.length})</p>
+                <div className="space-y-1.5">
+                  {group.map((ing, i) => (
+                    <div key={i} className="rounded-[12px] px-3 py-2.5" style={{ background: bg }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-gray-800">{ing.name}</p>
+                        {ing.amount && <p className="text-[11px] text-gray-500 shrink-0">{ing.amount}</p>}
                       </div>
-                      {ing.flag && ing.flag.toLowerCase() !== 'none' && (
-                        <span className="text-xs font-bold shrink-0" style={{ color: fc.text }}>{ing.flag}</span>
-                      )}
+                      {ing.form_quality && <p className="text-[11px] text-gray-400 mt-0.5">• {ing.form_quality}</p>}
+                      {ing.body_benefit && <p className="text-[11px] text-green-600 mt-0.5">• {ing.body_benefit}</p>}
+                      {ing.body_risk && <p className="text-[11px] text-red-500 mt-0.5">• {ing.body_risk}</p>}
                     </div>
-                    {ing.form_quality && <p className="text-xs text-gray-400 mt-0.5">{ing.form_quality}</p>}
-                    {ing.body_benefit && <p className="text-xs text-green-600 mt-0.5">+ {ing.body_benefit}</p>}
-                    {ing.body_risk && <p className="text-xs text-red-500 mt-0.5">- {ing.body_risk}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
 
           <button onClick={reset} className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">
             Analyse Another Product

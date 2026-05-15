@@ -221,50 +221,83 @@ Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict (
             ))}
           </div>
 
-          {/* Long term effects */}
+          {/* Long term effects — bullet points */}
           {result.long_term_summary && (
             <div className="bg-white rounded-[20px] p-4 shadow-sm">
               <p className="text-sm font-bold text-gray-800 mb-2">Long-Term Effects</p>
-              <p className="text-sm text-gray-500 leading-relaxed">{result.long_term_summary}</p>
+              {result.long_term_summary.split(/[.\n]+/).filter(s => s.trim().length > 4).map((s, i) => (
+                <div key={i} className="flex items-start gap-2 mb-1.5">
+                  <span className="text-gray-300 mt-0.5 shrink-0">•</span>
+                  <p className="text-xs text-gray-500 leading-relaxed">{s.trim()}</p>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Ingredient breakdown */}
-          <div className="bg-white rounded-[20px] p-4 shadow-sm">
-            <p className="text-sm font-bold text-gray-800 mb-3">Ingredient Breakdown</p>
-            <div className="space-y-2">
-              {(result.ingredients || []).map((ing, i) => {
-                const sc = safetyColor(ing.safety_rating);
-                const flags = [
-                  ing.is_irritant && 'Irritant',
-                  ing.is_allergen && 'Allergen',
-                  ing.is_comedogenic && 'Comedogenic',
-                  ing.is_hormone_disruptor && 'Hormone Disruptor',
-                  ing.has_fragrance && 'Fragrance',
-                ].filter(Boolean);
-                const isCaution = (ing.safety_rating || '').toLowerCase() === 'caution';
-                const isAvoid = (ing.safety_rating || '').toLowerCase() === 'avoid';
-                return (
-                  <div key={i} className="rounded-[14px] px-4 py-3"
-                    style={{ background: isCaution ? '#fefce8' : isAvoid ? '#fef2f2' : '#f9fafb' }}>
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-gray-800">{ing.name}</p>
-                      <span className="text-xs font-bold shrink-0" style={{ color: sc.text }}>{ing.safety_rating}</span>
-                    </div>
-                    {ing.skin_effect && <p className="text-xs text-gray-500 mt-0.5">{ing.skin_effect}</p>}
-                    {flags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {flags.map(f => (
-                          <span key={f} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: f === 'Irritant' ? '#fee2e2' : f === 'Allergen' ? '#fce7f3' : f === 'Fragrance' ? '#e0e7ff' : '#f3f4f6', color: f === 'Irritant' ? '#dc2626' : f === 'Allergen' ? '#be185d' : f === 'Fragrance' ? '#4338ca' : '#555' }}>{f}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+          {/* Top beneficial */}
+          {result.top_beneficial?.length > 0 && (
+            <div className="bg-white rounded-[20px] p-4 shadow-sm">
+              <p className="text-sm font-bold text-green-700 mb-2">✅ Top Beneficial Ingredients</p>
+              {result.top_beneficial.map((b, i) => (
+                <div key={i} className="flex items-start gap-2 mb-1.5">
+                  <span className="text-green-400 shrink-0">•</span>
+                  <p className="text-xs text-gray-600">{b}</p>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
+
+          {/* Top concerning */}
+          {result.top_concerning?.length > 0 && (
+            <div className="bg-white rounded-[20px] p-4 shadow-sm">
+              <p className="text-sm font-bold text-red-600 mb-2">⚠️ Top Concerns</p>
+              {result.top_concerning.map((c, i) => (
+                <div key={i} className="flex items-start gap-2 mb-1.5">
+                  <span className="text-red-400 shrink-0">•</span>
+                  <p className="text-xs text-gray-600">{c}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Ingredient breakdown — grouped by rating */}
+          {['Avoid', 'Caution', 'Safe'].map(rating => {
+            const group = (result.ingredients || []).filter(ing => (ing.safety_rating || '') === rating);
+            if (!group.length) return null;
+            const sc = safetyColor(rating);
+            const bgMap = { Avoid: '#fef2f2', Caution: '#fefce8', Safe: '#f9fafb' };
+            return (
+              <div key={rating} className="bg-white rounded-[20px] p-4 shadow-sm">
+                <p className="text-sm font-bold mb-3" style={{ color: sc.text }}>{rating} Ingredients ({group.length})</p>
+                <div className="space-y-1.5">
+                  {group.map((ing, i) => {
+                    const flags = [
+                      ing.is_irritant && 'Irritant',
+                      ing.is_allergen && 'Allergen',
+                      ing.is_comedogenic && 'Comedogenic',
+                      ing.is_hormone_disruptor && 'Hormone Disruptor',
+                      ing.has_fragrance && 'Fragrance',
+                    ].filter(Boolean);
+                    return (
+                      <div key={i} className="rounded-[12px] px-3 py-2.5" style={{ background: bgMap[rating] }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-gray-800">{ing.name}</p>
+                          {flags.length > 0 && (
+                            <div className="flex gap-1 shrink-0">
+                              {flags.slice(0, 2).map(f => (
+                                <span key={f} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white/70" style={{ color: sc.text }}>{f}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {ing.skin_effect && <p className="text-[11px] text-gray-500 mt-0.5">• {ing.skin_effect}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
 
           {/* Analyse another */}
           <button onClick={reset} className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">

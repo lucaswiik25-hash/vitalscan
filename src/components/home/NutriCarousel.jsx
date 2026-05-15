@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 
 const glassStyle = {
-  background: 'rgba(255,255,255,0.45)',
-  backdropFilter: 'blur(32px) saturate(220%) brightness(1.08)',
-  WebkitBackdropFilter: 'blur(32px) saturate(220%) brightness(1.08)',
-  border: '1px solid rgba(255,255,255,0.75)',
-  boxShadow: '0 4px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)',
+  background: 'rgba(255,255,255,0.82)',
+  border: '1px solid rgba(0,0,0,0.06)',
+  boxShadow: 'none',
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {
@@ -52,6 +50,32 @@ function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
             <span className="text-sm font-bold" style={{ color }}>{Math.round(pct)}%</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GlassCaffeineCard({ waterLogs = [] }) {
+  // Count caffeinated drinks (coffee, energy_drink, tea) today
+  const caffeinated = waterLogs.filter(l => ['coffee', 'energy_drink', 'tea'].includes(l.type));
+  const coffeeCount = caffeinated.filter(l => l.type === 'coffee').length;
+  const energyCount = caffeinated.filter(l => l.type === 'energy_drink').length;
+  const teaCount = caffeinated.filter(l => l.type === 'tea').length;
+  // Rough mg estimate
+  const mgEstimate = coffeeCount * 95 + energyCount * 80 + teaCount * 40;
+  const limit = 400;
+  const pct = Math.min(100, (mgEstimate / limit) * 100);
+  const color = pct >= 100 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0';
+  const hasData = caffeinated.length > 0;
+  return (
+    <div className="flex-1 rounded-[22px] p-4 flex flex-col gap-3" style={glassStyle}>
+      <p className="text-xs font-semibold text-foreground/50 leading-none">Caffeine</p>
+      <p className="text-3xl font-light text-foreground leading-none">
+        {hasData ? mgEstimate : '—'}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{hasData ? 'mg' : ''}</span>
+      </p>
+      <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+        <div className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>
   );
@@ -150,7 +174,7 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
       <div className="flex gap-2">
         <GlassMacroCard value={sugarConsumed} unit="g" label="Sugar today" progress={(sugarConsumed / sugarTarget) * 100} />
         <GlassMacroCard value={Math.round((waterConsumed / waterTarget) * 100)} unit="%" label="Water %" progress={(waterConsumed / waterTarget) * 100} />
-        <GlassSleepCard profile={profile} />
+        <GlassCaffeineCard waterLogs={waterLogs} />
       </div>
       <div className="rounded-[22px] p-5" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50">Tomorrow Face Prediction</p>

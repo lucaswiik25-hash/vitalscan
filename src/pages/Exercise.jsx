@@ -3,7 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Plus, Flame, Dumbbell, Timer, Trash2, X, Loader2, ChevronRight, Pencil, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: 'easeOut', delay },
+});
 
 const QUICK_EXERCISES = [
   { name: 'Running', icon: Activity, met: 9.8, category: 'cardio' },
@@ -127,7 +134,7 @@ export default function Exercise() {
 
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
-        <div className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
+        <motion.div {...fadeUp(0)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Today's Burn</p>
@@ -146,28 +153,28 @@ export default function Exercise() {
               { icon: Timer, value: totalMinutes, label: 'minutes' },
               { icon: Dumbbell, value: exercises.length, label: 'sessions' },
               { icon: Flame, value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
-            ].map(({ icon: Icon, value, label }) => (
-              <div key={label} className="flex-1 bg-gray-50 rounded-[14px] py-3 px-2 flex flex-col items-center gap-1">
+            ].map(({ icon: Icon, value, label }, i) => (
+              <motion.div key={label} {...fadeUp(0.4 + i * 0.08)} className="flex-1 bg-gray-50 rounded-[14px] py-3 px-2 flex flex-col items-center gap-1">
                 <Icon className="w-4 h-4 text-gray-900" />
                 <span className="text-lg font-bold text-gray-900 leading-none">{value}</span>
                 <span className="text-[10px] text-gray-400">{label}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Add Exercise section */}
         <div>
-          <div className="mb-3">
+          <motion.div {...fadeUp(0.5)} className="mb-3">
             <h2 className="text-base font-bold text-gray-900">Add Exercise</h2>
             <p className="text-xs text-gray-400 mt-0.5">Tap to log instantly</p>
-          </div>
+          </motion.div>
           <div className="space-y-2">
-            {visibleExercises.map(ex => {
+            {visibleExercises.map((ex, i) => {
               const Icon = ex.icon;
               const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
               return (
-                <button key={ex.name} onClick={() => handleQuickSelect(ex)}
+                <motion.button key={ex.name} {...fadeUp(0.6 + i * 0.06)} onClick={() => handleQuickSelect(ex)}
                   className="w-full bg-white border border-gray-150 rounded-[14px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
                   style={{ border: '1px solid #e5e7eb' }}>
                   <div className="w-10 h-10 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
@@ -178,7 +185,7 @@ export default function Exercise() {
                     <p className="text-xs text-gray-400">approx {calPerHour} kcal per hour</p>
                   </div>
                   <Plus className="w-4 h-4 text-gray-400 shrink-0" />
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -221,33 +228,31 @@ export default function Exercise() {
       {/* Add Exercise Modal */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowAdd(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 shadow-2xl">
+          <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} onClick={() => setShowAdd(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 shadow-2xl" initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">Log Exercise</h2>
               <button onClick={() => setShowAdd(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
-            <div className="space-y-4">
-              <div>
+            {[
+              <div key="name">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Exercise Name</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Morning Run"
                   className="w-full h-12 rounded-2xl border border-gray-200 px-4 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 />
-              </div>
-              <div>
+              </div>,
+              <div key="duration">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Duration: {form.duration_minutes} min</label>
                 <input type="range" min="5" max="180" step="5" value={form.duration_minutes}
                   onChange={e => handleDurationChange(Number(e.target.value))}
                   className="w-full accent-gray-900"
                 />
-                <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                  <span>5 min</span><span>180 min</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+                <div className="flex justify-between text-[10px] text-gray-400 mt-1"><span>5 min</span><span>180 min</span></div>
+              </div>,
+              <div key="intensity" className="grid grid-cols-3 gap-2">
                 {['low', 'medium', 'high'].map(lvl => (
                   <button key={lvl} onClick={() => setForm(f => ({ ...f, intensity: lvl }))}
                     className="h-10 rounded-2xl text-xs font-bold capitalize transition-all"
@@ -255,20 +260,24 @@ export default function Exercise() {
                     {lvl}
                   </button>
                 ))}
-              </div>
-              {form.calories_burned && (
-                <div className="rounded-2xl p-3 text-center bg-gray-50 border border-gray-100">
+              </div>,
+              form.calories_burned ? (
+                <div key="cal" className="rounded-2xl p-3 text-center bg-gray-50 border border-gray-100">
                   <p className="text-xs text-gray-500 font-semibold">Estimated Calories Burned</p>
                   <p className="text-2xl font-black text-gray-900">{form.calories_burned} <span className="text-sm font-semibold text-gray-400">kcal</span></p>
                 </div>
-              )}
-              <button onClick={handleSave} disabled={saving || !form.name.trim()}
+              ) : null,
+              <button key="save" onClick={handleSave} disabled={saving || !form.name.trim()}
                 className="w-full h-12 rounded-full bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {saving ? 'Saving...' : 'Log Exercise'}
-              </button>
-            </div>
-          </div>
+              </button>,
+            ].filter(Boolean).map((child, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 + i * 0.06, duration: 0.3, ease: 'easeOut' }}>
+                {child}
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       )}
     </div>

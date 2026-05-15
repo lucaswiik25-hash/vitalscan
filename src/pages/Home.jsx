@@ -3,12 +3,19 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format, subDays, differenceInCalendarDays } from 'date-fns';
+import { motion } from 'framer-motion';
 import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
 import CaloriesBurnedModule from '../components/home/CaloriesBurnedModule';
 import DayDetailModal from '../components/home/DayDetailModal';
 import AllergyBanner from '../components/home/AllergyBanner';
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: 'easeOut', delay },
+});
 
 export default function Home() {
   const navigate = useNavigate();
@@ -71,25 +78,25 @@ export default function Home() {
 
   return (
     <div className="warm-glow min-h-screen pb-24">
-      <Header streak={profile.streak || 0} />
+      <motion.div {...fadeUp(0)}><Header streak={profile.streak || 0} /></motion.div>
       {profile.diet_mode === 'allergy_mode' && (
-        <div className="mt-3">
+        <motion.div className="mt-3" {...fadeUp(0.1)}>
           <AllergyBanner allergens={profile.allergens || []} />
-        </div>
+        </motion.div>
       )}
-      <div className="mt-3 mb-2">
+      <motion.div className="mt-3 mb-2" {...fadeUp(0.15)}>
         <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
-      </div>
-      <div className="px-5 mt-3 mb-1">
+      </motion.div>
+      <motion.div className="px-5 mt-3 mb-1" {...fadeUp(0.2)}>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Macros</p>
-      </div>
-      <div className="mt-1 mb-4">
+      </motion.div>
+      <motion.div className="mt-1 mb-4" {...fadeUp(0.28)}>
         <NutriCarousel profile={profile} consumed={consumed} waterLogs={allWaterLogs} todayMeals={todayMeals} />
-      </div>
-      <div className="px-5 mb-2">
+      </motion.div>
+      <motion.div className="px-5 mb-2" {...fadeUp(0.36)}>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Calories</p>
-      </div>
-      <CaloriesBurnedModule profile={profile} />
+      </motion.div>
+      <motion.div {...fadeUp(0.44)}><CaloriesBurnedModule profile={profile} /></motion.div>
       {selectedDay && (
         <DayDetailModal
           date={selectedDay}

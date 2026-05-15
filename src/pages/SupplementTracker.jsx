@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { motion } from 'framer-motion';
 import { Plus, Check, Trash2, Sparkles, Loader2, Pill, X } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
@@ -116,13 +117,13 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="px-5 pt-6 pb-2 flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }} className="px-5 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Supplements</h1>
         <button onClick={() => setShowAdd(true)}
           className="w-10 h-10 rounded-full bg-foreground flex items-center justify-center">
           <Plus className="w-5 h-5 text-white" />
         </button>
-      </div>
+      </motion.div>
 
       <div className="px-5 mt-3 space-y-4">
         {supplements.length === 0 ? (
@@ -132,11 +133,11 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
             <p className="text-sm text-muted-foreground mt-1">Tap + to add your first supplement</p>
           </div>
         ) : (
-          timeGroups.map(tg => {
+          timeGroups.map((tg, gi) => {
             const group = supplements.filter(s => s.time_of_day === tg);
             if (group.length === 0) return null;
             return (
-              <div key={tg} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+              <motion.div key={tg} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 + gi * 0.1 }} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{timeLabel[tg]}</p>
                 <div className="space-y-2">
                   {group.map(sup => (
@@ -156,13 +157,13 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             );
           })
         )}
 
         {/* AI Analysis */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.4 }} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-foreground" />
             <h3 className="text-sm font-bold text-foreground">AI Deficiency Analysis</h3>
@@ -231,14 +232,14 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
               })}
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Add supplement modal */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowAdd(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10 space-y-4 max-h-[90vh] overflow-y-auto">
+          <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} onClick={() => setShowAdd(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10 space-y-4 max-h-[90vh] overflow-y-auto" initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-lg font-bold text-foreground">Add Supplement</h3>
               <button onClick={() => setShowAdd(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
@@ -250,6 +251,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
               <div className="flex flex-wrap gap-2">
                 {[
                   { name: 'Vitamin D3', dose: '2000 IU' },
+
                   { name: 'Vitamin C', dose: '500mg' },
                   { name: 'Zinc', dose: '25mg' },
                   { name: 'Magnesium Glycinate', dose: '400mg' },
@@ -264,8 +266,10 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
                   { name: 'Probiotics', dose: '10B CFU' },
                   { name: 'CoQ10', dose: '100mg' },
                   { name: 'Lion\'s Mane', dose: '500mg' },
-                ].map(q => (
-                  <button key={q.name}
+                ].map((q, qi) => (
+                  <motion.button key={q.name}
+                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.35 + qi * 0.03, duration: 0.25, ease: 'easeOut' }}
                     onClick={() => { setNewName(q.name); setNewDose(q.dose); }}
                     className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
                     style={{
@@ -274,7 +278,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
                       borderColor: newName === q.name ? '#1a1a1a' : 'hsl(var(--border))',
                     }}>
                     {q.name}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -299,7 +303,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
               className="w-full h-12 rounded-2xl bg-foreground text-white font-semibold text-sm">
               Add Supplement
             </button>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

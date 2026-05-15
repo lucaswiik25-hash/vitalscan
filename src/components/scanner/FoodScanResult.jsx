@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
@@ -427,44 +428,46 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     <div className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden" style={{ maxWidth: 480, margin: '0 auto' }}>
 
       {/* ── 1. Product image — white card, image covers full area ── */}
-      <div className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
+      <motion.div initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
         style={{ height: 170, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
         {result.image_url ? (
-          <img src={result.image_url} alt={result.name}
-            className="w-full h-full object-cover" />
+        <img src={result.image_url} alt={result.name}
+          className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <IconModule icon={ShoppingCart} bg="#f3f4f6" color="#9ca3af" size={72} />
-          </div>
+        <div className="w-full h-full flex items-center justify-center">
+          <IconModule icon={ShoppingCart} bg="#f3f4f6" color="#9ca3af" size={72} />
+        </div>
         )}
         <button onClick={onBack}
-          className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
-          <ArrowLeft style={{ width: 16, height: 16, color: 'white', strokeWidth: 2.5 }} />
+        className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center"
+        style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
+        <ArrowLeft style={{ width: 16, height: 16, color: 'white', strokeWidth: 2.5 }} />
         </button>
-      </div>
+        </motion.div>
 
-      {/* ── 2. Name (full width) + verdict badge + action FAB inline ── */}
-      <div className="shrink-0 px-5 pt-4 pb-2">
+        {/* ── 2. Name (full width) + verdict badge + action FAB inline ── */}
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.2 }} className="shrink-0 px-5 pt-4 pb-2">
         <h1 className="text-[22px] font-black text-gray-900 leading-tight w-full" style={{ letterSpacing: '-0.02em' }}>
-          {result.name?.length > 40 ? result.name.slice(0, 40).trim() + '…' : result.name}
+        {result.name?.length > 40 ? result.name.slice(0, 40).trim() + '…' : result.name}
         </h1>
         <div className="flex items-center gap-2 mt-2">
+        <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.3 }}>
           <VerdictBadge result={result} />
-          <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
+        </motion.div>
+        <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} />
         </div>
-      </div>
+        </motion.div>
 
-      {/* ── 3. Dot page indicators — centered above content ── */}
-      <div className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
+        {/* ── 3. Dot page indicators — centered above content ── */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.35 }} className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
         {allSlides.map((_, i) => (
           <button key={i} onClick={() => setSlide(i)}
             className="rounded-full transition-all duration-200"
             style={{ width: i === slide ? 22 : 7, height: 7, background: i === slide ? '#1a1a1a' : '#d1d5db' }} />
         ))}
-      </div>
+        </motion.div>
 
-      {/* ── 5. Swipeable content (no scroll on the container itself) ── */}
+        {/* ── 5. Swipeable content (no scroll on the container itself) ── */}
       <div className="flex-1 overflow-hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className="flex h-full transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${slide * 100}%)` }}>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
+import { motion } from 'framer-motion';
 import { X, Calendar, Plus, Target, Zap } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
@@ -48,8 +49,9 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-[28px] px-5 pt-6 pb-8"
+      <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} onClick={onClose} />
+      <motion.div className="relative w-full max-w-lg rounded-[28px] px-5 pt-6 pb-8"
+        initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}
         style={{ background: 'rgba(30,30,30,0.92)', backdropFilter: 'blur(40px)' }}>
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -70,18 +72,21 @@ function HydrationCalendarModal({ onClose, waterLogs, dailyTarget }) {
             if (!cell) return <div key={i} />;
             const isToday = cell.dateStr === TODAY;
             const color = getColor(cell.pct, cell.total > 0);
+            const row = Math.floor(i / 7);
             return (
-              <div key={i} className="flex flex-col items-center">
+              <motion.div key={i} initial={{ opacity: 0, scale: color ? 0.7 : 1 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.35 + row * 0.04, duration: color ? 0.35 : 0.25, ease: 'easeOut' }}
+                className="flex flex-col items-center">
                 <div className="w-full aspect-square rounded-xl flex flex-col items-center justify-center"
                   style={{ background: color || 'rgba(255,255,255,0.08)', border: isToday ? '2px solid rgba(255,255,255,0.5)' : 'none' }}>
                   <span className="text-xs font-semibold text-white">{format(cell.date, 'd')}</span>
                   {cell.total > 0 && <span className="text-[9px] text-white/80">{cell.pct}%</span>}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -188,17 +193,17 @@ export default function WaterTracker() {
   return (
     <div className="min-h-screen bg-background pb-10">
       {/* Header */}
-      <div className="px-5 pt-6 pb-2 flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }} className="px-5 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Water Tracker</h1>
         <button onClick={() => setShowCalendar(true)}
           className="w-10 h-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center">
           <Calendar className="w-5 h-5 text-foreground" />
         </button>
-      </div>
+      </motion.div>
 
       <div className="px-5 mt-4 space-y-4">
         {/* Circular ring */}
-        <div className="flex flex-col items-center pt-4 pb-2">
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }} className="flex flex-col items-center pt-4 pb-2">
           <div className="relative" style={{ width: ringSize, height: ringSize }}>
             <svg width={ringSize} height={ringSize} style={{ transform: 'rotate(-90deg)' }}>
               <circle cx={ringSize / 2} cy={ringSize / 2} r={ringR} fill="none" stroke="#e5e7eb" strokeWidth={ringStroke} strokeLinecap="round" />
@@ -222,17 +227,26 @@ export default function WaterTracker() {
               <p className="text-xs text-muted-foreground">of {dailyTarget} ml</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stat cards row */}
         <div className="flex gap-2">
-          {statCard(<svg width={16} height={16} viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 2C12 2 5 9.5 5 14a7 7 0 0 0 14 0C19 9.5 12 2 12 2z"/></svg>, 'Consumed', consumed)}
-          {statCard(<Zap size={16} className="text-yellow-500" />, 'Effective', effective)}
-          {statCard(<Target size={16} className="text-gray-400" />, 'Remaining', remaining)}
+          {[
+            { icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 2C12 2 5 9.5 5 14a7 7 0 0 0 14 0C19 9.5 12 2 12 2z"/></svg>, label: 'Consumed', value: consumed },
+            { icon: <Zap size={16} className="text-yellow-500" />, label: 'Effective', value: effective },
+            { icon: <Target size={16} className="text-gray-400" />, label: 'Remaining', value: remaining },
+          ].map(({ icon, label, value }, i) => (
+            <motion.div key={label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.6 + i * 0.08 }}
+              className="flex-1 rounded-[12px] flex flex-col items-center justify-center py-3 px-2 gap-1" style={{ background: '#f3f4f6' }}>
+              <div className="text-gray-400">{icon}</div>
+              <p className="text-[10px] text-gray-400 font-medium">{label}</p>
+              <p className="text-sm font-black text-gray-900">{value}<span className="text-[10px] font-medium text-gray-400 ml-0.5">ml</span></p>
+            </motion.div>
+          ))}
         </div>
 
         {/* Cup grid */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.7 }} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-foreground">Tap cups to log • 250ml each</p>
             <button onClick={() => setShowCustom(true)}
@@ -244,8 +258,9 @@ export default function WaterTracker() {
             {Array.from({ length: cupsNeeded }, (_, i) => {
               const filled = i < cupsFilled;
               return (
-                <button
+                <motion.button
                   key={i}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 + i * 0.03, duration: 0.25 }}
                   onClick={() => addWater(250)}
                   className="aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-90"
                   style={{
@@ -254,14 +269,14 @@ export default function WaterTracker() {
                   }}
                 >
                   <DropIcon filled={filled} color="#3b82f6" size={28} />
-                </button>
+                </motion.button>
               );
             })}
           </div>
           <p className="text-xs text-muted-foreground mt-3 text-center">
             {cupsFilled} / {cupsNeeded} cups · {effective} ml effective
           </p>
-        </div>
+        </motion.div>
 
         {/* Hydration Quality — dehydrating drinks */}
         <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">

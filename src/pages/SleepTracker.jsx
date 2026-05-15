@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { format, subDays } from 'date-fns';
+import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import { Moon, Sparkles, Loader2, Info, X } from 'lucide-react';
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: 'easeOut', delay },
+});
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -108,7 +115,7 @@ Provide:
   return (
     <div className="min-h-screen bg-background pb-10">
       {/* Header */}
-      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
+      <motion.div {...fadeUp(0)} className="px-5 pt-6 pb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Sleep Tracker</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Track and improve your sleep</p>
@@ -117,11 +124,11 @@ Provide:
           className="w-10 h-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center">
           <Info className="w-5 h-5 text-foreground" />
         </button>
-      </div>
+      </motion.div>
 
       <div className="px-5 space-y-4">
         {/* 14-day chart — no card background */}
-        <div className="px-1 py-2">
+        <motion.div {...fadeUp(0.2)} className="px-1 py-2">
           <p className="text-sm font-bold text-foreground mb-4 px-1">14-Day Sleep Chart</p>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
@@ -140,46 +147,44 @@ Provide:
             <div className="w-3 h-0.5 bg-blue-500 rounded-full" />
             <span className="text-xs text-muted-foreground">Sleep hours · 7–9h optimal</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats */}
         <div className="flex gap-3">
-          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-            <p className="text-3xl font-extrabold" style={{ color: '#3b82f6' }}>{todaySleep || '—'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">hrs last night</p>
-            {todaySleep && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block"
-                style={{ background: qualityColor(todaySleep) + '22', color: qualityColor(todaySleep) }}>
-                {qualityLabel(todaySleep)}
-              </span>
-            )}
-          </div>
-          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-            <p className="text-3xl font-extrabold text-foreground">{avgSleep || '—'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">avg hrs / night</p>
-          </div>
-          <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
-            <p className="text-3xl font-extrabold text-foreground">7–9</p>
-            <p className="text-xs text-muted-foreground mt-0.5">recommended</p>
-          </div>
+          {[
+            { val: todaySleep || '—', label: 'hrs last night', color: '#3b82f6', badge: todaySleep },
+            { val: avgSleep || '—', label: 'avg hrs / night', color: null },
+            { val: '7–9', label: 'recommended', color: null },
+          ].map(({ val, label, color, badge }, i) => (
+            <motion.div key={label} {...fadeUp(0.5 + i * 0.08)} className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+              <p className="text-3xl font-extrabold" style={{ color: color || 'hsl(var(--foreground))' }}>{val}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+              {badge && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block"
+                  style={{ background: qualityColor(badge) + '22', color: qualityColor(badge) }}>
+                  {qualityLabel(badge)}
+                </span>
+              )}
+            </motion.div>
+          ))}
         </div>
 
         {/* Log last night — UNDER chart */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <motion.div {...fadeUp(0.6)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Moon className="w-5 h-5 text-blue-500" />
             <p className="text-sm font-bold text-foreground">Last Night's Sleep</p>
           </div>
           <div className="flex gap-1.5 flex-wrap mb-3">
-            {[5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10].map(h => (
-              <button key={h} onClick={() => saveSleep(h)}
+            {[5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10].map((h, i) => (
+              <motion.button key={h} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 + i * 0.04, duration: 0.3, ease: 'easeOut' }} onClick={() => saveSleep(h)}
                 className="px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
                 style={{
                   background: todaySleep === h ? '#3b82f6' : 'hsl(var(--secondary))',
                   color: todaySleep === h ? 'white' : 'hsl(var(--foreground))',
                 }}>
                 {h}h
-              </button>
+              </motion.button>
             ))}
           </div>
           <div className="flex gap-2">
@@ -196,10 +201,10 @@ Provide:
             </button>
           </div>
           {saved && <p className="text-xs text-green-600 mt-2 font-medium">Saved!</p>}
-        </div>
+        </motion.div>
 
         {/* AI Analysis */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <motion.div {...fadeUp(0.72)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-foreground" />
             <p className="text-sm font-bold text-foreground">AI Sleep Analysis</p>
@@ -235,7 +240,7 @@ Provide:
               </div>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Sleep Tips modal */}

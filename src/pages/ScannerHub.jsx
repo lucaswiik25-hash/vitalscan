@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { X, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -321,7 +322,7 @@ export default function ScannerHub() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-12 pb-2 fade-in-up">
+      <div className="flex items-center justify-between px-5 pt-12 pb-2">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
           <X className="w-5 h-5 text-foreground" />
         </button>
@@ -330,13 +331,19 @@ export default function ScannerHub() {
       </div>
 
       {/* Food search bar */}
-      <FoodSearch />
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }}>
+        <FoodSearch />
+      </motion.div>
 
       {/* Scanner cards carousel */}
-      <ScannerCarousel cardKeys={cardKeys} />
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}>
+        <ScannerCarousel cardKeys={cardKeys} />
+      </motion.div>
 
       {/* Recent scans */}
-      <RecentScans />
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.4 }}>
+        <RecentScans />
+      </motion.div>
     </div>
   );
 }

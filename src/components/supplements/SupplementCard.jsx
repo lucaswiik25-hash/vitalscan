@@ -13,8 +13,8 @@ export default function SupplementCard({ supplement, index, onTap, onDelete }) {
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: index * 0.07 }}
-      className="relative bg-white rounded-[28px] px-6 pt-8 pb-6 shadow-sm flex flex-col items-center cursor-pointer active:scale-[0.98] transition-transform"
-      style={{ border: taken ? '1.5px solid #e5e7eb' : '1.5px solid rgba(0,0,0,0.06)' }}
+      className="relative flex flex-col items-center cursor-pointer active:scale-[0.98] transition-transform py-4"
+      style={{}}
       onClick={onTap}
     >
       {/* Delete button */}
@@ -36,7 +36,10 @@ export default function SupplementCard({ supplement, index, onTap, onDelete }) {
       </div>
 
       {/* Name */}
-      <h3 className={`text-lg font-black text-center mt-4 mb-2 ${taken ? 'text-gray-400' : 'text-gray-900'}`}>
+      <h3
+        className={`text-xl text-center mt-3 mb-2 ${taken ? 'text-gray-400' : 'text-gray-900'}`}
+        style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 600 }}
+      >
         {supplement.name}
       </h3>
 

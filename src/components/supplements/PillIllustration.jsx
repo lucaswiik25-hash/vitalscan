@@ -1,126 +1,157 @@
 import React from 'react';
 
-// Pill design index based on supplement id/name hash
 export function getPillIndex(name = '') {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return Math.abs(hash) % 3;
 }
 
-// Pill 1: Two-tone capsule — white left, yellow-gold right (Zinc style)
+// Pill 1: Yellow left half + white right half with powder dots (matching reference image)
 function CapsuleYellow({ desaturated }) {
-  const filter = desaturated ? 'grayscale(1) opacity(0.5)' : '';
+  const filter = desaturated ? 'grayscale(1) opacity(0.45)' : '';
   return (
-    <svg width="160" height="70" viewBox="0 0 160 70" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter }}>
+    <svg width="180" height="76" viewBox="0 0 180 76" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter }}>
       <defs>
-        <linearGradient id="yl-body-l" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#e8e8e8" />
+        <linearGradient id="yl2-l" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFE566" />
+          <stop offset="45%" stopColor="#F5C200" />
+          <stop offset="100%" stopColor="#C89400" />
         </linearGradient>
-        <linearGradient id="yl-body-r" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#F9C94E" />
-          <stop offset="100%" stopColor="#D4960A" />
+        <linearGradient id="yl2-r" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#E0E0E0" />
         </linearGradient>
-        <linearGradient id="yl-shine" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
+        <radialGradient id="yl2-lshine" cx="40%" cy="28%" r="55%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.82)" />
           <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-        <filter id="yl-shadow">
-          <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="rgba(0,0,0,0.18)" />
-        </filter>
-        <clipPath id="yl-clip">
-          <rect x="5" y="5" width="150" height="60" rx="30" />
-        </clipPath>
-      </defs>
-      {/* Shadow */}
-      <ellipse cx="80" cy="64" rx="62" ry="6" fill="rgba(0,0,0,0.10)" />
-      {/* Left half */}
-      <path d="M80 5 H35 Q5 5 5 35 Q5 65 35 65 H80 Z" fill="url(#yl-body-l)" />
-      {/* Right half */}
-      <path d="M80 5 H125 Q155 5 155 35 Q155 65 125 65 H80 Z" fill="url(#yl-body-r)" />
-      {/* Center seam */}
-      <line x1="80" y1="5" x2="80" y2="65" stroke="rgba(180,140,0,0.25)" strokeWidth="1.5" />
-      {/* Outline */}
-      <rect x="5" y="5" width="150" height="60" rx="30" fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth="1" />
-      {/* Shine highlight */}
-      <path d="M35 10 Q80 8 125 10 Q130 14 125 24 Q80 20 35 24 Q30 14 35 10Z" fill="url(#yl-shine)" />
-    </svg>
-  );
-}
-
-// Pill 2: Oval tablet — soft purple with embossed line (Vitamin D style)
-function TabletPurple({ desaturated }) {
-  const filter = desaturated ? 'grayscale(1) opacity(0.5)' : '';
-  return (
-    <svg width="130" height="90" viewBox="0 0 130 90" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter }}>
-      <defs>
-        <radialGradient id="pu-body" cx="40%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#B49FE8" />
-          <stop offset="100%" stopColor="#7B5EA7" />
         </radialGradient>
-        <linearGradient id="pu-shine" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
+        <radialGradient id="yl2-rshine" cx="60%" cy="28%" r="55%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.70)" />
           <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
+        </radialGradient>
+        <clipPath id="yl2-clip-l">
+          <path d="M90 6 H44 Q6 6 6 38 Q6 70 44 70 H90 Z" />
+        </clipPath>
+        <clipPath id="yl2-clip-r">
+          <path d="M90 6 H136 Q174 6 174 38 Q174 70 136 70 H90 Z" />
+        </clipPath>
       </defs>
-      {/* Shadow */}
-      <ellipse cx="65" cy="83" rx="46" ry="7" fill="rgba(0,0,0,0.12)" />
-      {/* Body */}
-      <ellipse cx="65" cy="44" rx="55" ry="38" fill="url(#pu-body)" />
-      {/* Embossed line */}
-      <line x1="18" y1="44" x2="112" y2="44" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="18" y1="46.5" x2="112" y2="46.5" stroke="rgba(80,50,120,0.25)" strokeWidth="1" strokeLinecap="round" />
+      {/* Drop shadow */}
+      <ellipse cx="90" cy="71" rx="70" ry="5" fill="rgba(0,0,0,0.10)" />
+      {/* Yellow left half */}
+      <path d="M90 6 H44 Q6 6 6 38 Q6 70 44 70 H90 Z" fill="url(#yl2-l)" />
+      {/* White right half */}
+      <path d="M90 6 H136 Q174 6 174 38 Q174 70 136 70 H90 Z" fill="url(#yl2-r)" />
+      {/* Powder dots inside white half */}
+      <g clipPath="url(#yl2-clip-r)">
+        <circle cx="113" cy="30" r="6.5" fill="rgba(190,150,0,0.28)" />
+        <circle cx="128" cy="42" r="5" fill="rgba(190,150,0,0.22)" />
+        <circle cx="107" cy="48" r="4.5" fill="rgba(190,150,0,0.20)" />
+        <circle cx="140" cy="30" r="3.5" fill="rgba(190,150,0,0.18)" />
+        <circle cx="120" cy="55" r="3" fill="rgba(190,150,0,0.15)" />
+      </g>
+      {/* Yellow shine */}
+      <g clipPath="url(#yl2-clip-l)">
+        <ellipse cx="55" cy="22" rx="30" ry="12" fill="url(#yl2-lshine)" />
+      </g>
+      {/* White shine */}
+      <g clipPath="url(#yl2-clip-r)">
+        <ellipse cx="120" cy="22" rx="28" ry="11" fill="url(#yl2-rshine)" />
+      </g>
+      {/* Seam */}
+      <line x1="90" y1="6" x2="90" y2="70" stroke="rgba(160,120,0,0.22)" strokeWidth="1.5" />
       {/* Outline */}
-      <ellipse cx="65" cy="44" rx="55" ry="38" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="1" />
-      {/* Shine */}
-      <ellipse cx="52" cy="28" rx="32" ry="13" fill="url(#pu-shine)" />
+      <rect x="6" y="6" width="168" height="64" rx="32" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="1" />
     </svg>
   );
 }
 
-// Pill 3: Two-tone capsule — white left with powder speckles, coral-red right (Ashwagandha style)
+// Pill 2: Coral left + white right (same capsule shape as reference)
 function CapsuleCoral({ desaturated }) {
-  const filter = desaturated ? 'grayscale(1) opacity(0.5)' : '';
+  const filter = desaturated ? 'grayscale(1) opacity(0.45)' : '';
   return (
-    <svg width="160" height="70" viewBox="0 0 160 70" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter }}>
+    <svg width="180" height="76" viewBox="0 0 180 76" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter }}>
       <defs>
-        <linearGradient id="co-body-l" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#efe8e8" />
+        <linearGradient id="co2-l" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FF8A75" />
+          <stop offset="45%" stopColor="#FF5A3C" />
+          <stop offset="100%" stopColor="#C93020" />
         </linearGradient>
-        <linearGradient id="co-body-r" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FF6B5B" />
-          <stop offset="100%" stopColor="#CC3322" />
+        <linearGradient id="co2-r" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#E0E0E0" />
         </linearGradient>
-        <linearGradient id="co-shine" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
+        <radialGradient id="co2-lshine" cx="40%" cy="28%" r="55%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.75)" />
           <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-        <clipPath id="co-clip-l">
-          <path d="M80 5 H35 Q5 5 5 35 Q5 65 35 65 H80 Z" />
+        </radialGradient>
+        <clipPath id="co2-clip-l">
+          <path d="M90 6 H44 Q6 6 6 38 Q6 70 44 70 H90 Z" />
+        </clipPath>
+        <clipPath id="co2-clip-r">
+          <path d="M90 6 H136 Q174 6 174 38 Q174 70 136 70 H90 Z" />
         </clipPath>
       </defs>
-      {/* Shadow */}
-      <ellipse cx="80" cy="64" rx="62" ry="6" fill="rgba(0,0,0,0.10)" />
-      {/* Left half */}
-      <path d="M80 5 H35 Q5 5 5 35 Q5 65 35 65 H80 Z" fill="url(#co-body-l)" />
-      {/* Powder speckles inside left half */}
-      <g clipPath="url(#co-clip-l)">
-        <circle cx="35" cy="25" r="4" fill="rgba(180,60,40,0.22)" />
-        <circle cx="55" cy="38" r="5.5" fill="rgba(180,60,40,0.18)" />
-        <circle cx="42" cy="50" r="3.5" fill="rgba(180,60,40,0.20)" />
-        <circle cx="68" cy="28" r="3" fill="rgba(180,60,40,0.15)" />
-        <circle cx="25" cy="42" r="3" fill="rgba(180,60,40,0.18)" />
-        <circle cx="62" cy="52" r="4" fill="rgba(180,60,40,0.14)" />
+      <ellipse cx="90" cy="71" rx="70" ry="5" fill="rgba(0,0,0,0.10)" />
+      <path d="M90 6 H44 Q6 6 6 38 Q6 70 44 70 H90 Z" fill="url(#co2-l)" />
+      <path d="M90 6 H136 Q174 6 174 38 Q174 70 136 70 H90 Z" fill="url(#co2-r)" />
+      <g clipPath="url(#co2-clip-r)">
+        <circle cx="113" cy="30" r="6.5" fill="rgba(180,50,30,0.25)" />
+        <circle cx="128" cy="42" r="5" fill="rgba(180,50,30,0.20)" />
+        <circle cx="107" cy="48" r="4.5" fill="rgba(180,50,30,0.18)" />
+        <circle cx="140" cy="30" r="3.5" fill="rgba(180,50,30,0.15)" />
+        <circle cx="120" cy="55" r="3" fill="rgba(180,50,30,0.12)" />
       </g>
-      {/* Right half */}
-      <path d="M80 5 H125 Q155 5 155 35 Q155 65 125 65 H80 Z" fill="url(#co-body-r)" />
-      {/* Center seam */}
-      <line x1="80" y1="5" x2="80" y2="65" stroke="rgba(180,40,30,0.20)" strokeWidth="1.5" />
-      {/* Outline */}
-      <rect x="5" y="5" width="150" height="60" rx="30" fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth="1" />
-      {/* Shine */}
-      <path d="M35 10 Q80 8 125 10 Q130 14 125 24 Q80 20 35 24 Q30 14 35 10Z" fill="url(#co-shine)" />
+      <g clipPath="url(#co2-clip-l)">
+        <ellipse cx="55" cy="22" rx="30" ry="12" fill="url(#co2-lshine)" />
+      </g>
+      <line x1="90" y1="6" x2="90" y2="70" stroke="rgba(140,30,20,0.20)" strokeWidth="1.5" />
+      <rect x="6" y="6" width="168" height="64" rx="32" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="1" />
+    </svg>
+  );
+}
+
+// Pill 3: Purple left + white right
+function CapsulePurple({ desaturated }) {
+  const filter = desaturated ? 'grayscale(1) opacity(0.45)' : '';
+  return (
+    <svg width="180" height="76" viewBox="0 0 180 76" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter }}>
+      <defs>
+        <linearGradient id="pu2-l" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#C4A8F5" />
+          <stop offset="45%" stopColor="#9B72E8" />
+          <stop offset="100%" stopColor="#6B42B8" />
+        </linearGradient>
+        <linearGradient id="pu2-r" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#E0E0E0" />
+        </linearGradient>
+        <radialGradient id="pu2-lshine" cx="40%" cy="28%" r="55%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.75)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </radialGradient>
+        <clipPath id="pu2-clip-l">
+          <path d="M90 6 H44 Q6 6 6 38 Q6 70 44 70 H90 Z" />
+        </clipPath>
+        <clipPath id="pu2-clip-r">
+          <path d="M90 6 H136 Q174 6 174 38 Q174 70 136 70 H90 Z" />
+        </clipPath>
+      </defs>
+      <ellipse cx="90" cy="71" rx="70" ry="5" fill="rgba(0,0,0,0.10)" />
+      <path d="M90 6 H44 Q6 6 6 38 Q6 70 44 70 H90 Z" fill="url(#pu2-l)" />
+      <path d="M90 6 H136 Q174 6 174 38 Q174 70 136 70 H90 Z" fill="url(#pu2-r)" />
+      <g clipPath="url(#pu2-clip-r)">
+        <circle cx="113" cy="30" r="6.5" fill="rgba(100,50,180,0.22)" />
+        <circle cx="128" cy="42" r="5" fill="rgba(100,50,180,0.18)" />
+        <circle cx="107" cy="48" r="4.5" fill="rgba(100,50,180,0.16)" />
+        <circle cx="140" cy="30" r="3.5" fill="rgba(100,50,180,0.14)" />
+        <circle cx="120" cy="55" r="3" fill="rgba(100,50,180,0.12)" />
+      </g>
+      <g clipPath="url(#pu2-clip-l)">
+        <ellipse cx="55" cy="22" rx="30" ry="12" fill="url(#pu2-lshine)" />
+      </g>
+      <line x1="90" y1="6" x2="90" y2="70" stroke="rgba(80,30,140,0.20)" strokeWidth="1.5" />
+      <rect x="6" y="6" width="168" height="64" rx="32" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="1" />
     </svg>
   );
 }
@@ -129,6 +160,6 @@ export default function PillIllustration({ name, index, desaturated = false, sca
   const idx = index !== undefined ? index : getPillIndex(name);
   const style = { transform: `scale(${scale})`, transformOrigin: 'center' };
   if (idx === 0) return <div style={style}><CapsuleYellow desaturated={desaturated} /></div>;
-  if (idx === 1) return <div style={style}><TabletPurple desaturated={desaturated} /></div>;
+  if (idx === 1) return <div style={style}><CapsulePurple desaturated={desaturated} /></div>;
   return <div style={style}><CapsuleCoral desaturated={desaturated} /></div>;
 }

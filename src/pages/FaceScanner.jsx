@@ -4,7 +4,6 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { motion } from 'framer-motion';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 
 function useTypingEffect(lines, speed = 28) {
@@ -31,16 +30,29 @@ function useTypingEffect(lines, speed = 28) {
 }
 
 const SCORE_COLOR = (s) => s >= 70 ? '#22c55e' : s >= 40 ? '#f59e0b' : '#ef4444';
+const BAR_COLOR = (s) => s >= 70 ? '#22c55e' : s >= 40 ? '#f59e0b' : '#ef4444';
+
+function ScanButton({ label, onClick }) {
+  return (
+    <button onClick={onClick}
+      className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
+      style={{ verticalAlign: 'middle' }}>
+      {label}
+    </button>
+  );
+}
 
 function RatingBar({ score }) {
+  const color = BAR_COLOR(score);
   return (
     <div className="w-full h-2 rounded-full overflow-hidden mt-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
       <div className="h-full rounded-full transition-all duration-700"
-        style={{ width: `${score}%`, background: SCORE_COLOR(score) }} />
+        style={{ width: `${score}%`, background: color }} />
     </div>
   );
 }
 
+// ─── Dark ratings card (like the reference image) ────────────────────────────
 function RatingsCard({ result, imageUrl, onViewDetail }) {
   const scores = [
     { label: 'Overall', score: result.overall_skin_score },
@@ -53,8 +65,10 @@ function RatingsCard({ result, imageUrl, onViewDetail }) {
 
   return (
     <div className="rounded-[28px] overflow-hidden mx-4"
-      style={{ background: '#1a1a1a', boxShadow: '0 16px 48px rgba(0,0,0,0.25)' }}>
+      style={{ background: '#1a1a1a', boxShadow: '0 16px 48px rgba(0,0,0,0.35)' }}>
       <p className="text-white text-center text-base font-bold pt-5 pb-3">Ratings</p>
+
+      {/* Photo circle */}
       <div className="flex justify-center mb-4">
         <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-white/20">
           {imageUrl
@@ -63,6 +77,8 @@ function RatingsCard({ result, imageUrl, onViewDetail }) {
           }
         </div>
       </div>
+
+      {/* Score grid */}
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-6 pb-5">
         {scores.map(({ label, score }) => (
           <div key={label}>
@@ -72,6 +88,7 @@ function RatingsCard({ result, imageUrl, onViewDetail }) {
           </div>
         ))}
       </div>
+
       <button onClick={onViewDetail}
         className="w-full py-4 border-t border-white/10 flex items-center justify-center gap-2 text-white/70 text-sm font-semibold active:bg-white/5 transition-colors">
         View Full Analysis <ChevronRight className="w-4 h-4" />
@@ -80,15 +97,10 @@ function RatingsCard({ result, imageUrl, onViewDetail }) {
   );
 }
 
+// ─── Detailed text-based verdict page ────────────────────────────────────────
 function DetailPage({ result, onBack }) {
-  const fadeUp = (delay) => ({
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.4, ease: 'easeOut', delay },
-  });
-
   return (
-    <div className="min-h-screen pb-10">
+    <div className="min-h-screen bg-gray-50 pb-10">
       <div className="px-5 pt-12 pb-4 flex items-center gap-3">
         <button onClick={onBack} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center">
           <ArrowLeft className="w-5 h-5 text-gray-800" />
@@ -101,31 +113,24 @@ function DetailPage({ result, onBack }) {
 
       <div className="px-4 space-y-3">
         {/* Skin type + summary */}
-        <motion.div {...fadeUp(0)} className="bg-white rounded-[20px] p-5 shadow-sm">
+        <div className="bg-white rounded-[20px] p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <span className="px-3 py-1 rounded-full bg-gray-100 text-xs font-bold text-gray-700">{result.skin_type}</span>
             <span className="text-xs text-gray-400">Skin Type</span>
           </div>
-          <div className="space-y-1">
-            {(result.overall_summary || '').split(/\.\s+/).filter(s => s.trim().length > 4).map((s, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="text-gray-300 mt-1 shrink-0">•</span>
-                <p className="text-sm text-gray-600 leading-relaxed">{s.trim().replace(/\.$/, '')}.</p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+          <p className="text-sm text-gray-600 leading-relaxed">{result.overall_summary}</p>
+        </div>
 
         {/* Facial structure */}
         {result.facial_structure && (
-          <motion.div {...fadeUp(0.06)} className="bg-white rounded-[20px] p-5 shadow-sm">
+          <div className="bg-white rounded-[20px] p-5 shadow-sm">
             <p className="text-sm font-bold text-gray-800 mb-3">Facial Structure</p>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Face Shape', value: result.facial_structure.face_shape },
                 { label: 'Jawline', value: result.facial_structure.jawline_definition },
                 { label: 'Cheekbones', value: result.facial_structure.cheekbone_visibility },
-                { label: 'Definition', value: result.facial_definition_score ? `${result.facial_definition_score}/10` : null },
+                { label: 'Definition Score', value: result.facial_definition_score ? `${result.facial_definition_score}/10` : null },
               ].filter(x => x.value).map(({ label, value }) => (
                 <div key={label} className="bg-gray-50 rounded-[14px] p-3">
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
@@ -133,14 +138,14 @@ function DetailPage({ result, onBack }) {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Priority fixes */}
         {result.priority_actions?.length > 0 && (
-          <motion.div {...fadeUp(0.10)} className="bg-white rounded-[20px] p-5 shadow-sm">
+          <div className="bg-white rounded-[20px] p-5 shadow-sm">
             <p className="text-sm font-bold text-gray-800 mb-3">Top Priority Actions</p>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {result.priority_actions.map((action, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <span className="w-6 h-6 rounded-full bg-gray-900 text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
@@ -148,62 +153,58 @@ function DetailPage({ result, onBack }) {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Diet connection */}
         {result.food_connection && (
-          <motion.div {...fadeUp(0.14)} className="rounded-[20px] p-4 shadow-sm" style={{ background: '#faf5ff' }}>
+          <div className="rounded-[20px] p-4 shadow-sm" style={{ background: '#faf5ff' }}>
             <p className="text-xs font-bold text-purple-700 mb-1">🍽️ Diet Connection</p>
             <p className="text-sm text-purple-700 leading-relaxed">{result.food_connection}</p>
-          </motion.div>
+          </div>
         )}
 
         {/* Detected concerns */}
         {result.detected_concerns?.length > 0 && (
-          <motion.div {...fadeUp(0.18)}>
-            <p className="text-sm font-bold text-gray-700 px-1 mb-2">Detected Concerns ({result.detected_concerns.length})</p>
-            <div className="space-y-2">
-              {result.detected_concerns.map((c, i) => {
-                const sevColor = c.severity === 'Severe' || c.severity === 'High'
-                  ? { bg: '#fef2f2', text: '#dc2626' }
-                  : c.severity === 'Moderate' || c.severity === 'Medium'
-                    ? { bg: '#fefce8', text: '#ca8a04' }
-                    : { bg: '#f0fdf4', text: '#16a34a' };
-                return (
-                  <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.18 + i * 0.05 }}
-                    className="bg-white rounded-[20px] p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-bold text-gray-800">{c.concern}</p>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: sevColor.bg, color: sevColor.text }}>{c.severity}</span>
+          <div className="space-y-3">
+            <p className="text-sm font-bold text-gray-700 px-1">Detected Concerns ({result.detected_concerns.length})</p>
+            {result.detected_concerns.map((c, i) => {
+              const sevColor = c.severity === 'Severe' || c.severity === 'High'
+                ? { bg: '#fef2f2', text: '#dc2626' }
+                : c.severity === 'Moderate' || c.severity === 'Medium'
+                  ? { bg: '#fefce8', text: '#ca8a04' }
+                  : { bg: '#f0fdf4', text: '#16a34a' };
+              return (
+                <div key={i} className="bg-white rounded-[20px] p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-bold text-gray-800">{c.concern}</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: sevColor.bg, color: sevColor.text }}>{c.severity}</span>
+                  </div>
+                  {c.likely_cause && (
+                    <p className="text-xs text-gray-500 mb-2"><span className="font-semibold">Cause: </span>{c.likely_cause}</p>
+                  )}
+                  {c.actions?.length > 0 && (
+                    <div className="space-y-1">
+                      {c.actions.map((a, j) => (
+                        <p key={j} className="text-xs text-gray-600">• {a}</p>
+                      ))}
                     </div>
-                    {c.likely_cause && (
-                      <p className="text-xs text-gray-500 mb-2">
-                        <span className="font-semibold">Cause: </span>{c.likely_cause}
-                      </p>
-                    )}
-                    {c.actions?.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Actions</p>
-                        {c.actions.map((a, j) => (
-                          <div key={j} className="flex items-start gap-1.5">
-                            <span className="text-gray-400 mt-0.5 shrink-0">•</span>
-                            <p className="text-xs text-gray-600">{a}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {c.timeline && <p className="text-[10px] text-gray-400 mt-2">Timeline: {c.timeline}</p>}
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
+                  )}
+                  {c.fix && !c.actions && (
+                    <div className="bg-green-50 rounded-xl px-3 py-2 mt-1">
+                      <p className="text-xs text-green-700">{c.fix}</p>
+                    </div>
+                  )}
+                  {c.timeline && <p className="text-[10px] text-gray-400 mt-1.5">Timeline: {c.timeline}</p>}
+                </div>
+              );
+            })}
+          </div>
         )}
 
-        {/* Improvable vs genetic */}
+        {/* What you can improve vs genetic */}
         {(result.improvable?.length > 0 || result.genetic?.length > 0) && (
-          <motion.div {...fadeUp(0.26)} className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {result.improvable?.length > 0 && (
               <div className="bg-green-50 rounded-[20px] p-4 shadow-sm">
                 <p className="text-xs font-bold text-green-700 mb-2">✅ Improvable</p>
@@ -216,13 +217,14 @@ function DetailPage({ result, onBack }) {
                 {result.genetic.map((s, i) => <p key={i} className="text-xs text-gray-600 mb-1">• {s}</p>)}
               </div>
             )}
-          </motion.div>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function FaceScanner() {
   const navigate = useNavigate();
   const cameraRef = useRef(null);
@@ -253,39 +255,51 @@ export default function FaceScanner() {
     if (!capturedFile) return;
     setIsAnalyzing(true);
     setPreviewUrl(null);
+
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
+
     const todayFoodSummary = todayMeals.length > 0
       ? todayMeals.map(m => `${m.name}: ${m.calories}kcal, ${m.sodium || 0}mg sodium, ${m.sugar || 0}g sugar`).join('; ')
       : 'No food logged today';
+
     const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
       prompt: `You are a world-class dermatologist and facial analyst. Analyze this photo in exhaustive detail.
+
 ${isAppearanceMode ? `APPEARANCE MODE ACTIVE. Today's food log: ${todayFoodSummary}. Connect skin findings to diet where relevant.` : ''}
+
 Return JSON:
 - overall_skin_score: 1–100
-- potential_score: 1–100
-- skin_quality_score: 1–100
-- skin_clarity_score: 1–100
+- potential_score: 1–100 (what skin could look like with optimization)
+- skin_quality_score: 1–100 (texture, clarity, smoothness)
+- skin_clarity_score: 1–100 (acne, spots, redness)
 - jawline_score: 1–100
 - cheekbone_score: 1–100
 - facial_definition_score: 1–10
 - skin_type: "Oily", "Dry", "Combination", "Normal", or "Sensitive"
 - overall_summary: 2 sentences
-- facial_structure: { face_shape, jawline_definition, cheekbone_visibility }
-- detected_concerns: array, each: concern, severity, likely_cause, actions (array of 3), timeline
-- priority_actions: array of exactly 3 strings
-- improvable: array of strings
-- genetic: array of strings
-- food_connection: string or null
-NEVER fail.`,
+- facial_structure: { face_shape, jawline_definition ("strong"/"moderate"/"soft"), cheekbone_visibility ("high"/"moderate"/"low") }
+- detected_concerns: array, each with: concern (string), severity ("Mild"/"Moderate"/"Severe"), likely_cause (string), actions (array of 3 specific strings), timeline (string)
+  Check for: Active Acne, Blackheads & Whiteheads, Facial Puffiness, Undereye Bags, Dark Circles, Redness & Inflammation, Uneven Skin Tone, Large Pores, Rough Texture, Dehydration Lines, Oiliness, Dullness, Asymmetry
+- priority_actions: array of exactly 3 strings — the 3 things that if fixed make the biggest visible difference
+- improvable: array of strings — skin issues the user can fix with lifestyle
+- genetic: array of strings — structural/genetic things they cannot change (frame positively)
+- food_connection: string (only if appearance mode active, else null)
+
+NEVER fail. If image quality is low, do best estimate.`,
       response_json_schema: {
         type: 'object',
         properties: {
-          overall_skin_score: { type: 'number' }, potential_score: { type: 'number' },
-          skin_quality_score: { type: 'number' }, skin_clarity_score: { type: 'number' },
-          jawline_score: { type: 'number' }, cheekbone_score: { type: 'number' },
-          facial_definition_score: { type: 'number' }, skin_type: { type: 'string' },
-          overall_summary: { type: 'string' }, facial_structure: { type: 'object' },
+          overall_skin_score: { type: 'number' },
+          potential_score: { type: 'number' },
+          skin_quality_score: { type: 'number' },
+          skin_clarity_score: { type: 'number' },
+          jawline_score: { type: 'number' },
+          cheekbone_score: { type: 'number' },
+          facial_definition_score: { type: 'number' },
+          skin_type: { type: 'string' },
+          overall_summary: { type: 'string' },
+          facial_structure: { type: 'object' },
           detected_concerns: { type: 'array', items: { type: 'object' } },
           priority_actions: { type: 'array', items: { type: 'string' } },
           improvable: { type: 'array', items: { type: 'string' } },
@@ -294,81 +308,55 @@ NEVER fail.`,
         },
       },
     });
+
     setResult({ ...(r?.result || r || {}), image_url: file_url });
     setIsAnalyzing(false);
   };
 
-  // Handle replay from scan history
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('replay') === '1') {
-      const stored = sessionStorage.getItem('replayScan');
-      if (stored) {
-        try {
-          const { scan } = JSON.parse(stored);
-          if (scan?.result_data) setResult(scan.result_data);
-        } catch (_) {}
-        sessionStorage.removeItem('replayScan');
-      }
-    }
-  }, []);
-
   const reset = () => { setResult(null); setCapturedFile(null); setPreviewUrl(null); setShowDetail(false); };
 
   if (isAnalyzing) return <AnalyzingScreen type="skincare" message="Analysing your face..." />;
-  if (result && showDetail) return <DetailPage result={result} onBack={() => setShowDetail(false)} />;
+
+  if (result && showDetail) {
+    return <DetailPage result={result} onBack={() => setShowDetail(false)} />;
+  }
 
   if (result) {
     return (
-      <div className="min-h-screen pb-10">
-        {/* Header — app background color now */}
+      <div className="min-h-screen pb-10" style={{ background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
         <div className="px-5 pt-12 pb-4 flex items-center gap-3">
-          <button onClick={reset} className="w-10 h-10 rounded-full bg-white/70 shadow-sm flex items-center justify-center">
-            <X className="w-5 h-5 text-gray-800" />
+          <button onClick={reset} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <X className="w-5 h-5 text-white" />
           </button>
-          <p className="text-gray-900 font-bold text-lg">Face Analysis</p>
+          <p className="text-white font-bold text-lg">Face Analysis</p>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
-          <RatingsCard result={result} imageUrl={result.image_url} onViewDetail={() => setShowDetail(true)} />
-        </motion.div>
+        <RatingsCard result={result} imageUrl={result.image_url} onViewDetail={() => setShowDetail(true)} />
 
         <div className="px-4 mt-4 space-y-3">
-          {/* Summary card — bullet points */}
-          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-            className="bg-white/80 rounded-[20px] p-4 shadow-sm border border-white/60">
-            <p className="text-xs text-gray-500 mb-2">Skin Type: <span className="text-gray-900 font-bold">{result.skin_type}</span></p>
-            <div className="space-y-1.5">
-              {(result.overall_summary || '').split(/\.\s+/).filter(s => s.trim().length > 4).map((s, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-gray-300 mt-1 shrink-0">•</span>
-                  <p className="text-sm text-gray-700 leading-relaxed">{s.trim().replace(/\.$/, '')}.</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+          {/* Summary card */}
+          <div className="rounded-[20px] p-4" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <p className="text-xs text-gray-400 mb-1">Skin Type: <span className="text-white font-bold">{result.skin_type}</span></p>
+            <p className="text-sm text-gray-300 leading-relaxed">{result.overall_summary}</p>
+          </div>
 
           {result.food_connection && (
-            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
-              className="rounded-[20px] p-4 shadow-sm" style={{ background: '#faf5ff', border: '1px solid rgba(168,85,247,0.2)' }}>
-              <p className="text-xs font-bold text-purple-700 mb-1">🍽️ Diet Connection</p>
-              <p className="text-sm text-purple-700 leading-relaxed">{result.food_connection}</p>
-            </motion.div>
+            <div className="rounded-[20px] p-4" style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)' }}>
+              <p className="text-xs font-bold text-purple-300 mb-1">🍽️ Diet Connection</p>
+              <p className="text-sm text-purple-200 leading-relaxed">{result.food_connection}</p>
+            </div>
           )}
 
-          <motion.button
-            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-            onClick={() => setShowDetail(true)}
-            className="w-full py-4 rounded-[20px] bg-white shadow-sm text-gray-800 font-bold text-sm flex items-center justify-center gap-2 border border-gray-100">
+          <button onClick={() => setShowDetail(true)}
+            className="w-full py-4 rounded-[20px] text-white font-bold text-sm flex items-center justify-center gap-2"
+            style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
             View Full Detailed Report <ChevronRight className="w-4 h-4" />
-          </motion.button>
+          </button>
 
-          <motion.button
-            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.25 }}
-            onClick={reset}
+          <button onClick={reset}
             className="w-full py-3 rounded-[20px] text-gray-400 font-medium text-sm">
             Scan Again
-          </motion.button>
+          </button>
         </div>
       </div>
     );
@@ -430,7 +418,7 @@ function FaceScannerLanding({ userName, isAppearanceMode, cameraRef, uploadRef, 
   };
 
   return (
-    <div className="min-h-screen px-6 pt-14 pb-20">
+    <div className="min-h-screen bg-white px-6 pt-14 pb-20">
       <input ref={cameraRef} type="file" accept="image/*" capture="user" className="hidden" onChange={onFile} />
       <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
       <button onClick={onBack} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">

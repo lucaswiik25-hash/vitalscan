@@ -4,7 +4,13 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Plus, Flame, Dumbbell, Timer, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
+import { ArrowLeft, Plus, Flame, Dumbbell, Timer, Trash2, X, Loader2, ChevronRight, Pencil, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: 'easeOut', delay },
+});
 
 const QUICK_EXERCISES = [
   { name: 'Running', icon: Activity, met: 9.8, category: 'cardio' },
@@ -32,57 +38,25 @@ function calcCalories(met, weight, minutes) {
   return Math.round((met * weight * minutes) / 60);
 }
 
-// Big circular progress ring — bleeds off top of screen
-function BigProgressRing({ pct, totalBurned, exerciseTarget }) {
-  // Ring is huge, top half bleeds off screen
-  const size = 420;
-  const r = 175;
-  const strokeW = 36;
+// Circular progress ring component
+function ProgressRing({ pct }) {
+  const r = 36;
   const circ = 2 * Math.PI * r;
-  const clampedPct = Math.min(100, pct);
-  const dash = (clampedPct / 100) * circ;
-
+  const offset = circ * (1 - Math.min(100, pct) / 100);
   return (
-    <div style={{ background: '#F5EAE5', marginTop: -60, paddingBottom: 0 }}>
-      {/* Ring container — overflows top */}
-      <div className="flex justify-center" style={{ marginBottom: -12 }}>
-        <div className="relative" style={{ width: size, height: size * 0.72, overflow: 'hidden' }}>
-          <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'absolute', top: 0, left: 0 }}>
-            {/* Interior circle fill */}
-            <circle cx={size / 2} cy={size / 2} r={r - strokeW / 2 - 2} fill="#F5EAE5" />
-            {/* Track */}
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-              stroke="#EDD8CF" strokeWidth={strokeW} />
-            {/* Progress */}
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-              stroke="#ffffff" strokeWidth={strokeW}
-              strokeDasharray={`${dash} ${circ}`}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dasharray 0.8s ease' }}
-            />
-          </svg>
-          {/* Center percentage */}
-          <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: 60 }}>
-            <span style={{
-              fontSize: 72,
-              fontWeight: 300,
-              color: '#1a1a1a',
-              letterSpacing: '-0.02em',
-              fontFamily: 'Georgia, "Times New Roman", serif',
-            }}>
-              {Math.round(clampedPct)}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Calorie goal row — tight below ring */}
-      <div className="flex items-center gap-2.5 px-6 pb-4">
-        <Flame className="w-6 h-6 text-orange-500 shrink-0" />
-        <div>
-          <p className="text-lg font-bold text-gray-900 leading-tight">Calorie Goal: {exerciseTarget}kcal</p>
-          <p className="text-sm text-gray-500">Remaining only {Math.max(0, exerciseTarget - totalBurned)} kcal</p>
-        </div>
+    <div className="relative" style={{ width: 88, height: 88 }}>
+      <svg width={88} height={88} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={44} cy={44} r={r} fill="none" stroke="#f0f0f0" strokeWidth={8} />
+        <circle cx={44} cy={44} r={r} fill="none" stroke="#1a1a1a" strokeWidth={8}
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+        <Flame className="w-3.5 h-3.5 text-gray-900" />
+        <span className="text-sm font-bold text-gray-900 leading-none">{Math.round(Math.min(100, pct))}%</span>
       </div>
     </div>
   );
@@ -93,6 +67,7 @@ export default function Exercise() {
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [showAdd, setShowAdd] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
   const [saving, setSaving] = useState(false);
 
@@ -142,130 +117,148 @@ export default function Exercise() {
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
   };
 
+  const visibleExercises = showAll ? QUICK_EXERCISES : QUICK_EXERCISES.slice(0, 6);
+
   return (
-    <div className="min-h-screen pb-28" style={{ background: '#F5EAE5' }}>
-      {/* Header — sits on warm background, no border */}
-      <div className="px-5 pt-12 pb-2 flex items-center" style={{ position: 'relative', zIndex: 10 }}>
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center mr-3">
+    <div className="min-h-screen pb-28">
+      {/* Header */}
+      <div className="px-5 pt-12 pb-4 flex items-center">
+        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">
           <ArrowLeft className="w-5 h-5 text-gray-900" />
         </button>
         <h1 className="text-xl font-bold text-gray-900 flex-1 text-center">Exercise</h1>
-        <div className="w-10" />
+        <button onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center">
+          <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
+        </button>
       </div>
 
-      {/* Big circular ring — bleeds off top */}
-      <BigProgressRing pct={pct} totalBurned={totalBurned} exerciseTarget={exerciseTarget} />
-
-      {/* 3 stat chips — no card background, float on warm bg */}
-      <div className="px-5 mb-5">
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { icon: Flame, value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
-            { icon: Dumbbell, value: exercises.length, label: 'sessions' },
-            { icon: Timer, value: totalMinutes, label: 'minutes' },
-          ].map(({ icon: Icon, value, label }, i) => (
-            <motion.div key={label}
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 + i * 0.07 }}
-              className="rounded-[20px] py-4 px-2 flex flex-col items-center gap-1 bg-white/50">
-              <Icon className="w-4 h-4 text-gray-600" />
-              <span className="text-2xl font-black text-gray-900 leading-none">{value}</span>
-              <span className="text-[11px] text-gray-500">{label}</span>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Add Exercise section */}
-      <div className="px-5">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }} className="mb-3">
-          <h2 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>Add exercise</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Tap to log instantly</p>
-        </motion.div>
-        <div className="space-y-2.5">
-          {QUICK_EXERCISES.map((ex, i) => {
-            const Icon = ex.icon;
-            const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
-            return (
-              <motion.button key={ex.name}
-                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.55 + i * 0.04 }}
-                onClick={() => handleQuickSelect(ex)}
-                className="w-full rounded-[18px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform bg-white"
-                style={{ border: '1.5px solid #E8D5CC' }}>
-                <div className="w-10 h-10 rounded-[12px] bg-gray-50 flex items-center justify-center shrink-0"
-                  style={{ border: '1px solid #e5e7eb' }}>
-                  <Icon className="w-5 h-5 text-gray-700" strokeWidth={1.8} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-900">{ex.name}</p>
-                  <p className="text-xs text-gray-400">approx {calPerHour} kcal/hr</p>
-                </div>
-                <Plus className="w-4 h-4 text-gray-400 shrink-0" />
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Today's Sessions */}
-      {exercises.length > 0 && (
-        <div className="px-5 mt-5">
-          <h2 className="text-base font-bold text-gray-900 mb-3">Today's Sessions</h2>
-          <div className="space-y-2">
-            {exercises.map(ex => (
-              <div key={ex.id} className="rounded-[18px] p-4 flex items-center gap-3 bg-white" style={{ border: '1.5px solid #E8D5CC' }}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-900">{ex.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{ex.duration_minutes} min · {ex.calories_burned} kcal</p>
-                </div>
-                <button onClick={() => handleDelete(ex.id)} className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                </button>
+      <div className="px-5 space-y-5">
+        {/* Today's Burn Hero Card */}
+        <motion.div {...fadeUp(0)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Today's Burn</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-6xl font-black text-gray-900 leading-none">{totalBurned.toLocaleString()}</span>
+                <span className="text-base font-semibold text-gray-400">kcal</span>
               </div>
+              <p className="text-xs text-gray-400 mt-1.5">Target: {exerciseTarget} kcal</p>
+            </div>
+            <ProgressRing pct={pct} />
+          </div>
+
+          {/* Stat chips */}
+          <div className="flex gap-2">
+            {[
+              { icon: Timer, value: totalMinutes, label: 'minutes' },
+              { icon: Dumbbell, value: exercises.length, label: 'sessions' },
+              { icon: Flame, value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
+            ].map(({ icon: Icon, value, label }, i) => (
+              <motion.div key={label} {...fadeUp(0.4 + i * 0.08)} className="flex-1 bg-gray-50 rounded-[14px] py-3 px-2 flex flex-col items-center gap-1">
+                <Icon className="w-4 h-4 text-gray-900" />
+                <span className="text-lg font-bold text-gray-900 leading-none">{value}</span>
+                <span className="text-[10px] text-gray-400">{label}</span>
+              </motion.div>
             ))}
           </div>
-        </div>
-      )}
+        </motion.div>
 
-      {exercises.length === 0 && (
-        <div className="px-5 mt-4">
-          <div className="rounded-[18px] p-8 text-center bg-white" style={{ border: '1.5px solid #E8D5CC' }}>
+        {/* Add Exercise section */}
+        <div>
+          <motion.div {...fadeUp(0.5)} className="mb-3">
+            <h2 className="text-base font-bold text-gray-900">Add Exercise</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Tap to log instantly</p>
+          </motion.div>
+          <div className="space-y-2">
+            {visibleExercises.map((ex, i) => {
+              const Icon = ex.icon;
+              const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
+              return (
+                <motion.button key={ex.name} {...fadeUp(0.6 + i * 0.06)} onClick={() => handleQuickSelect(ex)}
+                  className="w-full rounded-[14px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+                  style={{
+                    background: 'rgba(255,255,255,0.55)',
+                    backdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
+                    border: '1px solid rgba(255,255,255,0.75)',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
+                  }}>
+                  <div className="w-10 h-10 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5 text-gray-900" strokeWidth={1.8} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900">{ex.name}</p>
+                    <p className="text-xs text-gray-400">approx {calPerHour} kcal per hour</p>
+                  </div>
+                  <Plus className="w-4 h-4 text-gray-400 shrink-0" />
+                </motion.button>
+              );
+            })}
+          </div>
+          {!showAll && (
+            <button onClick={() => setShowAll(true)} className="w-full mt-3 text-sm text-gray-400 font-medium py-2">
+              Show more
+            </button>
+          )}
+        </div>
+
+        {/* Today's Sessions */}
+        {exercises.length > 0 && (
+          <div>
+            <h2 className="text-base font-bold text-gray-900 mb-3">Today's Sessions</h2>
+            <div className="space-y-2">
+              {exercises.map(ex => (
+                <div key={ex.id} className="bg-white rounded-[14px] p-4 flex items-center gap-3 shadow-sm border border-gray-100">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900">{ex.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{ex.duration_minutes} min · {ex.calories_burned} kcal</p>
+                  </div>
+                  <button onClick={() => handleDelete(ex.id)}
+                    className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {exercises.length === 0 && (
+          <div className="rounded-[14px] border border-gray-100 p-8 text-center">
             <Dumbbell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
             <p className="text-sm text-gray-400">No exercises logged today</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Add Exercise Modal */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }}
-            onClick={() => setShowAdd(false)} />
-          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 shadow-2xl"
-            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
+          <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} onClick={() => setShowAdd(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 shadow-2xl" initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">Log Exercise</h2>
               <button onClick={() => setShowAdd(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
-            <div className="space-y-4">
-              <div>
+            {[
+              <div key="name">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Exercise Name</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Morning Run"
                   className="w-full h-12 rounded-2xl border border-gray-200 px-4 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 />
-              </div>
-              <div>
+              </div>,
+              <div key="duration">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Duration: {form.duration_minutes} min</label>
                 <input type="range" min="5" max="180" step="5" value={form.duration_minutes}
                   onChange={e => handleDurationChange(Number(e.target.value))}
-                  className="w-full accent-gray-900" />
+                  className="w-full accent-gray-900"
+                />
                 <div className="flex justify-between text-[10px] text-gray-400 mt-1"><span>5 min</span><span>180 min</span></div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+              </div>,
+              <div key="intensity" className="grid grid-cols-3 gap-2">
                 {['low', 'medium', 'high'].map(lvl => (
                   <button key={lvl} onClick={() => setForm(f => ({ ...f, intensity: lvl }))}
                     className="h-10 rounded-2xl text-xs font-bold capitalize transition-all"
@@ -273,19 +266,23 @@ export default function Exercise() {
                     {lvl}
                   </button>
                 ))}
-              </div>
-              {form.calories_burned ? (
-                <div className="rounded-2xl p-3 text-center bg-gray-50 border border-gray-100">
+              </div>,
+              form.calories_burned ? (
+                <div key="cal" className="rounded-2xl p-3 text-center bg-gray-50 border border-gray-100">
                   <p className="text-xs text-gray-500 font-semibold">Estimated Calories Burned</p>
                   <p className="text-2xl font-black text-gray-900">{form.calories_burned} <span className="text-sm font-semibold text-gray-400">kcal</span></p>
                 </div>
-              ) : null}
-              <button onClick={handleSave} disabled={saving || !form.name.trim()}
+              ) : null,
+              <button key="save" onClick={handleSave} disabled={saving || !form.name.trim()}
                 className="w-full h-12 rounded-full bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {saving ? 'Saving...' : 'Log Exercise'}
-              </button>
-            </div>
+              </button>,
+            ].filter(Boolean).map((child, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 + i * 0.06, duration: 0.3, ease: 'easeOut' }}>
+                {child}
+              </motion.div>
+            ))}
           </motion.div>
         </div>
       )}

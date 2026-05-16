@@ -32,44 +32,56 @@ function calcCalories(met, weight, minutes) {
   return Math.round((met * weight * minutes) / 60);
 }
 
-// Big circular progress ring — matches reference design
+// Big circular progress ring — bleeds off top of screen
 function BigProgressRing({ pct, totalBurned, exerciseTarget }) {
-  const size = 220;
-  const r = 90;
-  const strokeW = 18;
+  // Ring is huge, top half bleeds off screen
+  const size = 420;
+  const r = 175;
+  const strokeW = 36;
   const circ = 2 * Math.PI * r;
   const clampedPct = Math.min(100, pct);
   const dash = (clampedPct / 100) * circ;
 
   return (
-    <div className="flex flex-col items-center pt-8 pb-4">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          {/* Track */}
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-            stroke="#ede8e4" strokeWidth={strokeW} />
-          {/* Progress */}
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-            stroke="#e8d5c4" strokeWidth={strokeW}
-            strokeDasharray={`${dash} ${circ}`}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 0.8s ease' }}
-          />
-        </svg>
-        {/* Center content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-5xl font-black text-gray-900" style={{ letterSpacing: '-0.03em' }}>
-            {Math.round(clampedPct)}%
-          </span>
+    <div style={{ background: '#F5EAE5', marginTop: -60, paddingBottom: 0 }}>
+      {/* Ring container — overflows top */}
+      <div className="flex justify-center" style={{ marginBottom: -12 }}>
+        <div className="relative" style={{ width: size, height: size * 0.72, overflow: 'hidden' }}>
+          <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'absolute', top: 0, left: 0 }}>
+            {/* Interior circle fill */}
+            <circle cx={size / 2} cy={size / 2} r={r - strokeW / 2 - 2} fill="#F5EAE5" />
+            {/* Track */}
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+              stroke="#EDD8CF" strokeWidth={strokeW} />
+            {/* Progress */}
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+              stroke="#ffffff" strokeWidth={strokeW}
+              strokeDasharray={`${dash} ${circ}`}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dasharray 0.8s ease' }}
+            />
+          </svg>
+          {/* Center percentage */}
+          <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: 60 }}>
+            <span style={{
+              fontSize: 72,
+              fontWeight: 300,
+              color: '#1a1a1a',
+              letterSpacing: '-0.02em',
+              fontFamily: 'Georgia, "Times New Roman", serif',
+            }}>
+              {Math.round(clampedPct)}%
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Calorie goal row */}
-      <div className="flex items-center gap-2 mt-2">
-        <Flame className="w-4 h-4 text-orange-500" />
+      {/* Calorie goal row — tight below ring */}
+      <div className="flex items-center gap-2.5 px-6 pb-4">
+        <Flame className="w-6 h-6 text-orange-500 shrink-0" />
         <div>
-          <span className="text-base font-bold text-gray-900">Calorie Goal: {exerciseTarget}kcal</span>
-          <p className="text-xs text-gray-400">Remaining {Math.max(0, exerciseTarget - totalBurned)} kcal</p>
+          <p className="text-lg font-bold text-gray-900 leading-tight">Calorie Goal: {exerciseTarget}kcal</p>
+          <p className="text-sm text-gray-500">Remaining only {Math.max(0, exerciseTarget - totalBurned)} kcal</p>
         </div>
       </div>
     </div>
@@ -131,42 +143,33 @@ export default function Exercise() {
   };
 
   return (
-    <div className="min-h-screen pb-28">
-      {/* Header */}
-      <div className="px-5 pt-12 pb-2 flex items-center">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">
+    <div className="min-h-screen pb-28" style={{ background: '#F5EAE5' }}>
+      {/* Header — sits on warm background, no border */}
+      <div className="px-5 pt-12 pb-2 flex items-center" style={{ position: 'relative', zIndex: 10 }}>
+        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center mr-3">
           <ArrowLeft className="w-5 h-5 text-gray-900" />
         </button>
         <h1 className="text-xl font-bold text-gray-900 flex-1 text-center">Exercise</h1>
         <div className="w-10" />
       </div>
 
-      {/* Big circular ring */}
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <BigProgressRing pct={pct} totalBurned={totalBurned} exerciseTarget={exerciseTarget} />
-      </motion.div>
+      {/* Big circular ring — bleeds off top */}
+      <BigProgressRing pct={pct} totalBurned={totalBurned} exerciseTarget={exerciseTarget} />
 
-      {/* 3 stat chips */}
+      {/* 3 stat chips — no card background, float on warm bg */}
       <div className="px-5 mb-5">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
           {[
-            { icon: Timer, value: totalMinutes, label: 'minutes' },
-            { icon: Dumbbell, value: exercises.length, label: 'sessions' },
             { icon: Flame, value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
+            { icon: Dumbbell, value: exercises.length, label: 'sessions' },
+            { icon: Timer, value: totalMinutes, label: 'minutes' },
           ].map(({ icon: Icon, value, label }, i) => (
             <motion.div key={label}
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 + i * 0.07 }}
-              className="rounded-[18px] py-4 px-2 flex flex-col items-center gap-1"
-              style={{
-                background: 'rgba(255,255,255,0.6)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.8)',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-              }}>
-              <Icon className="w-4 h-4 text-gray-700" />
-              <span className="text-xl font-black text-gray-900 leading-none">{value}</span>
-              <span className="text-[10px] text-gray-400">{label}</span>
+              className="rounded-[20px] py-4 px-2 flex flex-col items-center gap-1 bg-white/50">
+              <Icon className="w-4 h-4 text-gray-600" />
+              <span className="text-2xl font-black text-gray-900 leading-none">{value}</span>
+              <span className="text-[11px] text-gray-500">{label}</span>
             </motion.div>
           ))}
         </div>
@@ -175,10 +178,10 @@ export default function Exercise() {
       {/* Add Exercise section */}
       <div className="px-5">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }} className="mb-3">
-          <h2 className="text-base font-bold text-gray-900">Add Exercise</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Tap to log instantly</p>
+          <h2 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>Add exercise</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Tap to log instantly</p>
         </motion.div>
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {QUICK_EXERCISES.map((ex, i) => {
             const Icon = ex.icon;
             const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
@@ -187,16 +190,11 @@ export default function Exercise() {
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.55 + i * 0.04 }}
                 onClick={() => handleQuickSelect(ex)}
-                className="w-full rounded-[14px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
-                style={{
-                  background: 'rgba(255,255,255,0.55)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255,255,255,0.75)',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
-                }}>
-                <div className="w-10 h-10 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
-                  <Icon className="w-5 h-5 text-gray-900" strokeWidth={1.8} />
+                className="w-full rounded-[18px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform bg-white"
+                style={{ border: '1.5px solid #E8D5CC' }}>
+                <div className="w-10 h-10 rounded-[12px] bg-gray-50 flex items-center justify-center shrink-0"
+                  style={{ border: '1px solid #e5e7eb' }}>
+                  <Icon className="w-5 h-5 text-gray-700" strokeWidth={1.8} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-gray-900">{ex.name}</p>
@@ -215,7 +213,7 @@ export default function Exercise() {
           <h2 className="text-base font-bold text-gray-900 mb-3">Today's Sessions</h2>
           <div className="space-y-2">
             {exercises.map(ex => (
-              <div key={ex.id} className="bg-white rounded-[14px] p-4 flex items-center gap-3 shadow-sm border border-gray-100">
+              <div key={ex.id} className="rounded-[18px] p-4 flex items-center gap-3 bg-white" style={{ border: '1.5px solid #E8D5CC' }}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-gray-900">{ex.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{ex.duration_minutes} min · {ex.calories_burned} kcal</p>
@@ -231,7 +229,7 @@ export default function Exercise() {
 
       {exercises.length === 0 && (
         <div className="px-5 mt-4">
-          <div className="rounded-[14px] border border-gray-100 p-8 text-center">
+          <div className="rounded-[18px] p-8 text-center bg-white" style={{ border: '1.5px solid #E8D5CC' }}>
             <Dumbbell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
             <p className="text-sm text-gray-400">No exercises logged today</p>
           </div>

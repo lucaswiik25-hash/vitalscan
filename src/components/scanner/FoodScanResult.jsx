@@ -68,7 +68,7 @@ function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother }) {
   const [open, setOpen] = useState(false);
 
   const glassStyle = {
-    background: 'rgba(255,255,255,0.55)',
+    background: 'rgba(255,255,255,0.85)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     border: '1px solid rgba(255,255,255,0.7)',
@@ -82,18 +82,18 @@ function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother }) {
   ];
 
   return (
-    <div className="relative shrink-0 flex flex-col items-center" style={{ alignSelf: 'flex-end', marginBottom: 4 }}>
+    <div className="relative shrink-0 flex flex-col items-center" style={{ alignSelf: 'flex-end', marginBottom: 4, zIndex: 60 }}>
       {/* Action items — appear above the button with staggered slide-in */}
       {open && (
-        <div className="absolute bottom-14 right-0 flex flex-col gap-2 items-end" style={{ zIndex: 50 }}>
+        <div className="absolute flex flex-col gap-2 items-end" style={{ bottom: '52px', right: 0, zIndex: 61, pointerEvents: 'auto' }}>
           {actions.map(({ label, icon: Icon, bg, color, fn }, idx) => (
             <motion.button
               key={label}
               initial={{ opacity: 0, y: 16, scale: 0.88 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: idx * 0.07 }}
-              onClick={() => { setOpen(false); fn && fn(); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl active:scale-95"
+              onClick={(e) => { e.stopPropagation(); setOpen(false); fn && fn(); }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl active:scale-95 cursor-pointer"
               style={{ ...glassStyle, whiteSpace: 'nowrap' }}
             >
               <div style={{ width: 28, height: 28, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -107,9 +107,9 @@ function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother }) {
 
       {/* Toggle button */}
       <button
-        onClick={() => setOpen(o => !o)}
-        className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-all"
-        style={glassStyle}
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+        style={{ ...glassStyle, zIndex: 62, position: 'relative' }}
       >
         {open
           ? <X style={{ width: 18, height: 18, color: '#374151', strokeWidth: 2.5 }} />

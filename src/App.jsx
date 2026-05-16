@@ -19,9 +19,9 @@ import ShoppingList from './pages/ShoppingList';
 import HealthRisk from './pages/HealthRisk';
 import Settings from './pages/Settings';
 import SleepTracker from './pages/SleepTracker';
-import FaceScanner from './pages/FaceScanner';
-import BodyScanner from './pages/BodyScanner';
-import Exercise from './pages/Exercise';
+import FaceScanner from './pages/FaceScanner.jsx';
+import BodyScanner from './pages/BodyScanner.jsx';
+import Exercise from './pages/Exercise.jsx';
 import ExerciseFormScanner from './pages/ExerciseFormScanner';
 
 const AuthenticatedApp = () => {

@@ -285,12 +285,15 @@ function RecentScans() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.slice(0, 6).map(scan => {
+            {filtered.slice(0, 6).map((scan, idx) => {
               const score = scan.safety_score ?? scan.quality_score ?? null;
               const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
               return (
-                <button
+                <motion.button
                   key={scan.id}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: 'easeOut', delay: idx * 0.06 }}
                   className="w-full rounded-[20px] p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
                   style={cardStyle}
                   onClick={() => handleScanClick(scan)}
@@ -312,7 +315,7 @@ function RecentScans() {
                     )}
                     {scan.verdict && <p className="text-[10px] capitalize mt-0.5" style={{ color: scoreColor }}>{scan.verdict}</p>}
                   </div>
-                </button>
+                </motion.button>
               );
             })}
           </div>

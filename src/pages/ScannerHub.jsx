@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+
 import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -285,12 +286,15 @@ function RecentScans() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.slice(0, 6).map(scan => {
+            {filtered.slice(0, 6).map((scan, idx) => {
               const score = scan.safety_score ?? scan.quality_score ?? null;
               const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
               return (
-                <button
+                <motion.button
                   key={scan.id}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.36, delay: idx * 0.07, ease: [0.22, 1, 0.36, 1] }}
                   className="w-full rounded-[20px] p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
                   style={cardStyle}
                   onClick={() => handleScanClick(scan)}
@@ -312,7 +316,7 @@ function RecentScans() {
                     )}
                     {scan.verdict && <p className="text-[10px] capitalize mt-0.5" style={{ color: scoreColor }}>{scan.verdict}</p>}
                   </div>
-                </button>
+                </motion.button>
               );
             })}
           </div>

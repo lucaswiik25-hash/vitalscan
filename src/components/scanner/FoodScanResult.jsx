@@ -82,10 +82,10 @@ function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother }) {
   ];
 
   return (
-    <div className="relative shrink-0 flex flex-col items-center" style={{ alignSelf: 'flex-end', marginBottom: 4 }}>
+    <div className="relative shrink-0 flex flex-col items-center" style={{ alignSelf: 'flex-end', marginBottom: 4, zIndex: 60 }}>
       {/* Action items — appear above the button with staggered slide-in */}
       {open && (
-        <div className="absolute bottom-14 right-0 flex flex-col gap-2 items-end" style={{ zIndex: 50 }}>
+        <div className="absolute bottom-14 right-0 flex flex-col gap-2 items-end" style={{ zIndex: 60 }}>
           {actions.map(({ label, icon: Icon, bg, color, fn }, idx) => (
             <motion.button
               key={label}

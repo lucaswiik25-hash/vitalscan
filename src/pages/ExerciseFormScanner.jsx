@@ -1,19 +1,54 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Sparkles, ArrowLeft, CheckCircle, AlertTriangle, XCircle, Zap } from 'lucide-react';
+import { X, Sparkles, ArrowLeft, CheckCircle, AlertTriangle, XCircle, Zap, Search, Camera, ImageIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const EXERCISES = [
-  'Squat',
-  'Deadlift',
-  'Bench Press',
-  'Pull-up',
-  'Overhead Press',
-  'Hip Thrust',
-  'Row',
-  'Lunge',
+const ALL_EXERCISES = [
+  // A
+  'Arnold Press', 'Ab Wheel Rollout',
+  // B
+  'Back Squat', 'Barbell Row', 'Bench Press', 'Bulgarian Split Squat', 'Bicep Curl',
+  // C
+  'Cable Fly', 'Cable Row', 'Chin-up', 'Clean & Jerk', 'Close-Grip Bench Press',
+  // D
+  'Deadlift', 'Deficit Deadlift', 'Dumbbell Lateral Raise', 'Dumbbell Press', 'Dips',
+  // F
+  'Face Pull', 'Front Squat', "Farmer's Walk", 'Floor Press',
+  // G
+  'Goblet Squat', 'Good Morning',
+  // H
+  'Hack Squat', 'Hammer Curl', 'Hanging Leg Raise', 'Hip Thrust',
+  // I
+  'Incline Bench Press', 'Incline Dumbbell Curl',
+  // J
+  'Jefferson Curl', 'Jump Squat',
+  // K
+  'Kettlebell Swing', 'Kroc Row',
+  // L
+  'Landmine Press', 'Lat Pulldown', 'Leg Curl', 'Leg Extension', 'Leg Press', 'Lunge',
+  // M
+  'Military Press', 'Muscle-up',
+  // N
+  'Nordic Curl',
+  // O
+  'Overhead Press', 'Overhead Squat',
+  // P
+  'Pause Squat', 'Pendlay Row', 'Pistol Squat', 'Plank', 'Preacher Curl', 'Pull-up', 'Push Press', 'Push-up',
+  // R
+  'RDL (Romanian Deadlift)', 'Ring Dip', 'Ring Row', 'Row',
+  // S
+  'Safety Bar Squat', 'Seated Row', 'Shoulder Press', 'Side Lateral Raise', 'Single-Leg Deadlift', 'Snatch', 'Squat', 'Sumo Deadlift',
+  // T
+  'T-Bar Row', 'Tricep Pushdown', 'Turkish Get-up',
+  // U
+  'Upright Row',
+  // W
+  'Weighted Pull-up', 'Wide-Grip Pull-up',
+  // Z
+  'Zercher Squat',
 ];
 
 function useTypingEffect(lines, speed = 28) {
@@ -22,110 +57,131 @@ function useTypingEffect(lines, speed = 28) {
   const [lineIdx, setLineIdx] = useState(0);
   const [charIdx, setCharIdx] = useState(0);
   const timeoutRef = useRef(null);
-
   useEffect(() => {
     const ls = linesRef.current;
     if (lineIdx >= ls.length) return;
     const line = ls[lineIdx];
     if (charIdx < line.length) {
       timeoutRef.current = setTimeout(() => {
-        setDisplayed(prev => {
-          const next = [...prev];
-          next[lineIdx] = line.slice(0, charIdx + 1);
-          return next;
-        });
+        setDisplayed(prev => { const next = [...prev]; next[lineIdx] = line.slice(0, charIdx + 1); return next; });
         setCharIdx(c => c + 1);
       }, speed);
     } else {
-      timeoutRef.current = setTimeout(() => {
-        setLineIdx(l => l + 1);
-        setCharIdx(0);
-      }, 220);
+      timeoutRef.current = setTimeout(() => { setLineIdx(l => l + 1); setCharIdx(0); }, 220);
     }
     return () => clearTimeout(timeoutRef.current);
   }, [lineIdx, charIdx, speed]);
-
   return displayed;
 }
 
-function ExerciseLanding({ userName, selectedExercise, onSelectExercise, camRef, upRef, onFile, onBack }) {
-  const lines = selectedExercise
-    ? [
-        `Perfect.`,
-        `Now [Photograph Yourself] at the key position of the ${selectedExercise}.`,
-        `Or [Upload from Gallery] if you already have a photo.`,
-      ]
-    : [
-        `Hi ${userName}.`,
-        `Select an exercise below, then photograph yourself at the key position.`,
-        `Claude will score your form and tell you exactly what to fix.`,
-      ];
+function ExerciseLanding({ userName, selectedExercise, onSelectExercise, onStartAnalysing, onBack }) {
+  const [search, setSearch] = useState('');
 
+  const lines = [
+    `Hi ${userName}.`,
+    `Select an exercise, then photograph yourself at the key position.`,
+    `Claude will score your form and tell you exactly what to fix.`,
+  ];
   const displayed = useTypingEffect(lines, 26);
 
-  const renderLine = (text, idx) => {
-    if (!text) return null;
-    if (idx === 0) return <p key={idx} className="text-3xl font-bold text-gray-900 leading-snug">{text}</p>;
+  const filtered = search.trim()
+    ? ALL_EXERCISES.filter(e => e.toLowerCase().includes(search.toLowerCase()))
+    : ALL_EXERCISES;
 
-    const actions = {
-      '[Photograph Yourself]': { label: 'Photograph Yourself', onClick: () => camRef.current?.click() },
-      '[Upload from Gallery]': { label: 'Upload from Gallery', onClick: () => upRef.current?.click() },
-    };
-
-    const parts = [];
-    let remaining = text;
-    Object.entries(actions).forEach(([token, { label, onClick }]) => {
-      const ti = remaining.indexOf(token);
-      if (ti !== -1) {
-        if (ti > 0) parts.push(<span key={`pre-${token}`}>{remaining.slice(0, ti)}</span>);
-        parts.push(
-          <button key={token} onClick={onClick}
-            className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1"
-            style={{ verticalAlign: 'middle' }}>
-            {label}
-          </button>
-        );
-        remaining = remaining.slice(ti + token.length);
-      }
-    });
-    if (remaining) parts.push(<span key="tail">{remaining}</span>);
-
-    return (
-      <p key={idx} className="text-2xl font-semibold text-gray-900 leading-relaxed">
-        {parts}
-      </p>
-    );
-  };
+  // Group by first letter
+  const grouped = {};
+  filtered.forEach(ex => {
+    const letter = ex[0].toUpperCase();
+    if (!grouped[letter]) grouped[letter] = [];
+    grouped[letter].push(ex);
+  });
 
   return (
-    <div className="min-h-screen px-6 pt-14 pb-28">
-      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
-      <input ref={upRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+    <div className="min-h-screen flex flex-col">
+      {/* Fixed header */}
+      <div className="px-6 pt-14 pb-4 shrink-0">
+        <button onClick={onBack} className="mb-6 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+          <ArrowLeft className="w-5 h-5 text-gray-900" />
+        </button>
+        <div className="space-y-2 mb-5">
+          {lines.map((_, idx) => {
+            const text = displayed[idx] || '';
+            if (!text) return null;
+            if (idx === 0) return <p key={idx} className="text-3xl font-bold text-gray-900 leading-snug">{text}</p>;
+            return <p key={idx} className="text-base text-gray-500 leading-relaxed">{text}</p>;
+          })}
+        </div>
 
-      <button onClick={onBack} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
-        <ArrowLeft className="w-5 h-5 text-gray-900" />
-      </button>
-
-      <div className="space-y-6 mb-10">
-        {lines.map((_, idx) => renderLine(displayed[idx] || '', idx))}
+        {/* Search bar */}
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-3.5 py-2.5 shadow-sm mb-2">
+          <Search className="w-4 h-4 text-gray-400 shrink-0" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search exercise..."
+            className="flex-1 text-sm focus:outline-none bg-transparent text-gray-900 placeholder:text-gray-400"
+          />
+          {search && <button onClick={() => setSearch('')} className="text-gray-400 text-xs">✕</button>}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        {EXERCISES.map(ex => (
-          <button
-            key={ex}
-            onClick={() => onSelectExercise(ex)}
-            className="py-3 px-4 rounded-[16px] text-sm font-semibold text-left transition-all active:scale-95"
-            style={{
-              background: selectedExercise === ex ? '#1a1a1a' : '#f4f4f5',
-              color: selectedExercise === ex ? '#ffffff' : '#1a1a1a',
-              border: selectedExercise === ex ? '1.5px solid #1a1a1a' : '1.5px solid transparent',
-            }}
-          >
-            {ex}
-          </button>
+      {/* Scrollable exercise list */}
+      <div className="flex-1 overflow-y-auto px-6 pb-40">
+        {Object.entries(grouped).map(([letter, exercises]) => (
+          <div key={letter} className="mb-4">
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{letter}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {exercises.map(ex => (
+                <button
+                  key={ex}
+                  onClick={() => onSelectExercise(ex)}
+                  className="py-3 px-4 rounded-[16px] text-sm font-semibold text-left transition-all active:scale-95"
+                  style={{
+                    background: selectedExercise === ex ? '#1a1a1a' : '#f4f4f5',
+                    color: selectedExercise === ex ? '#ffffff' : '#1a1a1a',
+                    border: selectedExercise === ex ? '1.5px solid #1a1a1a' : '1.5px solid transparent',
+                  }}
+                >
+                  {ex}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
+        {filtered.length === 0 && (
+          <p className="text-center text-sm text-gray-400 py-10">No exercises found for "{search}"</p>
+        )}
       </div>
+
+      {/* Sticky bottom CTA */}
+      <AnimatePresence>
+        {selectedExercise && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-0 left-0 right-0 px-6 pb-8 pt-4"
+            style={{ background: 'linear-gradient(to top, white 70%, transparent)', zIndex: 40 }}
+          >
+            <div className="flex gap-3">
+              <button
+                onClick={() => onStartAnalysing('camera')}
+                className="flex-1 h-14 rounded-2xl bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                <Camera className="w-5 h-5" /> Take Photo
+              </button>
+              <button
+                onClick={() => onStartAnalysing('gallery')}
+                className="h-14 px-5 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                <ImageIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-center text-xs text-gray-400 mt-2">Analysing: <span className="font-bold text-gray-700">{selectedExercise}</span></p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -153,6 +209,11 @@ export default function ExerciseFormScanner() {
     setFile(f);
     setPreview(URL.createObjectURL(f));
     e.target.value = '';
+  };
+
+  const handleStartAnalysing = (mode) => {
+    if (mode === 'camera') camRef.current?.click();
+    else upRef.current?.click();
   };
 
   const analyse = async () => {
@@ -218,10 +279,7 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
     const VIcon =
       result.verdict === 'excellent' || result.verdict === 'good' ? CheckCircle :
       result.verdict === 'needs_work' ? AlertTriangle : XCircle;
-
-    const riskColor =
-      result.injury_risk === 'low' ? '#16a34a' :
-      result.injury_risk === 'medium' ? '#ca8a04' : '#dc2626';
+    const riskColor = result.injury_risk === 'low' ? '#16a34a' : result.injury_risk === 'medium' ? '#ca8a04' : '#dc2626';
 
     return (
       <div className="min-h-screen pb-10">
@@ -242,8 +300,8 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
         </div>
 
         <div className="px-4 space-y-3">
-          {/* Score card */}
-          <div className="bg-white rounded-[20px] p-5 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="bg-white rounded-[20px] p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-gray-400 mb-1">Form Score</p>
@@ -262,32 +320,30 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Top cue hero */}
-          <div className="rounded-[20px] p-5 shadow-sm" style={{ background: '#1a1a1a' }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+            className="rounded-[20px] p-5 shadow-sm" style={{ background: '#1a1a1a' }}>
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-4 h-4 text-yellow-400" />
               <p className="text-xs font-bold text-yellow-400 uppercase tracking-wider">Top Fix Right Now</p>
             </div>
             <p className="text-lg font-black text-white leading-snug">"{result.top_cue}"</p>
-            {result.top_cue_why && (
-              <p className="text-xs text-white/60 mt-2 leading-relaxed">{result.top_cue_why}</p>
-            )}
-          </div>
+            {result.top_cue_why && <p className="text-xs text-white/60 mt-2 leading-relaxed">{result.top_cue_why}</p>}
+          </motion.div>
 
-          {/* Injury risk note */}
           {result.injury_risk_note && result.injury_risk !== 'low' && (
-            <div className="rounded-[20px] p-4 shadow-sm flex items-start gap-3"
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+              className="rounded-[20px] p-4 shadow-sm flex items-start gap-3"
               style={{ background: result.injury_risk === 'high' ? '#fef2f2' : '#fefce8' }}>
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: riskColor }} />
               <p className="text-xs leading-relaxed" style={{ color: riskColor }}>{result.injury_risk_note}</p>
-            </div>
+            </motion.div>
           )}
 
-          {/* What's correct */}
           {result.what_is_correct?.length > 0 && (
-            <div className="bg-white rounded-[20px] p-4 shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+              className="bg-white rounded-[20px] p-4 shadow-sm">
               <p className="text-sm font-bold text-green-700 mb-2">✅ What's Correct</p>
               {result.what_is_correct.map((item, i) => (
                 <div key={i} className="flex items-start gap-2 mb-1.5">
@@ -295,12 +351,12 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
                   <p className="text-xs text-gray-600 leading-relaxed">{item}</p>
                 </div>
               ))}
-            </div>
+            </motion.div>
           )}
 
-          {/* What needs fixing */}
           {result.what_needs_fixing?.length > 0 && (
-            <div className="bg-white rounded-[20px] p-4 shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+              className="bg-white rounded-[20px] p-4 shadow-sm">
               <p className="text-sm font-bold text-red-600 mb-2">⚠️ What Needs Fixing</p>
               {result.what_needs_fixing.map((item, i) => (
                 <div key={i} className="flex items-start gap-2 mb-1.5">
@@ -308,13 +364,11 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
                   <p className="text-xs text-gray-600 leading-relaxed">{item}</p>
                 </div>
               ))}
-            </div>
+            </motion.div>
           )}
 
-          <button
-            onClick={() => { reset(); navigate('/scanner'); }}
-            className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center"
-          >
+          <button onClick={() => { reset(); navigate('/scanner'); }}
+            className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">
             Analyse Another
           </button>
         </div>
@@ -338,11 +392,8 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
               <span className="text-white/90 text-sm font-semibold">{selectedExercise}</span>
             </div>
           )}
-          <button
-            onClick={analyse}
-            disabled={!selectedExercise}
-            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-          >
+          <button onClick={analyse} disabled={!selectedExercise}
+            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
             <Sparkles className="w-5 h-5" /> Analyse Form
           </button>
           <button onClick={() => { setFile(null); setPreview(null); }} className="text-white/70 text-sm font-medium">
@@ -354,14 +405,16 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
   }
 
   return (
-    <ExerciseLanding
-      userName={userName}
-      selectedExercise={selectedExercise}
-      onSelectExercise={setSelectedExercise}
-      camRef={camRef}
-      upRef={upRef}
-      onFile={handleFile}
-      onBack={() => navigate('/scanner')}
-    />
+    <>
+      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+      <input ref={upRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <ExerciseLanding
+        userName={userName}
+        selectedExercise={selectedExercise}
+        onSelectExercise={setSelectedExercise}
+        onStartAnalysing={handleStartAnalysing}
+        onBack={() => navigate('/scanner')}
+      />
+    </>
   );
 }

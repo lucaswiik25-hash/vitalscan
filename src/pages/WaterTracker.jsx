@@ -171,9 +171,8 @@ export default function WaterTracker() {
     queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
-  const ringColor = '#3b82f6'; // solid blue always
-  const ringSize = 280;
-  const ringStroke = 20;
+  const ringSize = 320;
+  const ringStroke = 28;
   const ringR = (ringSize - ringStroke) / 2;
   const ringCirc = 2 * Math.PI * ringR;
 
@@ -208,17 +207,20 @@ export default function WaterTracker() {
         {/* Circular ring */}
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }} className="flex flex-col items-center pt-4 pb-2">
           <div className="relative" style={{ width: ringSize, height: ringSize }}>
-            <svg width={ringSize} height={ringSize} style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx={ringSize / 2} cy={ringSize / 2} r={ringR} fill="none" stroke="#e5e7eb" strokeWidth={ringStroke} strokeLinecap="round" />
+            <svg width={ringSize} height={ringSize} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+              {/* Background track — white/light */}
+              <circle cx={ringSize / 2} cy={ringSize / 2} r={ringR} fill="none"
+                stroke="rgba(255,255,255,0.85)" strokeWidth={ringStroke} strokeLinecap="round" />
+              {/* Blue filled arc */}
               <circle
                 cx={ringSize / 2} cy={ringSize / 2} r={ringR}
                 fill="none"
-                stroke={ringColor}
+                stroke="#60c4f5"
                 strokeWidth={ringStroke}
                 strokeDasharray={ringCirc}
                 strokeDashoffset={ringCirc * (1 - pct / 100)}
                 strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                style={{ transition: 'stroke-dashoffset 0.6s ease', filter: 'drop-shadow(0 2px 8px rgba(96,196,245,0.35))' }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -298,7 +300,7 @@ export default function WaterTracker() {
         <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
           <p className="text-sm font-bold text-foreground">Hydration Quality</p>
           <p className="text-xs text-muted-foreground mt-0.5 mb-3">Log drinks that reduce hydration</p>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="space-y-2">
             {DEHYDRATING_DRINKS.map(drink => {
               const loggedCount = todayLogs.filter(l => l.type === drink.type && l.amount_ml < 0).length;
               const isLogged = loggedCount > 0;
@@ -306,14 +308,14 @@ export default function WaterTracker() {
                 <button
                   key={drink.type}
                   onClick={() => addDehydrating(drink)}
-                  className="shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-[12px] transition-all active:scale-95"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-[14px] transition-all active:scale-[0.98]"
                   style={{
                     background: isLogged ? '#fef2f2' : '#f3f4f6',
                     border: isLogged ? '1.5px solid #fca5a5' : '1.5px solid transparent',
                   }}
                 >
-                  <span className="text-[10px] font-semibold text-gray-700">{drink.name}</span>
-                  <span className="text-[10px] font-bold text-red-500">{drink.ml}ml</span>
+                  <span className="text-sm font-semibold text-gray-700">{drink.name}</span>
+                  <span className="text-sm font-bold text-red-500">{drink.ml}ml</span>
                 </button>
               );
             })}

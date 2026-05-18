@@ -81,7 +81,7 @@ function DetailPage({ result, onBack }) {
   const cardAnim = (i) => ({ initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0 }, transition: { delay: i * 0.07, duration: 0.38, ease: [0.22,1,0.36,1] } });
 
   return (
-    <div className="min-h-screen pb-10" style={{ background: 'white' }}>
+    <div className="min-h-screen pb-10">
       <div className="px-5 pt-12 pb-4 flex items-center gap-3">
         <button onClick={onBack} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center border border-gray-100">
           <ArrowLeft className="w-5 h-5 text-gray-800" />
@@ -354,7 +354,7 @@ NEVER fail.`,
 
   if (result) {
     return (
-      <div className="min-h-screen pb-10" style={{ background: 'white' }}>
+      <div className="min-h-screen pb-10">
         <div className="px-5 pt-12 pb-4 flex items-center gap-3">
           <button onClick={reset} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
             <X className="w-5 h-5 text-gray-800" />

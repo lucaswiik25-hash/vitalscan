@@ -95,10 +95,10 @@ export default function CaloriesBurnedModule({ profile = {} }) {
           const isToday = day.isToday;
           const barColor = isToday
             ? (pct >= 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444')
-            : '#e5e7eb';
+            : '#d1d5db';
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5">
-              <div className="w-full rounded-t-md transition-all" style={{ height: barH, background: barColor }} />
+              <div className="rounded-t-md transition-all" style={{ height: barH, background: barColor, width: '55%', margin: '0 auto' }} />
             </div>
           );
         })}

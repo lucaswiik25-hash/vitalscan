@@ -217,36 +217,38 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
   const logMeal = async (logIt = true) => {
     if (!result) return;
     const today = format(new Date(), 'yyyy-MM-dd');
-    await base44.entities.Meal.create({
-      name: result.name,
+    const mealData = {
+      name: result.name || 'Unknown food',
       date: today,
       time: format(new Date(), 'h:mm a'),
-      image_url: result.image_url,
-      calories: result.calories,
-      protein: result.protein,
-      carbs: result.carbs,
-      fat: result.fat,
-      fiber: result.fiber,
-      sugar: result.sugar,
-      sodium: result.sodium,
-      serving_size: result.serving_size,
-      confidence: result.confidence,
-      source: result.has_barcode ? 'barcode' : 'ai_visual',
-      allergens_detected: result.allergens || [],
-      diet_compatibility: result.diet_compatibility,
-      diet_reason: result.diet_reason,
-      bloat_risk: result.bloat_risk,
-      bloat_reason: result.bloat_reason,
-      glycemic_impact: result.glycemic_impact,
-      glycemic_reason: result.glycemic_reason,
-      skin_impact: result.skin_impact,
-      appearance_tip: result.appearance_tip,
-      health_score: result.health_score,
+      calories: Number(result.calories) || 0,
+      protein: Number(result.protein) || 0,
+      carbs: Number(result.carbs) || 0,
+      fat: Number(result.fat) || 0,
+      fiber: Number(result.fiber) || 0,
+      sugar: Number(result.sugar) || 0,
+      sodium: Number(result.sodium) || 0,
       logged: logIt,
-    });
+    };
+    if (result.image_url) mealData.image_url = result.image_url;
+    if (result.serving_size) mealData.serving_size = result.serving_size;
+    if (result.confidence) mealData.confidence = result.confidence;
+    if (result.has_barcode) mealData.source = 'barcode';
+    else mealData.source = 'ai_visual';
+    if (result.allergens?.length) mealData.allergens_detected = result.allergens;
+    if (result.diet_compatibility) mealData.diet_compatibility = result.diet_compatibility;
+    if (result.diet_reason) mealData.diet_reason = result.diet_reason;
+    if (result.bloat_risk) mealData.bloat_risk = result.bloat_risk;
+    if (result.bloat_reason) mealData.bloat_reason = result.bloat_reason;
+    if (result.glycemic_impact) mealData.glycemic_impact = result.glycemic_impact;
+    if (result.glycemic_reason) mealData.glycemic_reason = result.glycemic_reason;
+    if (result.health_score) mealData.health_score = result.health_score;
+    const created = await base44.entities.Meal.create(mealData);
     queryClient.invalidateQueries({ queryKey: ['meals'] });
     queryClient.invalidateQueries({ queryKey: ['allMeals'] });
+    queryClient.invalidateQueries({ queryKey: ['todayMeals'] });
     navigate('/');
+    return created;
   };
 
   // Analyzing screen

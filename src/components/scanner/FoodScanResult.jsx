@@ -63,46 +63,60 @@ function VerdictBadge({ result }) {
   );
 }
 
-// ─── Action bar (replaces broken FAB) ────────────────────────────────────────
-function ActionBar({ onLog, onLogAnalysisOnly, onScanAnother, onEdit }) {
+// ─── Sticky FAB with expandable actions ──────────────────────────────────────
+function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother, onEdit }) {
+  const [open, setOpen] = useState(false);
+
+  const actions = [
+    { label: 'Log as Meal', icon: Apple, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', onClick: onLog },
+    { label: 'Analysis Only', icon: BarChart2, color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', onClick: onLogAnalysisOnly },
+    { label: 'Rescan', icon: FlaskConical, color: '#9333ea', bg: '#faf5ff', border: '#e9d5ff', onClick: onScanAnother },
+    { label: 'Edit', icon: Pencil, color: '#374151', bg: '#f3f4f6', border: '#e5e7eb', onClick: onEdit },
+  ];
+
   return (
-    <div className="shrink-0 px-4 pb-5 pt-2 flex flex-col gap-2" style={{ background: '#f9fafb', borderTop: '1px solid #f3f4f6' }}>
-      <button
-        onClick={onLog}
-        className="w-full h-13 py-3.5 rounded-2xl flex items-center gap-3 px-4 active:scale-[0.98] transition-transform"
-        style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0' }}
-      >
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Apple style={{ width: 16, height: 16, color: '#16a34a', strokeWidth: 2 }} />
+    <>
+      {/* Backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Expanded actions */}
+      {open && (
+        <div className="fixed top-28 right-4 z-50 flex flex-col gap-2 items-end">
+          {actions.map(({ label, icon: Icon, color, bg, border, onClick }, i) => (
+            <motion.button
+              key={label}
+              initial={{ opacity: 0, x: 20, scale: 0.85 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ delay: i * 0.05, duration: 0.22, ease: 'easeOut' }}
+              onClick={() => { setOpen(false); onClick(); }}
+              className="flex items-center gap-2.5 px-4 h-11 rounded-2xl shadow-lg active:scale-95 transition-transform"
+              style={{ background: bg, border: `1.5px solid ${border}` }}
+            >
+              <Icon style={{ width: 16, height: 16, color, strokeWidth: 2, flexShrink: 0 }} />
+              <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#1a1a1a' }}>{label}</span>
+            </motion.button>
+          ))}
         </div>
-        <span className="text-base font-bold text-gray-800">Log as Meal</span>
-      </button>
-      <div className="flex gap-2">
-        <button
-          onClick={onLogAnalysisOnly}
-          className="flex-1 h-12 rounded-2xl flex items-center gap-2 justify-center px-3 active:scale-[0.98] transition-transform"
-          style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe' }}
+      )}
+
+      {/* FAB button */}
+      <div className="fixed top-14 right-4 z-50">
+        <motion.button
+          onClick={() => setOpen(o => !o)}
+          animate={{ rotate: open ? 45 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+          style={{ background: '#1a1a1a' }}
         >
-          <BarChart2 style={{ width: 15, height: 15, color: '#3b82f6', strokeWidth: 2, flexShrink: 0 }} />
-          <span className="text-sm font-bold text-gray-700">Analysis Only</span>
-        </button>
-        <button
-          onClick={onScanAnother}
-          className="flex-1 h-12 rounded-2xl flex items-center gap-2 justify-center px-3 active:scale-[0.98] transition-transform"
-          style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff' }}
-        >
-          <FlaskConical style={{ width: 15, height: 15, color: '#9333ea', strokeWidth: 2, flexShrink: 0 }} />
-          <span className="text-sm font-bold text-gray-700">Rescan</span>
-        </button>
-        <button
-          onClick={onEdit}
-          className="h-12 w-12 rounded-2xl flex items-center justify-center active:scale-[0.98] transition-transform"
-          style={{ background: '#f3f4f6', border: '1.5px solid #e5e7eb' }}
-        >
-          <Pencil style={{ width: 15, height: 15, color: '#374151', strokeWidth: 2 }} />
-        </button>
+          <Plus style={{ width: 20, height: 20, color: 'white', strokeWidth: 2.5 }} />
+        </motion.button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -496,8 +510,8 @@ Apply these corrections and return an updated JSON with the same fields: name, c
         </div>
       </div>
 
-      {/* ── Action bar ── */}
-      <ActionBar onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} onEdit={() => setShowEditSheet(true)} />
+      {/* ── FAB ── */}
+      <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} onEdit={() => setShowEditSheet(true)} />
 
       {/* ── Edit bottom sheet ── */}
       {showEditSheet && (

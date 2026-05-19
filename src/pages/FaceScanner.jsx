@@ -95,42 +95,36 @@ function DetailPage({ result, onBack }) {
         </div>
       </div>
 
-      <div className="px-4 space-y-3">
-        {/* Skin type + summary as bullet points */}
-        <motion.div {...cardAnim(0)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-50">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-3 py-1 rounded-full bg-gray-100 text-xs font-bold text-gray-700">{result.skin_type}</span>
-            <span className="text-xs text-gray-400">Skin Type</span>
-          </div>
+      <div className="px-4 space-y-4">
+        {/* Skin type + summary — no card, plain text */}
+        <motion.div {...cardAnim(0)}>
+          <p className="text-sm text-gray-400 mb-2">Skin Type: <span className="text-gray-900 font-bold">{result.skin_type}</span></p>
           {result.overall_summary?.split(/[.!]+/).filter(s => s.trim().length > 4).map((s, i) => (
-            <div key={i} className="flex items-start gap-2 mb-1.5">
-              <span className="text-gray-300 shrink-0 mt-0.5">•</span>
-              <p className="text-sm text-gray-600 leading-relaxed">{s.trim()}.</p>
-            </div>
+            <p key={i} className="text-sm text-gray-600 leading-relaxed mb-1.5">{s.trim()}.</p>
           ))}
         </motion.div>
 
-        {/* Facial structure */}
+        {/* Facial structure — plain two-column text, no chips */}
         {result.facial_structure && (
-          <motion.div {...cardAnim(1)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-50">
+          <motion.div {...cardAnim(1)}>
             <p className="text-sm font-bold text-gray-800 mb-3">Facial Structure</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-y-4">
               {[
-                { label: 'Face Shape', value: result.facial_structure.face_shape },
-                { label: 'Jawline', value: result.facial_structure.jawline_definition },
-                { label: 'Cheekbones', value: result.facial_structure.cheekbone_visibility },
-                { label: 'Definition', value: result.facial_definition_score ? `${result.facial_definition_score}/10` : null },
+                { label: 'FACE SHAPE', value: result.facial_structure.face_shape },
+                { label: 'JAWLINE', value: result.facial_structure.jawline_definition },
+                { label: 'CHEEKBONES', value: result.facial_structure.cheekbone_visibility },
+                { label: 'DEFINITION', value: result.facial_definition_score ? `${result.facial_definition_score}/10` : null },
               ].filter(x => x.value).map(({ label, value }) => (
-                <div key={label} className="bg-gray-50 rounded-[14px] p-3">
+                <div key={label}>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
-                  <p className="text-sm font-bold text-gray-800 mt-0.5 capitalize">{value}</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5 capitalize">{value}</p>
                 </div>
               ))}
             </div>
           </motion.div>
         )}
 
-        {/* Priority fixes */}
+        {/* Priority fixes — keep exactly as is */}
         {result.priority_actions?.length > 0 && (
           <motion.div {...cardAnim(2)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-50">
             <p className="text-sm font-bold text-gray-800 mb-3">🎯 Top Priority Actions</p>
@@ -145,15 +139,12 @@ function DetailPage({ result, onBack }) {
           </motion.div>
         )}
 
-        {/* Diet connection */}
+        {/* Diet connection — left border accent, no purple bg */}
         {result.food_connection && (
-          <motion.div {...cardAnim(3)} className="rounded-[20px] p-4 shadow-sm" style={{ background: '#faf5ff' }}>
-            <p className="text-xs font-bold text-purple-700 mb-2">🍽️ Diet Connection</p>
+          <motion.div {...cardAnim(3)} className="bg-white rounded-[20px] p-4" style={{ borderLeft: '3px solid #a855f7' }}>
+            <p className="text-xs font-bold text-gray-900 mb-2">🍽️ Diet Connection</p>
             {result.food_connection.split(/[.!]+/).filter(s => s.trim().length > 4).map((s, i) => (
-              <div key={i} className="flex items-start gap-2 mb-1.5">
-                <span className="text-purple-300 shrink-0">•</span>
-                <p className="text-sm text-purple-700 leading-relaxed">{s.trim()}.</p>
-              </div>
+              <p key={i} className="text-sm text-gray-600 leading-relaxed mb-1.5">{s.trim()}.</p>
             ))}
           </motion.div>
         )}
@@ -171,22 +162,19 @@ function DetailPage({ result, onBack }) {
                     : { bg: '#f0fdf4', text: '#16a34a' };
                 return (
                   <motion.div key={i} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.06 }}
-                    className="bg-white rounded-[20px] p-4 shadow-sm border border-gray-50">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-bold text-gray-800">{c.concern}</p>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: sevColor.bg, color: sevColor.text }}>{c.severity}</span>
+                    className="bg-white rounded-[20px] p-4" style={{ border: '1px solid #E5E5E5' }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-base font-extrabold text-gray-900">{c.concern}</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: sevColor.bg, color: sevColor.text }}>{c.severity}</span>
                     </div>
                     {c.likely_cause && (
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="text-gray-300 shrink-0">•</span>
-                        <p className="text-xs text-gray-500"><span className="font-semibold">Cause: </span>{c.likely_cause}</p>
-                      </div>
+                      <p className="text-xs text-gray-500 mb-2"><span className="font-semibold">Cause: </span>{c.likely_cause}</p>
                     )}
                     {c.actions?.length > 0 && (
                       <div className="space-y-1">
                         {c.actions.map((a, j) => (
                           <div key={j} className="flex items-start gap-2">
-                            <span className="text-gray-300 shrink-0 text-xs mt-0.5">→</span>
+                            <span className="text-gray-400 shrink-0 text-xs mt-0.5">→</span>
                             <p className="text-xs text-gray-600">{a}</p>
                           </div>
                         ))}

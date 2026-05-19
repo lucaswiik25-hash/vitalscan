@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import { X, Calendar, Plus, Target, Zap } from 'lucide-react';
@@ -128,11 +129,7 @@ export default function WaterTracker() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-  const profile = profiles[0] || {};
+  const { profile } = useUserProfile();
   const dailyTarget = profile.water_target_ml || 2000;
 
   const { data: todayLogs = [] } = useQuery({

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check } from 'lucide-react';
 import { format } from 'date-fns';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 async function registerScan(type, productName, brand, imageUrl, safetyScore, qualityScore, verdict) {
   try {
@@ -330,11 +331,7 @@ function RecentScans() {
 export default function ScannerHub() {
   const navigate = useNavigate();
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-  const profile = profiles[0] || {};
+  const { profile } = useUserProfile();
   const isAppearanceMode = profile.diet_mode === 'appearance_mode';
 
   const cardKeys = isAppearanceMode

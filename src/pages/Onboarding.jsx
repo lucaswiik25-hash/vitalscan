@@ -220,8 +220,11 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
 
   const saveProfile = async () => {
     setIsAnalyzing(true);
-    // Delete any existing profiles before creating new one (handles redo onboarding)
-    const existing = await base44.entities.UserProfile.list();
+    // Delete only the current user's existing profiles before creating a new one
+    const me = await base44.auth.me();
+    const existing = me?.email
+      ? await base44.entities.UserProfile.filter({ created_by: me.email })
+      : [];
     for (const p of existing) {
       await base44.entities.UserProfile.delete(p.id);
     }

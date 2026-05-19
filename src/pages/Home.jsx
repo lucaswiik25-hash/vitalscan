@@ -10,6 +10,7 @@ import NutriCarousel from '../components/home/NutriCarousel';
 import CaloriesBurnedModule from '../components/home/CaloriesBurnedModule';
 import DayVerdictPage from '../components/home/DayVerdictPage';
 import AllergyBanner from '../components/home/AllergyBanner';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -23,12 +24,7 @@ export default function Home() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-
-  const profile = profiles[0] || {};
+  const { profile, profiles, isLoading: isLoadingProfiles } = useUserProfile();
 
   useEffect(() => {
     if (!isLoadingProfiles && profiles.length > 0 && !profile.onboarding_complete) {

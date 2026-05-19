@@ -8,6 +8,7 @@ import FoodScanResult from '../components/scanner/FoodScanResult';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import BarcodeInput from '../components/scanner/BarcodeInput';
 import { buildCall2Prompt, call2Schema, dietPreamble } from '../lib/dietPrompts';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 export default function FoodScanner() {
   const navigate = useNavigate();
@@ -24,11 +25,7 @@ export default function FoodScanner() {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-  const profile = profiles[0] || {};
+  const { profile } = useUserProfile();
   const userName = profile.name || 'there';
 
   // Handle replay from scan history

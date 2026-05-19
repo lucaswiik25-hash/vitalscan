@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine, Scatter, ScatterChart, CartesianGrid } from 'recharts';
@@ -37,11 +38,7 @@ export default function SleepTracker() {
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [showTips, setShowTips] = useState(false);
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-  const profile = profiles[0] || {};
+  const { profile } = useUserProfile();
 
   const sleepData = getSleepData();
   const todaySleep = sleepData[TODAY];

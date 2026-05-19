@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Plus, Check, Trash2, Sparkles, Loader2, Pill, X } from 'lucide-react';
@@ -26,11 +27,7 @@ export default function SupplementTracker() {
     queryFn: () => base44.entities.Meal.filter({ logged: true }),
   });
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-  const profile = profiles[0] || {};
+  const { profile } = useUserProfile();
 
   const addSupplement = async () => {
     if (!newName.trim()) return;

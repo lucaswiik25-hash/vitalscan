@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft, Pill, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -67,11 +67,8 @@ export default function SupplementScanner() {
   const [analyzingMsg, setAnalyzingMsg] = useState('');
   const [result, setResult] = useState(null);
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-  const userName = profiles[0]?.name || 'there';
+  const { profile } = useUserProfile();
+  const userName = profile.name || 'there';
 
   const handleS1File = (e) => {
     const file = e.target.files[0];

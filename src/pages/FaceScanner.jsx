@@ -6,6 +6,7 @@ import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -220,12 +221,11 @@ export default function FaceScanner() {
   const [result, setResult] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => base44.entities.UserProfile.list() });
+  const { profile } = useUserProfile();
   const { data: todayMeals = [] } = useQuery({
     queryKey: ['meals', format(new Date(), 'yyyy-MM-dd')],
     queryFn: () => base44.entities.Meal.filter({ date: format(new Date(), 'yyyy-MM-dd'), logged: true }),
   });
-  const profile = profiles[0] || {};
   const isAppearanceMode = profile.diet_mode === 'appearance_mode';
 
   const handleFile = (e) => {

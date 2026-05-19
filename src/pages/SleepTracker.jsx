@@ -67,7 +67,7 @@ export default function SleepTracker() {
   const chartData = Array.from({ length: 14 }, (_, i) => {
     const d = subDays(new Date(), 13 - i);
     const dateStr = format(d, 'yyyy-MM-dd');
-    return { day: format(d, 'EEE dd'), hours: sleepData[dateStr] || null };
+    return { day: format(d, 'MMM d'), hours: sleepData[dateStr] || null };
   });
 
   const avgSleep = (() => {
@@ -140,8 +140,8 @@ Provide:
       </motion.div>
 
       <div className="px-5 space-y-4">
-        {/* 14-day chart — warm orange style */}
-        <motion.div {...fadeUp(0.2)} className="rounded-[24px] overflow-hidden" style={{ background: '#E8734A' }}>
+        {/* 14-day chart */}
+        <motion.div {...fadeUp(0.2)} className="rounded-[24px] overflow-hidden" style={{ background: '#B8C4DA' }}>
           <div className="px-5 pt-5 pb-2 flex items-start justify-between">
             <div>
               <span className="text-white text-base font-bold">Sleep Trend </span>
@@ -153,39 +153,72 @@ Provide:
               </div>
             )}
           </div>
-          <div className="px-2 pb-1" style={{ height: 180 }}>
+          <div className="pb-2" style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 16, right: 12, left: 0, bottom: 0 }}>
-                <XAxis dataKey="day" axisLine={false} tickLine={false}
-                  tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.7)', fontWeight: 500 }}
-                  interval={1}
-                  tickFormatter={(v) => v.split(' ')[1]}
+              <LineChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
+                <XAxis
+                  dataKey="day"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)', fontWeight: 500 }}
+                  interval={0}
+                  tickFormatter={(v) => {
+                    const parts = v.split(' ');
+                    return parts[1] || v;
+                  }}
                 />
-                <YAxis domain={[0, 12]} hide />
+                <YAxis
+                  domain={[0, 13]}
+                  ticks={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]}
+                  tickFormatter={(v) => `${v}h`}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.75)', fontWeight: 500 }}
+                  width={28}
+                />
+                <CartesianGrid
+                  vertical={false}
+                  horizontal={true}
+                  strokeDasharray="0"
+                  stroke="rgba(255,255,255,0.18)"
+                  strokeWidth={1}
+                />
+                {/* Vertical grid lines through every dot position */}
+                <CartesianGrid
+                  vertical={true}
+                  horizontal={false}
+                  strokeDasharray="0"
+                  stroke="rgba(255,255,255,0.12)"
+                  strokeWidth={1}
+                />
                 <Tooltip
                   contentStyle={{ borderRadius: 14, background: 'white', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', fontSize: 12, padding: '8px 14px' }}
                   labelStyle={{ color: '#888', fontSize: 10, marginBottom: 2 }}
                   formatter={(v) => v ? [`${v}h`, 'Sleep'] : ['—', 'No data']}
-                  cursor={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1 }}
+                  cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1 }}
                 />
-                {/* Line connecting only logged days */}
                 <Line
                   type="monotone"
                   dataKey="hours"
                   stroke="white"
                   strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationEasing="ease-out"
                   dot={(props) => {
                     const { cx, cy, payload } = props;
-                    if (payload.hours == null) return null;
+                    if (payload.hours == null) return <g key={`empty-${payload.day}`} />;
                     return (
                       <circle
                         key={`dot-${payload.day}`}
-                        cx={cx} cy={cy} r={4}
-                        fill="white" stroke="white" strokeWidth={2}
+                        cx={cx} cy={cy} r={5}
+                        fill="white" stroke="rgba(255,255,255,0.4)" strokeWidth={3}
                       />
                     );
                   }}
-                  activeDot={{ fill: 'white', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 4, r: 5 }}
+                  activeDot={{ fill: 'white', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 4, r: 6 }}
                   connectNulls={false}
                 />
               </LineChart>

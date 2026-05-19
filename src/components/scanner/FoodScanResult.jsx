@@ -273,9 +273,15 @@ Apply these corrections and return an updated JSON with the same fields: name, c
           </div>
         ))}
       </div>
-      {vitamins.length > 0 && (
-        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Vitamins & Minerals</p>
+    </div>
+  );
+
+  // ─── Slide 1b: Vitamins ───────────────────────────────────────────────────────
+  const slideVitamins = (
+    <div className="pb-4 space-y-3 fade-in-up">
+      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Vitamins & Minerals</p>
+        {vitamins.length > 0 ? (
           <div className="grid grid-cols-2 gap-2">
             {vitamins.map((v, i) => {
               const dv = v.dv_percent || 0;
@@ -296,8 +302,10 @@ Apply these corrections and return an updated JSON with the same fields: name, c
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-xs text-gray-400 text-center py-4">No vitamin data available for this item.</p>
+        )}
+      </div>
     </div>
   );
 
@@ -342,9 +350,18 @@ Apply these corrections and return an updated JSON with the same fields: name, c
       </div>
       {result.tomorrow_face && (
         <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div className="flex items-center gap-3 mb-2">
-            <IconModule icon={Activity} bg="#f5f3ff" color="#8b5cf6" size={36} />
-            <p className="text-xs font-bold text-gray-700">Tomorrow's Face</p>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <IconModule icon={Activity} bg="#f5f3ff" color="#8b5cf6" size={36} />
+              <p className="text-xs font-bold text-gray-700">Tomorrow's Face</p>
+            </div>
+            {(() => {
+              const bloat = (result.bloat_risk || '').toLowerCase();
+              if (bloat === 'high') return <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-red-100 text-red-600">Bloated</span>;
+              if (bloat === 'medium') return <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700">Fixable</span>;
+              if (bloat === 'low') return <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-green-100 text-green-700">Debloated</span>;
+              return null;
+            })()}
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">{result.tomorrow_face}</p>
         </div>
@@ -404,9 +421,18 @@ Apply these corrections and return an updated JSON with the same fields: name, c
       )}
       {result.tomorrow_face && (
         <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div className="flex items-center gap-3 mb-2">
-            <IconModule icon={Activity} bg="#f5f3ff" color="#8b5cf6" size={36} />
-            <p className="text-xs font-bold text-gray-700">Tomorrow's Face</p>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <IconModule icon={Activity} bg="#f5f3ff" color="#8b5cf6" size={36} />
+              <p className="text-xs font-bold text-gray-700">Tomorrow's Face</p>
+            </div>
+            {(() => {
+              const bloat = (result.bloat_risk || '').toLowerCase();
+              if (bloat === 'high') return <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-red-100 text-red-600">Bloated</span>;
+              if (bloat === 'medium') return <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700">Fixable</span>;
+              if (bloat === 'low') return <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-green-100 text-green-700">Debloated</span>;
+              return null;
+            })()}
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">{result.tomorrow_face_note || result.tomorrow_face}</p>
         </div>
@@ -486,10 +512,10 @@ Apply these corrections and return an updated JSON with the same fields: name, c
     </div>
   );
 
-  const allSlides = [slide0, slide1, slide2, slide3, slide4];
+  const allSlides = [slide0, slide1, slideVitamins, slide2, slide3, slide4];
   const slideLabels = result.is_appearance_mode
-    ? ['Calories', 'Macros', 'Appearance', 'Detail', 'Ingredients']
-    : ['Calories', 'Macros', 'Body', 'Appearance', 'Ingredients'];
+    ? ['Calories', 'Macros', 'Vitamins', 'Appearance', 'Detail', 'Ingredients']
+    : ['Calories', 'Macros', 'Vitamins', 'Body', 'Appearance', 'Ingredients'];
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {

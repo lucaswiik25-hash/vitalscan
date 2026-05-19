@@ -38,29 +38,7 @@ function calcCalories(met, weight, minutes) {
   return Math.round((met * weight * minutes) / 60);
 }
 
-// Circular progress ring component
-function ProgressRing({ pct }) {
-  const r = 36;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - Math.min(100, pct) / 100);
-  return (
-    <div className="relative" style={{ width: 88, height: 88 }}>
-      <svg width={88} height={88} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={44} cy={44} r={r} fill="none" stroke="#f0f0f0" strokeWidth={8} />
-        <circle cx={44} cy={44} r={r} fill="none" stroke="#1a1a1a" strokeWidth={8}
-          strokeDasharray={circ}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-        <Flame className="w-3.5 h-3.5 text-gray-900" />
-        <span className="text-sm font-bold text-gray-900 leading-none">{Math.round(Math.min(100, pct))}%</span>
-      </div>
-    </div>
-  );
-}
+
 
 export default function Exercise() {
   const navigate = useNavigate();
@@ -135,28 +113,36 @@ export default function Exercise() {
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
         <motion.div {...fadeUp(0)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Today's Burn</p>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-6xl font-black text-gray-900 leading-none">{totalBurned.toLocaleString()}</span>
-                <span className="text-base font-semibold text-gray-400">kcal</span>
-              </div>
-              <p className="text-xs text-gray-400 mt-1.5">Target: {exerciseTarget} kcal</p>
-            </div>
-            <ProgressRing pct={pct} />
+          {/* Label row */}
+          <div className="flex items-center gap-1.5 mb-3">
+            <Flame className="w-3 h-3 text-gray-400" />
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Today's Burn</p>
           </div>
+
+          {/* Big number row */}
+          <div className="flex items-baseline gap-1.5 mb-3">
+            <span className="text-5xl font-black text-gray-900 leading-none">{totalBurned.toLocaleString()}</span>
+            <span className="text-xl text-gray-300 font-light mx-0.5">/</span>
+            <span className="text-xl font-semibold text-gray-400">{exerciseTarget}</span>
+            <span className="text-sm text-gray-400 font-normal">kcal</span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden mb-1.5">
+            <div className="h-full rounded-full bg-gray-900 transition-all duration-700"
+              style={{ width: `${Math.min(100, pct)}%` }} />
+          </div>
+          <p className="text-[10px] text-gray-400 text-right mb-4">{Math.max(0, exerciseTarget - totalBurned)} remaining</p>
 
           {/* Stat chips */}
           <div className="flex gap-2">
             {[
-              { icon: Timer, value: totalMinutes, label: 'minutes' },
-              { icon: Dumbbell, value: exercises.length, label: 'sessions' },
-              { icon: Flame, value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
-            ].map(({ icon: Icon, value, label }, i) => (
-              <motion.div key={label} {...fadeUp(0.4 + i * 0.08)} className="flex-1 bg-gray-50 rounded-[14px] py-3 px-2 flex flex-col items-center gap-1">
-                <Icon className="w-4 h-4 text-gray-900" />
-                <span className="text-lg font-bold text-gray-900 leading-none">{value}</span>
+              { value: totalMinutes, label: 'minutes' },
+              { value: exercises.length, label: 'sessions' },
+              { value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
+            ].map(({ value, label }, i) => (
+              <motion.div key={label} {...fadeUp(0.4 + i * 0.08)} className="flex-1 rounded-[14px] py-3 px-2 flex flex-col items-center gap-0.5" style={{ background: '#F5F5F5' }}>
+                <span className="text-xl font-black text-gray-900 leading-none">{value}</span>
                 <span className="text-[10px] text-gray-400">{label}</span>
               </motion.div>
             ))}

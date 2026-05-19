@@ -82,7 +82,14 @@ function GlassCaffeineCard({ waterLogs = [] }) {
 }
 
 function GlassSleepCard({ profile }) {
-  const hours = profile.last_sleep_hours;
+  // Read from localStorage as fallback if UserProfile hasn't synced yet
+  const today = new Date().toISOString().slice(0, 10);
+  let localHours = null;
+  try {
+    const stored = JSON.parse(localStorage.getItem('scanly_sleep') || '{}');
+    localHours = stored[today] ?? null;
+  } catch (_) {}
+  const hours = profile.last_sleep_hours ?? localHours;
   const hasData = hours != null;
   const color = !hasData ? '#aaa' : hours >= 7 ? '#6CC5A0' : hours >= 5 ? '#F5C842' : '#F47C7C';
   return (
@@ -146,12 +153,33 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
   const bloatLabel = bloatHigh > 0 ? 'High' : bloatMed > 0 ? 'Medium' : bloatRiskRaw.length > 0 ? 'Low' : '—';
   const bloatColor = bloatHigh > 0 ? '#dc2626' : bloatMed > 0 ? '#ca8a04' : '#16a34a';
 
-  // tomorrow prediction: use most recent scan result
-  const lastPrediction = [...todayMeals]
-    .reverse()
-    .find(m => m.tomorrow_prediction);
-  const prediction = lastPrediction?.tomorrow_prediction;
-  const predColor = prediction === 'Better' ? '#16a34a' : prediction === 'Worse' ? '#dc2626' : '#ca8a04';
+  // tomorrow prediction: calculated from today's data
+  const sodiumBalance = sodiumConsumed - potassiumConsumed; // high = worse
+  const waterPct = waterTarget > 0 ? (waterConsumed / waterTarget) * 100 : 0;
+  const sugarPct = sugarTarget > 0 ? (sugarConsumed / sugarTarget) * 100 : 0;
+  const sleepHours = profile.last_sleep_hours || 0;
+  const hasMealsLogged = todayMeals.length > 0;
+
+  let facePrediction = null;
+  let faceReason = null;
+  if (hasMealsLogged || waterConsumed > 0 || sleepHours > 0) {
+    let score = 50;
+    if (waterPct >= 80) score += 15; else if (waterPct >= 50) score += 5; else score -= 10;
+    if (sleepHours >= 7 && sleepHours <= 9) score += 15; else if (sleepHours >= 5) score += 5; else if (sleepHours > 0) score -= 15;
+    if (sugarPct > 100) score -= 15; else if (sugarPct > 70) score -= 5; else if (sugarPct < 50 && hasMealsLogged) score += 5;
+    if (sodiumBalance > 1000) score -= 10; else if (sodiumBalance < 200) score += 10;
+    if (hasMealsLogged) score += 5;
+    const reasons = [];
+    if (waterPct < 60) reasons.push('low water');
+    if (sleepHours > 0 && sleepHours < 7) reasons.push('insufficient sleep');
+    if (sugarPct > 100) reasons.push('high sugar');
+    if (sodiumBalance > 1000) reasons.push('high sodium vs potassium');
+    if (waterPct >= 80) reasons.push('great hydration');
+    if (sleepHours >= 7) reasons.push('good sleep');
+    facePrediction = score >= 65 ? 'Better' : score >= 45 ? 'Similar' : 'Worse';
+    faceReason = reasons.length > 0 ? reasons.join(', ') : 'Based on today\'s intake';
+  }
+  const predColor = facePrediction === 'Better' ? '#16a34a' : facePrediction === 'Worse' ? '#dc2626' : '#ca8a04';
 
   return [
     <div key="a1" className="min-w-full px-5 space-y-3">
@@ -178,10 +206,10 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
       </div>
       <div className="rounded-[22px] p-5" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50">Tomorrow Face Prediction</p>
-        <p className="text-5xl font-light text-foreground leading-none mt-1" style={{ color: predColor }}>{prediction || '—'}</p>
-        {lastPrediction?.tomorrow_prediction_reason
-          ? <p className="text-xs text-foreground/40 mt-2 leading-relaxed">{lastPrediction.tomorrow_prediction_reason}</p>
-          : <p className="text-xs text-foreground/40 mt-2">Log food to see prediction</p>
+        <p className="text-5xl font-light text-foreground leading-none mt-1" style={{ color: facePrediction ? predColor : undefined }}>{facePrediction || '—'}</p>
+        {faceReason
+          ? <p className="text-xs text-foreground/40 mt-2 leading-relaxed capitalize">{faceReason}</p>
+          : <p className="text-xs text-foreground/40 mt-2">Log food & water to see prediction</p>
         }
       </div>
     </div>,

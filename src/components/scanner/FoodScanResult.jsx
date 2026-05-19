@@ -254,6 +254,7 @@ Apply these corrections and return an updated JSON with the same fields: name, c
   );
 
   // ─── Slide 1: Macros ─────────────────────────────────────────────────────────
+  const vitamins = currentResult.vitamins || [];
   const slide1 = (
     <div className="pb-4 space-y-3 fade-in-up">
       <div className="bg-white rounded-[22px] p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}>
@@ -272,6 +273,31 @@ Apply these corrections and return an updated JSON with the same fields: name, c
           </div>
         ))}
       </div>
+      {vitamins.length > 0 && (
+        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Vitamins & Minerals</p>
+          <div className="grid grid-cols-2 gap-2">
+            {vitamins.map((v, i) => {
+              const dv = v.dv_percent || 0;
+              const barColor = dv >= 50 ? '#16a34a' : dv >= 20 ? '#f59e0b' : '#94a3b8';
+              return (
+                <div key={i} className="bg-gray-50 rounded-[14px] p-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-gray-700 truncate">{v.name}</span>
+                    {dv > 0 && <span className="text-[9px] font-bold shrink-0 ml-1" style={{ color: barColor }}>{dv}%</span>}
+                  </div>
+                  <p className="text-[10px] text-gray-400">{v.amount}</p>
+                  {dv > 0 && (
+                    <div className="w-full h-1 rounded-full mt-1.5 overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, dv)}%`, background: barColor }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 

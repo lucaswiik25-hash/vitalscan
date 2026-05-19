@@ -28,7 +28,14 @@ export default function DailyModules({ todayMeals = [], profile = {} }) {
   const totalSupps = supplements.length;
   const suppPct = totalSupps > 0 ? Math.round((takenCount / totalSupps) * 100) : 0;
 
-  const currentSleep = profile.last_sleep_hours ?? sleepHours;
+  // Also read from localStorage (SleepTracker page saves there)
+  const localSleepHours = (() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('scanly_sleep') || '{}');
+      return stored[TODAY] ?? null;
+    } catch { return null; }
+  })();
+  const currentSleep = profile.last_sleep_hours ?? sleepHours ?? localSleepHours;
 
   const saveSleep = async (h) => {
     setSleepHours(h);

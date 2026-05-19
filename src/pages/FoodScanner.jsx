@@ -148,7 +148,22 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     });
     const r2result = r2raw.data?.result || r2raw.data || {};
 
-    const finalResult = { ...enriched, ...r2result, image_url: file_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
+    // Vitamin extraction (parallel, non-blocking)
+    let vitamins = [];
+    try {
+      const vitRes = await base44.integrations.Core.InvokeLLM({
+        prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name (e.g. "Vitamin C"), amount (e.g. "15mg" or "estimated"), dv_percent (approximate % daily value as a number, 0 if unknown). NEVER fail.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } }
+          }
+        }
+      });
+      vitamins = vitRes?.vitamins || [];
+    } catch (_) {}
+
+    const finalResult = { ...enriched, ...r2result, vitamins, image_url: file_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
     setResult(finalResult);
     base44.entities.ScanResult.create({
       type: 'food',
@@ -201,7 +216,15 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       prompt: buildCall2Prompt(dietMode, enriched, userProfile, todayCtx),
       response_json_schema: call2Schema,
     });
-    const finalResult = { ...enriched, ...(r2braw.data?.result || r2braw.data || {}), step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
+    let vitaminsB = [];
+    try {
+      const vitResB = await base44.integrations.Core.InvokeLLM({
+        prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name, amount (e.g. "15mg"), dv_percent (% daily value as number). NEVER fail.`,
+        response_json_schema: { type: 'object', properties: { vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } } } }
+      });
+      vitaminsB = vitResB?.vitamins || [];
+    } catch (_) {}
+    const finalResult = { ...enriched, ...(r2braw.data?.result || r2braw.data || {}), vitamins: vitaminsB, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
     setResult(finalResult);
     base44.entities.ScanResult.create({
       type: 'food',
@@ -243,6 +266,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     if (result.glycemic_impact) mealData.glycemic_impact = result.glycemic_impact;
     if (result.glycemic_reason) mealData.glycemic_reason = result.glycemic_reason;
     if (result.health_score) mealData.health_score = result.health_score;
+    if (result.vitamins?.length) mealData.vitamins = result.vitamins;
     const created = await base44.entities.Meal.create(mealData);
     queryClient.invalidateQueries({ queryKey: ['meals'] });
     queryClient.invalidateQueries({ queryKey: ['allMeals'] });

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine, Scatter, ScatterChart, CartesianGrid } from 'recharts';
 import { Moon, Sparkles, Loader2, Info, X } from 'lucide-react';
 
 const fadeUp = (delay = 0) => ({
@@ -29,21 +30,36 @@ function saveSleepData(data) {
 }
 
 export default function SleepTracker() {
+  const queryClient = useQueryClient();
   const [hoursInput, setHoursInput] = useState('');
   const [saved, setSaved] = useState(false);
   const [aiAdvice, setAiAdvice] = useState(null);
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [showTips, setShowTips] = useState(false);
 
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => base44.entities.UserProfile.list(),
+  });
+  const profile = profiles[0] || {};
+
   const sleepData = getSleepData();
   const todaySleep = sleepData[TODAY];
 
-  const saveSleep = (h) => {
+  const saveSleep = async (h) => {
     const updated = { ...sleepData, [TODAY]: h };
     saveSleepData(updated);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     setHoursInput(String(h));
+    // Also sync to UserProfile so home page carousel & DailyModules reflect it
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, {
+        last_sleep_hours: h,
+        last_sleep_date: TODAY,
+      });
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
   };
 
   const handleLogSleep = () => {
@@ -143,12 +159,6 @@ Provide:
           <div className="px-2 pb-1" style={{ height: 180 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 16, right: 12, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
-                    <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-                  </linearGradient>
-                </defs>
                 <XAxis dataKey="day" axisLine={false} tickLine={false}
                   tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.7)', fontWeight: 500 }}
                   interval={1}
@@ -161,10 +171,26 @@ Provide:
                   formatter={(v) => v ? [`${v}h`, 'Sleep'] : ['—', 'No data']}
                   cursor={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1 }}
                 />
-                <Line type="monotone" dataKey="hours" stroke="white" strokeWidth={2.5}
-                  dot={{ fill: 'white', stroke: 'white', strokeWidth: 2, r: 3.5 }}
+                {/* Line connecting only logged days */}
+                <Line
+                  type="monotone"
+                  dataKey="hours"
+                  stroke="white"
+                  strokeWidth={2.5}
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    if (payload.hours == null) return null;
+                    return (
+                      <circle
+                        key={`dot-${payload.day}`}
+                        cx={cx} cy={cy} r={4}
+                        fill="white" stroke="white" strokeWidth={2}
+                      />
+                    );
+                  }}
                   activeDot={{ fill: 'white', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 4, r: 5 }}
-                  connectNulls={false} />
+                  connectNulls={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>

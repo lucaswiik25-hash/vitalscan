@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const FOOD_FACTS = [
   { emoji: '🍫', title: 'Dark Chocolate & Health', fact: '70%+ dark chocolate is rich in flavonoids that improve blood flow, lower blood pressure, and boost brain function. Just 1–2 squares daily can have measurable cardiovascular benefits.' },
@@ -85,15 +85,12 @@ export default function AnalyzingScreen({ type = 'food', message = 'Analysing...
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col items-center justify-center px-6">
-      {/* Magnifying glass with pulsing ring */}
-      <div className="relative mb-8 flex items-center justify-center">
-        {/* Outer pulse rings */}
-        <div className="absolute w-32 h-32 rounded-full bg-gray-100 animate-ping opacity-30" />
-        <div className="absolute w-24 h-24 rounded-full bg-gray-200 animate-pulse" />
-        {/* Icon circle */}
-        <div className="relative w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center z-10">
-          <Search className="w-9 h-9 text-white" strokeWidth={1.5} />
-        </div>
+      {/* Three-dot pulse loader */}
+      <div className="flex items-center gap-2 mb-8">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="w-2.5 h-2.5 rounded-full bg-gray-900"
+            style={{ animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+        ))}
       </div>
 
       <p className="text-base font-semibold text-gray-800 mb-1">{message}</p>
@@ -107,8 +104,7 @@ export default function AnalyzingScreen({ type = 'food', message = 'Analysing...
           style={{ animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both' }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">{card.emoji}</span>
-            <p className="text-xs font-bold text-gray-800">{card.title}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{card.title}</p>
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">{card.fact}</p>
         </div>

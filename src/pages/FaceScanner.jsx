@@ -96,17 +96,17 @@ function DetailPage({ result, onBack }) {
       </div>
 
       <div className="px-4 space-y-4">
-        {/* Skin type + summary — no card, plain text */}
-        <motion.div {...cardAnim(0)}>
+        {/* Skin type + summary — glass card */}
+        <motion.div {...cardAnim(0)} className="rounded-[20px] p-5" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.12)' }}>
           <p className="text-sm text-gray-400 mb-2">Skin Type: <span className="text-gray-900 font-bold">{result.skin_type}</span></p>
           {result.overall_summary?.split(/[.!]+/).filter(s => s.trim().length > 4).map((s, i) => (
             <p key={i} className="text-sm text-gray-600 leading-relaxed mb-1.5">{s.trim()}.</p>
           ))}
         </motion.div>
 
-        {/* Facial structure — plain two-column text, no chips */}
+        {/* Facial structure — glass card, plain two-column text */}
         {result.facial_structure && (
-          <motion.div {...cardAnim(1)}>
+          <motion.div {...cardAnim(1)} className="rounded-[20px] p-5" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.12)' }}>
             <p className="text-sm font-bold text-gray-800 mb-3">Facial Structure</p>
             <div className="grid grid-cols-2 gap-y-4">
               {[
@@ -126,7 +126,7 @@ function DetailPage({ result, onBack }) {
 
         {/* Priority fixes — keep exactly as is */}
         {result.priority_actions?.length > 0 && (
-          <motion.div {...cardAnim(2)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-50">
+          <motion.div {...cardAnim(2)} className="rounded-[20px] p-5" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.12)' }}>
             <p className="text-sm font-bold text-gray-800 mb-3">🎯 Top Priority Actions</p>
             <div className="space-y-2.5">
               {result.priority_actions.map((action, i) => (
@@ -139,9 +139,9 @@ function DetailPage({ result, onBack }) {
           </motion.div>
         )}
 
-        {/* Diet connection — left border accent, no purple bg */}
+        {/* Diet connection — left border accent, glass */}
         {result.food_connection && (
-          <motion.div {...cardAnim(3)} className="bg-white rounded-[20px] p-4" style={{ borderLeft: '3px solid #a855f7' }}>
+          <motion.div {...cardAnim(3)} className="rounded-[20px] p-4" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.12)', borderLeft: '3px solid #a855f7' }}>
             <p className="text-xs font-bold text-gray-900 mb-2">🍽️ Diet Connection</p>
             {result.food_connection.split(/[.!]+/).filter(s => s.trim().length > 4).map((s, i) => (
               <p key={i} className="text-sm text-gray-600 leading-relaxed mb-1.5">{s.trim()}.</p>
@@ -162,7 +162,7 @@ function DetailPage({ result, onBack }) {
                     : { bg: '#f0fdf4', text: '#16a34a' };
                 return (
                   <motion.div key={i} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.06 }}
-                    className="bg-white rounded-[20px] p-4" style={{ border: '1px solid #E5E5E5' }}>
+                    className="rounded-[20px] p-4" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.12)' }}>
                     <div className="flex items-center gap-2 mb-2">
                       <p className="text-base font-extrabold text-gray-900">{c.concern}</p>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: sevColor.bg, color: sevColor.text }}>{c.severity}</span>
@@ -192,13 +192,13 @@ function DetailPage({ result, onBack }) {
         {(result.improvable?.length > 0 || result.genetic?.length > 0) && (
           <motion.div {...cardAnim(5)} className="grid grid-cols-2 gap-2">
             {result.improvable?.length > 0 && (
-              <div className="bg-green-50 rounded-[20px] p-4 shadow-sm">
+              <div className="rounded-[20px] p-4" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.12)' }}>
                 <p className="text-xs font-bold text-green-700 mb-2">✅ Improvable</p>
-                {result.improvable.map((s, i) => <p key={i} className="text-xs text-green-700 mb-1">• {s}</p>)}
+                {result.improvable.map((s, i) => <p key={i} className="text-xs text-gray-600 mb-1">• {s}</p>)}
               </div>
             )}
             {result.genetic?.length > 0 && (
-              <div className="bg-gray-50 rounded-[20px] p-4 shadow-sm">
+              <div className="rounded-[20px] p-4" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.12)' }}>
                 <p className="text-xs font-bold text-gray-600 mb-2">🧬 Genetic</p>
                 {result.genetic.map((s, i) => <p key={i} className="text-xs text-gray-600 mb-1">• {s}</p>)}
               </div>

@@ -231,34 +231,36 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
             )}
           </div>
 
-          {/* Ingredient count pills */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-[16px] p-3 text-center" style={{ background: '#f0fdf4' }}>
-              <p className="text-2xl font-black text-green-600">{correctCount}</p>
-              <p className="text-xs text-green-600 font-medium mt-0.5">Correctly Dosed</p>
-            </div>
-            <div className="rounded-[16px] p-3 text-center" style={{ background: '#fefce8' }}>
-              <p className="text-2xl font-black text-yellow-600">{underdosedCount}</p>
-              <p className="text-xs text-yellow-600 font-medium mt-0.5">Underdosed</p>
-            </div>
-            <div className="rounded-[16px] p-3 text-center" style={{ background: '#fef2f2' }}>
-              <p className="text-2xl font-black text-red-500">{poorCount}</p>
-              <p className="text-xs text-red-500 font-medium mt-0.5">Poor Form</p>
-            </div>
-          </div>
-
-          {/* Quick stats */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Serving', value: result.serving_size || '—' },
-              { label: 'Servings', value: String(result.servings_per_container || '—') },
-              { label: 'Supply', value: result.estimated_duration || '—' },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-white rounded-[16px] p-3 text-center shadow-sm">
-                <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
-                <p className="text-xs font-bold text-gray-800 mt-0.5">{value}</p>
+          {/* Ingredient count stats — single card, three columns */}
+          <div className="bg-white rounded-[20px] overflow-hidden shadow-sm">
+            <div className="grid grid-cols-3 divide-x divide-gray-100">
+              <div className="p-4 text-center">
+                <p className="text-2xl font-black text-green-600">{correctCount}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Correctly Dosed</p>
               </div>
-            ))}
+              <div className="p-4 text-center">
+                <p className="text-2xl font-black text-yellow-600">{underdosedCount}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Underdosed</p>
+              </div>
+              <div className="p-4 text-center">
+                <p className="text-2xl font-black text-red-500">{poorCount}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Poor Form</p>
+              </div>
+            </div>
+            {(result.serving_size || result.servings_per_container || result.estimated_duration) && (
+              <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
+                {[
+                  { label: 'Serving', value: result.serving_size },
+                  { label: 'Servings', value: result.servings_per_container ? String(result.servings_per_container) : null },
+                  { label: 'Supply', value: result.estimated_duration },
+                ].map(({ label, value }) => value ? (
+                  <div key={label} className="p-3 text-center">
+                    <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
+                    <p className="text-xs font-bold text-gray-800 mt-0.5">{value}</p>
+                  </div>
+                ) : <div key={label} />)}
+              </div>
+            )}
           </div>
 
           {/* How to take — bullet points */}

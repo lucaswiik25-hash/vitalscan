@@ -303,26 +303,42 @@ Apply these corrections and return an updated JSON with the same fields: name, c
 
   // ─── Slide 2: Body / Diet ────────────────────────────────────────────────────
   const slide2 = result.is_appearance_mode ? (
-    <div className="pb-4 space-y-3 fade-in-up">
+    <div className="pb-4 space-y-4 fade-in-up">
+      {/* Appearance Impact — plain text, no card */}
       {result.appearance_impact && (() => {
         const s = appearanceImpactStyle[result.appearance_impact] || appearanceImpactStyle.Neutral;
         return (
-          <div className="rounded-[22px] p-4" style={{ background: s.bg, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: s.text }}>Appearance Impact</p>
-              <span className="text-sm font-extrabold" style={{ color: s.text }}>{result.appearance_impact}</span>
+          <div className="px-1">
+            <div className="flex items-baseline gap-2 mb-1">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Appearance Impact</p>
+              <span className="text-lg font-extrabold text-gray-900">{result.appearance_impact}</span>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: s.text }}>{result.appearance_reason}</p>
+            {result.appearance_reason && <p className="text-xs text-gray-500 leading-relaxed">{result.appearance_reason}</p>}
           </div>
         );
       })()}
-      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-        <Row label="Bloat Risk" value={result.bloat_risk} note={result.bloat_reason} />
-        <Row label="Glycemic Impact" value={result.glycemic_impact} note={result.glycemic_reason} />
-        {currentResult.skin_impact && typeof currentResult.skin_impact === 'string' && <Row label="Skin Impact" value={currentResult.skin_impact.length > 20 ? 'See below' : currentResult.skin_impact} note={currentResult.skin_impact.length > 20 ? currentResult.skin_impact : undefined} />}
-        {currentResult.skin_impact && typeof currentResult.skin_impact === 'object' && currentResult.skin_impact.summary && <Row label="Skin Impact" value="See below" note={currentResult.skin_impact.summary} />}
-        {result.collagen_effect && <Row label="Collagen" value={result.collagen_effect} note={result.collagen_reason} />}
-        {result.hormone_effect && <Row label="Hormone" value={result.hormone_effect} note={result.hormone_reason} />}
+      {/* Metrics list — single shared card */}
+      <div className="bg-white rounded-[22px] overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        {[
+          { label: 'Bloat Risk', value: result.bloat_risk, note: result.bloat_reason },
+          { label: 'Glycemic Impact', value: result.glycemic_impact, note: result.glycemic_reason },
+          currentResult.skin_impact && typeof currentResult.skin_impact === 'string' && currentResult.skin_impact.length > 0
+            ? { label: 'Skin Impact', value: currentResult.skin_impact.length > 20 ? null : currentResult.skin_impact, note: currentResult.skin_impact.length > 20 ? currentResult.skin_impact : undefined }
+            : null,
+          currentResult.skin_impact && typeof currentResult.skin_impact === 'object' && currentResult.skin_impact.summary
+            ? { label: 'Skin Impact', value: null, note: currentResult.skin_impact.summary }
+            : null,
+          result.collagen_effect ? { label: 'Collagen', value: result.collagen_effect, note: result.collagen_reason } : null,
+          result.hormone_effect ? { label: 'Hormone', value: result.hormone_effect, note: result.hormone_reason } : null,
+        ].filter(Boolean).map(({ label, value, note }, idx, arr) => (
+          <div key={label} className={`px-4 py-3 ${idx < arr.length - 1 ? 'border-b border-gray-100' : ''}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-800">{label}</span>
+              {value && <PillBadge value={value} />}
+            </div>
+            {note && <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">{note}</p>}
+          </div>
+        ))}
       </div>
       {result.tomorrow_face && (
         <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>

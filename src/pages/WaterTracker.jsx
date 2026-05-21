@@ -36,7 +36,7 @@ function FullScreenPanel({ onClose, title, subtitle, children }) {
       />
       <motion.div
         className="relative w-full max-w-lg bg-white flex flex-col overflow-hidden"
-        style={{ height: '100dvh', borderRadius: 0 }}
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, maxWidth: '100%' }}
         initial={{ y: '100%' }} animate={{ y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >

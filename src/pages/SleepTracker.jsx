@@ -331,7 +331,7 @@ Provide:
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onClick={() => setShowTips(false)} />
           <motion.div className="relative w-full max-w-lg bg-white flex flex-col overflow-hidden"
-            style={{ height: '100dvh' }}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, maxWidth: '100%' }}
             initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-gray-200" />

@@ -162,21 +162,30 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     if (!editNote.trim()) return;
     setEditLoading(true);
     const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a nutritionist. A food was scanned with these values: name="${currentResult.name}", calories=${currentResult.calories}, protein=${currentResult.protein}, carbs=${currentResult.carbs}, fat=${currentResult.fat}, fiber=${currentResult.fiber}, sugar=${currentResult.sugar}, sodium=${currentResult.sodium}.
+      prompt: `You are a nutritionist. A food was scanned with these values: name="${currentResult.name}", calories=${currentResult.calories}, protein=${currentResult.protein}, carbs=${currentResult.carbs}, fat=${currentResult.fat}, fiber=${currentResult.fiber}, sugar=${currentResult.sugar}, sodium=${currentResult.sodium}, serving_size="${currentResult.serving_size}".
 
-The user says: "${editNote}"
+The user wants to correct this: "${editNote}"
 
-Apply these corrections and return an updated JSON with the same fields: name, calories, protein, carbs, fat, fiber, sugar, sodium, serving_size. Keep unchanged values the same.`,
+Apply the user's corrections and return updated values. Return ALL fields even if unchanged. Be precise with the numbers.`,
       response_json_schema: {
         type: 'object',
         properties: {
-          name: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' },
-          carbs: { type: 'number' }, fat: { type: 'number' }, fiber: { type: 'number' },
-          sugar: { type: 'number' }, sodium: { type: 'number' }, serving_size: { type: 'string' },
+          name: { type: 'string' },
+          calories: { type: 'number' },
+          protein: { type: 'number' },
+          carbs: { type: 'number' },
+          fat: { type: 'number' },
+          fiber: { type: 'number' },
+          sugar: { type: 'number' },
+          sodium: { type: 'number' },
+          serving_size: { type: 'string' },
         },
+        required: ['name', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'],
       },
     });
-    setEditedResult({ ...currentResult, ...res });
+    if (res && typeof res === 'object') {
+      setEditedResult(prev => ({ ...(prev || currentResult), ...res }));
+    }
     setEditNote('');
     setShowEditSheet(false);
     setEditLoading(false);

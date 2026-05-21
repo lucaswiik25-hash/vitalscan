@@ -326,23 +326,46 @@ Provide:
         </motion.div>
       </div>
 
-      {/* Sleep Tips modal */}
+      {/* Sleep Tips — full screen slide-up */}
       {showTips && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} onClick={() => setShowTips(false)} />
-          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10"
-            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.32, ease: 'easeOut' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground">Sleep Science Tips</h2>
-              <button onClick={() => setShowTips(false)}>
-                <X className="w-5 h-5 text-muted-foreground" />
+          <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onClick={() => setShowTips(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white flex flex-col overflow-hidden"
+            style={{ height: '100dvh' }}
+            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-start justify-between px-6 pt-3 pb-4 shrink-0 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Sleep Science Tips</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">Evidence-based sleep advice</p>
+              </div>
+              <button onClick={() => setShowTips(false)} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+                <X className="w-4 h-4 text-foreground" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               {SLEEP_TIPS.map((t, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.06, duration: 0.3, ease: 'easeOut' }} className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">{t.icon}</span>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t.tip}</p>
+                <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.07, duration: 0.35, ease: 'easeOut' }}
+                  className="flex items-start gap-4 p-4 rounded-[20px]" style={{ background: '#f8f9fa' }}>
+                  <span className="text-2xl shrink-0">{t.icon}</span>
+                  <p className="text-sm text-gray-700 leading-relaxed">{t.tip}</p>
+                </motion.div>
+              ))}
+              {/* Extra tips */}
+              {[
+                { icon: '🌅', tip: 'Get sunlight exposure within 30–60 minutes of waking. This anchors your circadian rhythm and makes falling asleep easier at night.' },
+                { icon: '🏋️', tip: 'Exercise improves sleep quality significantly, but intense workouts too close to bedtime (within 2h) can delay sleep onset for some people.' },
+                { icon: '🍷', tip: 'Alcohol may help you fall asleep but disrupts REM sleep in the second half of the night, leaving you less rested.' },
+                { icon: '🧠', tip: 'Writing down tomorrow\'s to-do list before bed reduces "cognitive arousal" — the mental chatter that keeps you awake.' },
+              ].map((t, i) => (
+                <motion.div key={`extra-${i}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45 + i * 0.07, duration: 0.35, ease: 'easeOut' }}
+                  className="flex items-start gap-4 p-4 rounded-[20px]" style={{ background: '#f8f9fa' }}>
+                  <span className="text-2xl shrink-0">{t.icon}</span>
+                  <p className="text-sm text-gray-700 leading-relaxed">{t.tip}</p>
                 </motion.div>
               ))}
             </div>

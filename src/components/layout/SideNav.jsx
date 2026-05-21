@@ -5,7 +5,7 @@ import { Home, X, Plus, Droplets, Pill, UtensilsCrossed, ShoppingCart, ShieldAle
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/exercise', icon: Dumbbell, label: 'Exercise' },
-  { path: '/water', icon: Droplets, label: 'Water Tracker' },
+  { path: '/water', icon: Droplets, label: 'Hydration' },
   { path: '/supplements', icon: Pill, label: 'Supplements' },
   { path: '/sleep', icon: Moon, label: 'Sleep Tracker' },
   { path: '/meal-planner', icon: UtensilsCrossed, label: 'Meal Planner' },

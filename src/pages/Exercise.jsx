@@ -217,58 +217,92 @@ export default function Exercise() {
         )}
       </div>
 
-      {/* Add Exercise Modal */}
+      {/* Add Exercise — full screen slide-up */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} onClick={() => setShowAdd(false)} />
-          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 shadow-2xl" initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">Log Exercise</h2>
+          <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onClick={() => setShowAdd(false)} />
+          <motion.div className="relative w-full max-w-lg bg-white flex flex-col overflow-hidden"
+            style={{ height: '100dvh' }}
+            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-start justify-between px-6 pt-3 pb-4 shrink-0 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Log Exercise</h2>
+                <p className="text-sm text-gray-400 mt-0.5">Track your workout session</p>
+              </div>
               <button onClick={() => setShowAdd(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
-            {[
-              <div key="name">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {/* Quick select */}
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Select</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {QUICK_EXERCISES.map(ex => {
+                    const Icon = ex.icon;
+                    const isSelected = form.name === ex.name;
+                    return (
+                      <button key={ex.name} onClick={() => handleQuickSelect(ex)}
+                        className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-[16px] transition-all active:scale-95"
+                        style={{ background: isSelected ? '#1a1a1a' : '#f3f4f6', border: isSelected ? '2px solid #1a1a1a' : '2px solid transparent' }}>
+                        <Icon className="w-5 h-5" style={{ color: isSelected ? 'white' : '#6b7280' }} strokeWidth={1.8} />
+                        <span className="text-[11px] font-bold text-center leading-tight" style={{ color: isSelected ? 'white' : '#374151' }}>{ex.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Exercise Name</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Morning Run"
                   className="w-full h-12 rounded-2xl border border-gray-200 px-4 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 />
-              </div>,
-              <div key="duration">
+              </div>
+
+              {/* Duration */}
+              <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Duration: {form.duration_minutes} min</label>
                 <input type="range" min="5" max="180" step="5" value={form.duration_minutes}
                   onChange={e => handleDurationChange(Number(e.target.value))}
                   className="w-full accent-gray-900"
                 />
                 <div className="flex justify-between text-[10px] text-gray-400 mt-1"><span>5 min</span><span>180 min</span></div>
-              </div>,
-              <div key="intensity" className="grid grid-cols-3 gap-2">
-                {['low', 'medium', 'high'].map(lvl => (
-                  <button key={lvl} onClick={() => setForm(f => ({ ...f, intensity: lvl }))}
-                    className="h-10 rounded-2xl text-xs font-bold capitalize transition-all"
-                    style={{ background: form.intensity === lvl ? '#1a1a1a' : '#f3f4f6', color: form.intensity === lvl ? 'white' : '#6b7280' }}>
-                    {lvl}
-                  </button>
-                ))}
-              </div>,
-              form.calories_burned ? (
-                <div key="cal" className="rounded-2xl p-3 text-center bg-gray-50 border border-gray-100">
-                  <p className="text-xs text-gray-500 font-semibold">Estimated Calories Burned</p>
-                  <p className="text-2xl font-black text-gray-900">{form.calories_burned} <span className="text-sm font-semibold text-gray-400">kcal</span></p>
+              </div>
+
+              {/* Intensity */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Intensity</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['low', 'medium', 'high'].map(lvl => (
+                    <button key={lvl} onClick={() => setForm(f => ({ ...f, intensity: lvl }))}
+                      className="h-12 rounded-2xl text-sm font-bold capitalize transition-all"
+                      style={{ background: form.intensity === lvl ? '#1a1a1a' : '#f3f4f6', color: form.intensity === lvl ? 'white' : '#6b7280' }}>
+                      {lvl}
+                    </button>
+                  ))}
                 </div>
-              ) : null,
-              <button key="save" onClick={handleSave} disabled={saving || !form.name.trim()}
-                className="w-full h-12 rounded-full bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+              </div>
+
+              {/* Calories estimate */}
+              {form.calories_burned ? (
+                <div className="rounded-2xl p-4 text-center bg-gray-50 border border-gray-100">
+                  <p className="text-xs text-gray-500 font-semibold mb-1">Estimated Calories Burned</p>
+                  <p className="text-3xl font-black text-gray-900">{form.calories_burned} <span className="text-sm font-semibold text-gray-400">kcal</span></p>
+                </div>
+              ) : null}
+
+              <button onClick={handleSave} disabled={saving || !form.name.trim()}
+                className="w-full h-14 rounded-full bg-gray-900 text-white font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-50">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {saving ? 'Saving...' : 'Log Exercise'}
-              </button>,
-            ].filter(Boolean).map((child, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 + i * 0.06, duration: 0.3, ease: 'easeOut' }}>
-                {child}
-              </motion.div>
-            ))}
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

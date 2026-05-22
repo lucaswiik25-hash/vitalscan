@@ -25,8 +25,8 @@ export default function BottomNav() {
                 to={tab.path}
                 className="flex flex-col items-center gap-0.5 min-w-[56px]">
                 
-                <div className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${
-                isActive ? 'bg-secondary' : ''}`
+                <div className={` ${
+                isActive ? "" : ''}`
                 }>
                   <Icon
                     className={`w-5 h-5 transition-colors ${

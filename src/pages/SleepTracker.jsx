@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine, Scatter, ScatterChart, CartesianGrid } from 'recharts';
-import { Moon, Sparkles, Loader2, Info, X } from 'lucide-react';
+import { Moon, Sparkles, Loader2, Info, X, ArrowLeft } from 'lucide-react';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -31,6 +32,7 @@ function saveSleepData(data) {
 }
 
 export default function SleepTracker() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [hoursInput, setHoursInput] = useState('');
   const [saved, setSaved] = useState(false);

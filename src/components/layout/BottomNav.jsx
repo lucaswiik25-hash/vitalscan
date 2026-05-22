@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BarChart3, Users, User, Plus } from 'lucide-react';
+import { Home, Droplets, Dumbbell, Settings, Plus } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/progress', icon: BarChart3, label: 'Progress' },
-  { path: '/groups', icon: Users, label: 'Groups' },
-  { path: '/profile', icon: User, label: 'Profile' },
+  { path: '/water', icon: Droplets, label: 'Hydration' },
+  { path: '/exercise', icon: Dumbbell, label: 'Exercise' },
+  { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function BottomNav() {
@@ -14,10 +14,10 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="bg-white border-t border-border px-4 pb-6 pt-2 flex items-center justify-between max-w-lg mx-auto">
+      <div className="bg-white border-t border-border px-4 pt-2 flex items-center justify-between max-w-lg mx-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         <div className="flex items-center gap-1 flex-1 justify-around">
           {tabs.map((tab) => {
-            const isActive = location.pathname === tab.path;
+            const isActive = tab.path === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.path);
             const Icon = tab.icon;
             return (
               <Link

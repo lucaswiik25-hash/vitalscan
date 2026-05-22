@@ -81,13 +81,20 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
   }
   html, body {
     min-height: 100%;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
   body {
     @apply text-foreground font-inter;
     background-color: #ffffff;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
     background-image:
       radial-gradient(ellipse 120% 60% at 0% 0%, rgba(180, 195, 220, 0.35) 0%, transparent 60%),
       radial-gradient(ellipse 80% 50% at 0% 45%, rgba(240, 215, 220, 0.30) 0%, transparent 55%),
@@ -132,6 +139,14 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .select-none-ui {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button, a, [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 

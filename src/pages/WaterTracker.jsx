@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
-import { X, Calendar, Plus, Target, Zap, Droplets, Info, ChevronRight } from 'lucide-react';
+import { X, Calendar, Plus, Target, Zap, Droplets, Info, ChevronRight, ArrowLeft } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 

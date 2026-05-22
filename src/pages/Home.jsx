@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,27 @@ export default function Home() {
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDay, setSelectedDay] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const touchStartY = useRef(0);
+  const containerRef = useRef(null);
+
+  const handleTouchStart = (e) => {
+    if (window.scrollY === 0) touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchMove = (e) => {
+    if (window.scrollY > 0) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setPullY(Math.min(dy * 0.4, 60));
+  };
+  const handleTouchEnd = async () => {
+    if (pullY > 45) {
+      setRefreshing(true);
+      await queryClient.invalidateQueries();
+      setTimeout(() => setRefreshing(false), 600);
+    }
+    setPullY(0);
+  };
 
   const { profile, profiles, isLoading: isLoadingProfiles } = useUserProfile();
 
@@ -78,7 +99,13 @@ export default function Home() {
   }), {});
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+      {/* Pull-to-refresh indicator */}
+      {(pullY > 0 || refreshing) && (
+        <div className="flex justify-center items-center transition-all" style={{ height: refreshing ? 40 : pullY }}>
+          <div className={`w-6 h-6 border-2 border-gray-300 border-t-gray-800 rounded-full ${refreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullY * 4}deg)` }} />
+        </div>
+      )}
       <motion.div {...fadeUp(0)}><Header streak={profile.streak || 0} /></motion.div>
       {profile.diet_mode === 'allergy_mode' && (
         <motion.div className="mt-3" {...fadeUp(0.1)}>

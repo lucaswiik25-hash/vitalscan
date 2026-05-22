@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, User, Shield, Info, RefreshCw } from 'lucide-react';
+import { LogOut, User, Shield, Info, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,6 +17,7 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { profile } = useUserProfile();
 
@@ -43,6 +44,25 @@ export default function Settings() {
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
       </div>
+      {/* Delete Account confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6">
+          <div className="bg-white rounded-[24px] p-6 w-full max-w-sm shadow-xl">
+            <h2 className="text-lg font-bold text-foreground mb-2">Delete Account</h2>
+            <p className="text-sm text-muted-foreground mb-6">Are you sure you want to permanently delete your account? All your data will be lost and this action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 h-12 rounded-2xl bg-secondary text-sm font-semibold text-foreground">
+                Cancel
+              </button>
+              <button onClick={async () => { await base44.auth.logout(); }}
+                className="flex-1 h-12 rounded-2xl bg-destructive text-sm font-semibold text-white">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="px-5 space-y-4">
         {/* Profile summary */}
@@ -155,6 +175,14 @@ export default function Settings() {
           className="w-full bg-white border border-destructive/20 rounded-[24px] px-5 py-4 flex items-center gap-3 shadow-sm active:scale-[0.98] transition-transform">
           <LogOut className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Log Out</span>
+        </motion.button>
+
+        {/* Delete Account */}
+        <motion.button {...fadeUp(0.72)}
+          onClick={() => setShowDeleteConfirm(true)}
+          className="w-full bg-white border border-destructive/20 rounded-[24px] px-5 py-4 flex items-center gap-3 shadow-sm active:scale-[0.98] transition-transform">
+          <Trash2 className="w-4 h-4 text-destructive" />
+          <span className="text-sm font-semibold text-destructive">Delete Account</span>
         </motion.button>
       </div>
     </div>

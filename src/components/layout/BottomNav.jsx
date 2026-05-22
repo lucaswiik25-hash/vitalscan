@@ -14,7 +14,7 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="bg-white border-t border-border px-4 pt-2 flex items-center justify-between max-w-lg mx-auto opacity-0" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+      <div style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         <div className="flex items-center gap-1 flex-1 justify-around">
           {tabs.map((tab) => {
             const isActive = tab.path === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.path);
@@ -46,7 +46,7 @@ export default function BottomNav() {
         </div>
         <Link
           to="/scanner"
-          className="w-14 h-14 rounded-2xl flex items-center justify-center -mt-4 ml-2"
+          className="w-14 h-14 rounded-2xl flex items-center justify-center -mt-4 ml-2 opacity-0"
           style={{
             background: 'rgba(26,26,26,0.70)',
             backdropFilter: 'blur(24px) saturate(180%) brightness(1.1)',

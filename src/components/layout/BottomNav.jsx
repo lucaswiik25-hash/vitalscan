@@ -14,7 +14,7 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="bg-white border-t border-border px-4 pt-2 flex items-center justify-between max-w-lg mx-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+      <div className="bg-white border-t border-border px-4 pt-2 pb-6 flex items-center justify-between max-w-lg mx-auto bottom-nav-inner">
         <div className="flex items-center gap-1 flex-1 justify-around">
           {tabs.map((tab) => {
             const isActive = tab.path === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.path);

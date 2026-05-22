@@ -140,6 +140,9 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .bottom-nav-inner {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
   .select-none-ui {
     user-select: none;
     -webkit-user-select: none;

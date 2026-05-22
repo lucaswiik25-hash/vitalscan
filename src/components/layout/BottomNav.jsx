@@ -20,9 +20,8 @@ export default function BottomNav() {
             const isActive = tab.path === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.path);
             const Icon = tab.icon;
             return (
-              <Link
+              <div
                 key={tab.path}
-                to={tab.path}
                 className="flex flex-col items-center gap-0.5 min-w-[56px]"
               >
                 <div className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${
@@ -40,7 +39,7 @@ export default function BottomNav() {
                 }`}>
                   {tab.label}
                 </span>
-              </Link>
+              </div>
             );
           })}
         </div>

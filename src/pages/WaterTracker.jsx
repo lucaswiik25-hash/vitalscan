@@ -391,22 +391,7 @@ export default function WaterTracker() {
           </div>
         </motion.div>
 
-        {/* Stat cards */}
-        <div className="flex gap-2">
-          {[
-            { icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 2C12 2 5 9.5 5 14a7 7 0 0 0 14 0C19 9.5 12 2 12 2z"/></svg>, label: 'Consumed', value: consumed },
-            { icon: <Zap size={16} className="text-yellow-500" />, label: 'Effective', value: effective },
-            { icon: <Target size={16} className="text-gray-400" />, label: 'Remaining', value: remaining },
-          ].map(({ icon, label, value }, i) => (
-            <motion.div key={label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.6 + i * 0.08 }}
-              className="flex-1 rounded-[12px] flex flex-col items-center justify-center py-3 px-2 gap-1"
-              style={{ background: 'rgba(255,255,255,0.52)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.78)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-              <div>{icon}</div>
-              <p className="text-[10px] text-gray-400 font-medium">{label}</p>
-              <p className="text-sm font-black text-gray-900">{value}<span className="text-[10px] font-medium text-gray-400 ml-0.5">ml</span></p>
-            </motion.div>
-          ))}
-        </div>
+
 
         {/* Log Water button */}
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Log Water</p>

@@ -219,10 +219,10 @@ export default function Exercise() {
 
       {/* Add Exercise — full screen slide-up */}
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-50">
           <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onClick={() => setShowAdd(false)} />
-          <motion.div className="relative w-full max-w-lg bg-white flex flex-col overflow-hidden"
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, maxWidth: '100%', borderRadius: '24px 24px 0 0' }}
+          <motion.div className="absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden"
+            style={{ top: 0, borderRadius: '24px 24px 0 0' }}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-gray-200" />
@@ -260,13 +260,15 @@ export default function Exercise() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Exercise Name</label>
                 <input
+                  type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Morning Run"
-                  readOnly={false}
                   autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="sentences"
+                  spellCheck={false}
                   className="w-full h-12 rounded-2xl border border-gray-200 px-4 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 bg-white"
-                  style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
                 />
               </div>
 

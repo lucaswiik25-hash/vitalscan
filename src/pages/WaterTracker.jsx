@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
-import { X, Calendar, Plus, Target, Zap, Droplets, Info, ChevronRight, ArrowLeft } from 'lucide-react';
+import { X, Calendar, Plus, Target, Zap, Droplets, Info, ChevronRight, ArrowLeft, Trash2 } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -36,15 +36,15 @@ function FullScreenPanel({ onClose, title, subtitle, children }) {
     }
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50">
       <motion.div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
         onClick={onClose}
       />
       <motion.div
-        className="relative w-full bg-white flex flex-col overflow-hidden"
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '24px 24px 0 0', y }}
+        className="absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden"
+        style={{ top: 0, borderRadius: '24px 24px 0 0', y }}
         drag="y" dragConstraints={{ top: 0 }} dragElastic={0.2}
         onDragEnd={handleDragEnd}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -263,11 +263,12 @@ function LogWaterPanel({ onClose, cupsNeeded, cupsFilled, effective, onAddWater 
 function SwipeableLogRow({ log, onDelete }) {
   const x = useMotionValue(0);
   const [deleted, setDeleted] = useState(false);
+  const cups = (log.amount_ml / 250).toFixed(1).replace(/\.0$/, '');
 
   const handleDragEnd = (_, info) => {
     if (info.offset.x < -60) {
       setDeleted(true);
-      setTimeout(() => onDelete(log.id), 250);
+      setTimeout(() => onDelete(log.id), 280);
     } else {
       animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
     }
@@ -276,27 +277,34 @@ function SwipeableLogRow({ log, onDelete }) {
   if (deleted) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-[14px]">
-      {/* Delete bg revealed on swipe */}
-      <div className="absolute inset-0 flex items-center justify-end pr-5 rounded-[14px]" style={{ background: '#fee2e2' }}>
-        <span className="text-xs font-bold text-red-500">🗑</span>
+    <motion.div
+      className="relative overflow-hidden rounded-[14px]"
+      animate={deleted ? { opacity: 0, height: 0 } : { opacity: 1 }}
+      transition={{ duration: 0.25 }}
+    >
+      {/* Red delete background */}
+      <div className="absolute inset-0 flex items-center justify-end pr-4 rounded-[14px]" style={{ background: '#fee2e2' }}>
+        <Trash2 className="w-4 h-4 text-red-500" />
       </div>
+      {/* Draggable row */}
       <motion.div
-        drag="x" dragConstraints={{ left: -80, right: 0 }}
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        dragElastic={0.1}
         style={{ x }}
         onDragEnd={handleDragEnd}
-        className="flex items-center justify-between px-4 py-3 rounded-[14px] cursor-grab active:cursor-grabbing bg-white"
+        className="relative flex items-center justify-between px-4 py-3 rounded-[14px] bg-white cursor-grab active:cursor-grabbing"
       >
-        <div className="flex items-center gap-2.5">
-          <DropIcon filled color="#3b82f6" size={18} />
-          <span className="text-sm font-semibold text-foreground">{log.amount_ml} ml</span>
-          <span className="text-[10px] font-medium text-muted-foreground bg-blue-50 px-2 py-0.5 rounded-full">
-            {Math.round(log.amount_ml / 250 * 10) / 10} cups
-          </span>
+        <div className="flex items-center gap-3">
+          <DropIcon filled color="#3b82f6" size={20} />
+          <div>
+            <p className="text-sm font-bold text-gray-900">{cups} {parseFloat(cups) === 1 ? 'cup' : 'cups'}</p>
+            <p className="text-xs text-gray-400">{log.amount_ml} ml</p>
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground">{format(new Date(log.created_date), 'h:mm a')}</span>
+        <span className="text-xs text-gray-400">{format(new Date(log.created_date), 'h:mm a')}</span>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 

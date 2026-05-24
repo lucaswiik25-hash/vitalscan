@@ -112,40 +112,34 @@ export default function Exercise() {
 
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
-        <motion.div {...fadeUp(0)} className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
-          {/* Label row */}
-          <div className="flex items-center gap-1.5 mb-3">
-            <Flame className="w-3 h-3 text-gray-400" />
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Today's Burn</p>
+        <motion.div {...fadeUp(0)} className="rounded-[24px] p-5" style={{ background: '#D8E2E9' }}>
+          {/* Label */}
+          <p className="text-sm font-semibold text-gray-500 mb-4">Todays Burn</p>
+
+          {/* Circular progress */}
+          <div className="flex justify-center mb-5">
+            <div className="relative" style={{ width: 200, height: 200 }}>
+              <svg width={200} height={200} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+                {/* Track */}
+                <circle cx={100} cy={100} r={80} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={20} strokeLinecap="round" />
+                {/* Progress */}
+                <circle cx={100} cy={100} r={80} fill="none" stroke="#1a1a1a" strokeWidth={20}
+                  strokeDasharray={2 * Math.PI * 80}
+                  strokeDashoffset={(2 * Math.PI * 80) * (1 - Math.min(1, pct / 100))}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 0.7s ease' }} />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-5xl font-extrabold text-gray-900">{Math.round(Math.min(100, pct))}%</span>
+              </div>
+            </div>
           </div>
 
-          {/* Big number row */}
-          <div className="flex items-baseline gap-1.5 mb-3">
-            <span className="text-5xl font-black text-gray-900 leading-none">{totalBurned.toLocaleString()}</span>
-            <span className="text-xl text-gray-300 font-light mx-0.5">/</span>
-            <span className="text-xl font-semibold text-gray-400">{exerciseTarget}</span>
-            <span className="text-sm text-gray-400 font-normal">kcal</span>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden mb-1.5">
+          {/* Linear progress */}
+          <p className="text-sm font-semibold text-gray-700 mb-1.5">{totalBurned} of {exerciseTarget} Kcal</p>
+          <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.5)' }}>
             <div className="h-full rounded-full bg-gray-900 transition-all duration-700"
               style={{ width: `${Math.min(100, pct)}%` }} />
-          </div>
-          <p className="text-[10px] text-gray-400 text-right mb-4">{Math.max(0, exerciseTarget - totalBurned)} remaining</p>
-
-          {/* Stat chips */}
-          <div className="flex gap-2">
-            {[
-              { value: totalMinutes, label: 'minutes' },
-              { value: exercises.length, label: 'sessions' },
-              { value: Math.max(0, exerciseTarget - totalBurned), label: 'remaining' },
-            ].map(({ value, label }, i) => (
-              <motion.div key={label} {...fadeUp(0.4 + i * 0.08)} className="flex-1 rounded-[14px] py-3 px-2 flex flex-col items-center gap-0.5" style={{ background: '#F5F5F5' }}>
-                <span className="text-xl font-black text-gray-900 leading-none">{value}</span>
-                <span className="text-[10px] text-gray-400">{label}</span>
-              </motion.div>
-            ))}
           </div>
         </motion.div>
 

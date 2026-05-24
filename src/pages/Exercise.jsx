@@ -112,32 +112,32 @@ export default function Exercise() {
 
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
-        <motion.div {...fadeUp(0)} className="rounded-[24px] p-5" style={{ background: '#D8E2E9' }}>
+        <motion.div {...fadeUp(0)} className="rounded-[24px] p-6 -mx-1" style={{ background: '#E8EFF4' }}>
           {/* Label */}
           <p className="text-sm font-semibold text-gray-500 mb-4">Todays Burn</p>
 
           {/* Circular progress */}
           <div className="flex justify-center mb-5">
-            <div className="relative" style={{ width: 200, height: 200 }}>
-              <svg width={200} height={200} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+            <div className="relative" style={{ width: 260, height: 260 }}>
+              <svg width={260} height={260} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
                 {/* Track */}
-                <circle cx={100} cy={100} r={80} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={20} strokeLinecap="round" />
+                <circle cx={130} cy={130} r={110} fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth={22} strokeLinecap="round" />
                 {/* Progress */}
-                <circle cx={100} cy={100} r={80} fill="none" stroke="#1a1a1a" strokeWidth={20}
-                  strokeDasharray={2 * Math.PI * 80}
-                  strokeDashoffset={(2 * Math.PI * 80) * (1 - Math.min(1, pct / 100))}
+                <circle cx={130} cy={130} r={110} fill="none" stroke="#1a1a1a" strokeWidth={22}
+                  strokeDasharray={2 * Math.PI * 110}
+                  strokeDashoffset={(2 * Math.PI * 110) * (1 - Math.min(1, pct / 100))}
                   strokeLinecap="round"
                   style={{ transition: 'stroke-dashoffset 0.7s ease' }} />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-5xl font-extrabold text-gray-900">{Math.round(Math.min(100, pct))}%</span>
+                <span className="text-6xl font-extrabold text-gray-900">{Math.round(Math.min(100, pct))}%</span>
               </div>
             </div>
           </div>
 
           {/* Linear progress */}
-          <p className="text-sm font-semibold text-gray-700 mb-1.5">{totalBurned} of {exerciseTarget} Kcal</p>
-          <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-sm font-semibold text-gray-700 mb-2">{totalBurned} of {exerciseTarget} Kcal</p>
+          <div className="w-full h-4 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.55)' }}>
             <div className="h-full rounded-full bg-gray-900 transition-all duration-700"
               style={{ width: `${Math.min(100, pct)}%` }} />
           </div>

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
-import CaloriesBurnedModule from '../components/home/CaloriesBurnedModule';
+import MealSlotsModule from '../components/home/MealSlotsModule';
 import DayVerdictPage from '../components/home/DayVerdictPage';
 import AllergyBanner from '../components/home/AllergyBanner';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -122,9 +122,9 @@ export default function Home() {
         <NutriCarousel profile={profile} consumed={consumed} waterLogs={allWaterLogs} todayMeals={todayMeals} />
       </motion.div>
       <motion.div className="px-5 mb-2" {...fadeUp(0.36)}>
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Calories</p>
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Meals</p>
       </motion.div>
-      <motion.div {...fadeUp(0.44)}><CaloriesBurnedModule profile={profile} /></motion.div>
+      <motion.div {...fadeUp(0.44)}><MealSlotsModule todayMeals={todayMeals} profile={profile} /></motion.div>
       {selectedDay && (
         <DayVerdictPage
           date={selectedDay}

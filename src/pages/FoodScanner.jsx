@@ -235,13 +235,31 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     setIsAnalyzing(false);
   };
 
+  const classifyMealType = async (foodName, timeStr) => {
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `A user logged "${foodName}" at ${timeStr}. Based on the food name and time of day, classify this into one of: breakfast, lunch, dinner, snack. Return only the single word.`,
+        response_json_schema: {
+          type: 'object',
+          properties: { meal_type: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack'] } }
+        }
+      });
+      return res?.meal_type || 'snack';
+    } catch (_) {
+      return 'snack';
+    }
+  };
+
   const logMeal = async (logIt = true) => {
     if (!result) return;
     const today = format(new Date(), 'yyyy-MM-dd');
+    const timeStr = format(new Date(), 'h:mm a');
+    const meal_type = logIt ? await classifyMealType(result.name || 'food', timeStr) : 'snack';
     const mealData = {
       name: result.name || 'Unknown food',
       date: today,
-      time: format(new Date(), 'h:mm a'),
+      time: timeStr,
+      meal_type,
       calories: Number(result.calories) || 0,
       protein: Number(result.protein) || 0,
       carbs: Number(result.carbs) || 0,

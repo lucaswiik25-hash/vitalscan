@@ -24,6 +24,17 @@
     "time": {
       "type": "string"
     },
+    "meal_type": {
+      "type": "string",
+      "enum": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "snack"
+      ],
+      "default": "snack",
+      "description": "Which meal slot this food belongs to"
+    },
     "image_url": {
       "type": "string"
     },

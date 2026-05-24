@@ -25,19 +25,29 @@ function DropIcon({ filled, color, size = 24 }) {
   );
 }
 
-// Full-screen slide-up panel (same feel as DayDetailModal)
+// Full-screen slide-up panel with swipe-down-to-close
 function FullScreenPanel({ onClose, title, subtitle, children }) {
+  const y = useMotionValue(0);
+  const handleDragEnd = (_, info) => {
+    if (info.offset.y > 80 || info.velocity.y > 400) {
+      onClose();
+    } else {
+      animate(y, 0, { type: 'spring', stiffness: 400, damping: 30 });
+    }
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <motion.div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
         onClick={onClose}
       />
       <motion.div
-        className="relative w-full max-w-lg bg-white flex flex-col overflow-hidden"
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, maxWidth: '100%' }}
-        initial={{ y: '100%' }} animate={{ y: 0 }}
+        className="relative w-full bg-white flex flex-col overflow-hidden"
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '24px 24px 0 0', y }}
+        drag="y" dragConstraints={{ top: 0 }} dragElastic={0.2}
+        onDragEnd={handleDragEnd}
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {/* Handle bar */}
@@ -252,7 +262,6 @@ function LogWaterPanel({ onClose, cupsNeeded, cupsFilled, effective, onAddWater 
 // Swipeable water log row
 function SwipeableLogRow({ log, onDelete }) {
   const x = useMotionValue(0);
-  const bg = useTransform(x, [-60, 0], ['#fee2e2', '#f9fafb']);
   const [deleted, setDeleted] = useState(false);
 
   const handleDragEnd = (_, info) => {
@@ -268,26 +277,24 @@ function SwipeableLogRow({ log, onDelete }) {
 
   return (
     <div className="relative overflow-hidden rounded-[14px]">
-      {/* Delete indicator behind */}
-      <div className="absolute inset-0 flex items-center justify-end pr-4 rounded-[14px]" style={{ background: '#fee2e2' }}>
-        <span className="text-xs font-bold text-red-500">Delete</span>
+      {/* Delete bg revealed on swipe */}
+      <div className="absolute inset-0 flex items-center justify-end pr-5 rounded-[14px]" style={{ background: '#fee2e2' }}>
+        <span className="text-xs font-bold text-red-500">🗑</span>
       </div>
       <motion.div
         drag="x" dragConstraints={{ left: -80, right: 0 }}
-        style={{ x, background: bg }}
+        style={{ x }}
         onDragEnd={handleDragEnd}
-        className="flex items-center justify-between px-4 py-3 rounded-[14px] cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-between px-4 py-3 rounded-[14px] cursor-grab active:cursor-grabbing bg-white"
       >
-        <div className="flex items-center gap-2">
-          <DropIcon filled color="#3b82f6" size={16} />
-          <span className="text-sm font-medium text-foreground">{log.amount_ml} ml</span>
+        <div className="flex items-center gap-2.5">
+          <DropIcon filled color="#3b82f6" size={18} />
+          <span className="text-sm font-semibold text-foreground">{log.amount_ml} ml</span>
+          <span className="text-[10px] font-medium text-muted-foreground bg-blue-50 px-2 py-0.5 rounded-full">
+            {Math.round(log.amount_ml / 250 * 10) / 10} cups
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{format(new Date(log.created_date), 'h:mm a')}</span>
-          <button onClick={() => onDelete(log.id)} className="text-gray-300 hover:text-red-400 transition-colors">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <span className="text-xs text-muted-foreground">{format(new Date(log.created_date), 'h:mm a')}</span>
       </motion.div>
     </div>
   );

@@ -24,6 +24,7 @@ export default function FoodScanner() {
   const [extraNotes, setExtraNotes] = useState('');
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
+  const barcodeInputRef = useRef(null);
 
   const { profile } = useUserProfile();
   const userName = profile.name || 'there';
@@ -358,6 +359,35 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
   const foodInput = <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileChange(e, 'food')} />;
   const labelInput = <input ref={labelInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileChange(e, 'label')} />;
   const uploadInput = <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'food')} />;
+  // Barcode camera: take photo, AI reads the number, then fetches from OpenFoodFacts
+  const barcodeInput = (
+    <input
+      ref={barcodeInputRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      className="hidden"
+      onChange={async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        e.target.value = '';
+        setIsAnalyzing(true);
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        // Use AI to read the barcode number from the image
+        const r = await base44.functions.invoke('analyzeWithClaude', {
+          image_url: file_url,
+          prompt: 'This image contains a barcode. Read the exact numeric barcode digits printed under the bars. Return ONLY the barcode number digits as a string, nothing else.',
+          response_json_schema: { type: 'object', properties: { barcode_number: { type: 'string' } } },
+        });
+        const barcodeNumber = (r.data?.result?.barcode_number || r.data?.barcode_number || '').replace(/\D/g, '');
+        if (barcodeNumber) {
+          await analyseBarcodeManual(barcodeNumber);
+        } else {
+          setIsAnalyzing(false);
+        }
+      }}
+    />
+  );
 
   // ─── Landing page ────────────────────────────────────────────────────────────
   return (
@@ -366,9 +396,10 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       foodInput={foodInput}
       labelInput={labelInput}
       uploadInput={uploadInput}
+      barcodeInput={barcodeInput}
       onBack={() => navigate(-1)}
       onCamera={() => cameraInputRef.current?.click()}
-      onBarcode={() => setShowBarcodeInput(true)}
+      onBarcode={() => barcodeInputRef.current?.click()}
       onLabel={() => labelInputRef.current?.click()}
       onGallery={() => uploadInputRef.current?.click()}
     />
@@ -407,7 +438,7 @@ function useTypingEffect(lines, speed = 28) {
   return displayed;
 }
 
-function FoodScannerLanding({ userName, foodInput, labelInput, uploadInput, onBack, onCamera, onBarcode, onLabel, onGallery }) {
+function FoodScannerLanding({ userName, foodInput, labelInput, uploadInput, barcodeInput, onBack, onCamera, onBarcode, onLabel, onGallery }) {
   const lines = [
     `Hi ${userName}.`,
     `Here you can [Photo Scan] your foods by just taking a picture.`,
@@ -453,7 +484,7 @@ function FoodScannerLanding({ userName, foodInput, labelInput, uploadInput, onBa
 
   return (
     <div className="min-h-screen px-6 pt-14 pb-20">
-      {foodInput}{labelInput}{uploadInput}
+      {foodInput}{labelInput}{uploadInput}{barcodeInput}
       <button onClick={onBack} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
         <ArrowLeft className="w-5 h-5 text-gray-900" />
       </button>

@@ -164,22 +164,29 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
   let faceReason = null;
   if (hasMealsLogged || waterConsumed > 0 || sleepHours > 0) {
     let score = 50;
-    if (waterPct >= 80) score += 15; else if (waterPct >= 50) score += 5; else score -= 10;
-    if (sleepHours >= 7 && sleepHours <= 9) score += 15; else if (sleepHours >= 5) score += 5; else if (sleepHours > 0) score -= 15;
+    if (waterPct >= 80) score += 15; else if (waterPct >= 50) score += 5; else if (waterConsumed === 0) score -= 15; else score -= 10;
+    if (sleepHours >= 7 && sleepHours <= 9) score += 15; else if (sleepHours >= 5) score += 5; else if (sleepHours > 0 && sleepHours < 5) score -= 20; else if (sleepHours === 0) score -= 5;
     if (sugarPct > 100) score -= 15; else if (sugarPct > 70) score -= 5; else if (sugarPct < 50 && hasMealsLogged) score += 5;
     if (sodiumBalance > 1000) score -= 10; else if (sodiumBalance < 200) score += 10;
     if (hasMealsLogged) score += 5;
+
     const reasons = [];
-    if (waterPct < 60) reasons.push('low water');
-    if (sleepHours > 0 && sleepHours < 7) reasons.push('insufficient sleep');
-    if (sugarPct > 100) reasons.push('high sugar');
-    if (sodiumBalance > 1000) reasons.push('high sodium vs potassium');
-    if (waterPct >= 80) reasons.push('great hydration');
-    if (sleepHours >= 7) reasons.push('good sleep');
-    facePrediction = score >= 65 ? 'Better' : score >= 45 ? 'Similar' : 'Worse';
-    faceReason = reasons.length > 0 ? reasons.join(', ') : 'Based on today\'s intake';
+    if (waterConsumed === 0) reasons.push('no water logged today');
+    else if (waterPct < 50) reasons.push(`low hydration (${Math.round(waterPct)}%)`);
+    else if (waterPct >= 80) reasons.push(`great hydration (${Math.round(waterPct)}%)`);
+
+    if (sleepHours === 0) reasons.push('no sleep logged');
+    else if (sleepHours < 5) reasons.push(`poor sleep (${sleepHours}h)`);
+    else if (sleepHours < 7) reasons.push(`short sleep (${sleepHours}h)`);
+    else if (sleepHours >= 7) reasons.push(`good sleep (${sleepHours}h)`);
+
+    if (sugarPct > 100) reasons.push('high sugar intake');
+    if (sodiumBalance > 1000) reasons.push('high sodium');
+
+    facePrediction = score >= 65 ? 'Slim Face' : score >= 45 ? 'Moderate' : 'Bloated';
+    faceReason = reasons.length > 0 ? reasons.join(' · ') : 'Log food & water for a prediction';
   }
-  const predColor = facePrediction === 'Better' ? '#16a34a' : facePrediction === 'Worse' ? '#dc2626' : '#ca8a04';
+  const predColor = facePrediction === 'Slim Face' ? '#16a34a' : facePrediction === 'Bloated' ? '#dc2626' : '#ca8a04';
 
   return [
     <div key="a1" className="min-w-full px-5 space-y-3">

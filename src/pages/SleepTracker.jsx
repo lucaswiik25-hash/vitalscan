@@ -7,6 +7,7 @@ import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 import { Moon, Sparkles, Loader2, Info, X, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
+import SleepReadinessModule from '../components/sleep/SleepReadinessModule';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -360,6 +361,9 @@ Consider patterns like: inconsistent sleep times, wake feelings vs hours slept (
           </div>
           {saved && <p className="text-xs text-green-600 mt-2 font-medium">Saved!</p>}
         </motion.div>
+
+        {/* Tonight's Sleep Readiness */}
+        <SleepReadinessModule />
       </div>
 
       {/* Sleep Tips — full screen slide-up */}

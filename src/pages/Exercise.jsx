@@ -119,13 +119,13 @@ export default function Exercise() {
           {/* Circular progress */}
           <div className="flex justify-center mb-5">
             <div className="relative" style={{ width: 260, height: 260 }}>
-              <svg width={260} height={260} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+              <svg width={260} height={260} viewBox="0 0 260 260" style={{ transform: 'rotate(-45deg)', overflow: 'visible' }}>
                 {/* Track */}
-                <circle cx={130} cy={130} r={110} fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth={22} strokeLinecap="round" />
+                <circle cx={130} cy={130} r={108} fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={32} strokeLinecap="round" />
                 {/* Progress */}
-                <circle cx={130} cy={130} r={110} fill="none" stroke="#1a1a1a" strokeWidth={22}
-                  strokeDasharray={2 * Math.PI * 110}
-                  strokeDashoffset={(2 * Math.PI * 110) * (1 - Math.min(1, pct / 100))}
+                <circle cx={130} cy={130} r={108} fill="none" stroke="#1a1a1a" strokeWidth={32}
+                  strokeDasharray={2 * Math.PI * 108}
+                  strokeDashoffset={(2 * Math.PI * 108) * (1 - Math.min(1, pct / 100))}
                   strokeLinecap="round"
                   style={{ transition: 'stroke-dashoffset 0.7s ease' }} />
               </svg>

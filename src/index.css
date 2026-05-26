@@ -133,7 +133,45 @@
       radial-gradient(ellipse at top right, rgba(255, 140, 100, 0.04) 0%, rgba(255, 100, 130, 0.02) 40%, transparent 65%),
       radial-gradient(ellipse at bottom left, rgba(100, 160, 255, 0.05) 0%, rgba(80, 140, 255, 0.02) 40%, transparent 65%);
   }
-  .no-scrollbar::-webkit-scrollbar {
+  /* ── Scanner button morph-expand animation ── */
+@keyframes scannerExpand {
+  0% {
+    top: var(--btn-top);
+    left: var(--btn-left);
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    opacity: 0.9;
+  }
+  60% {
+    top: calc(var(--btn-top) - 10px);
+    left: calc(var(--btn-left) - 10px);
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    opacity: 1;
+  }
+  100% {
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    opacity: 1;
+  }
+}
+
+.scanner-ripple {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(26, 26, 26, 0.95);
+  pointer-events: none;
+  animation: scannerExpand 0.48s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+  --btn-top: 0px;
+  --btn-left: 0px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
     display: none;
   }
   .no-scrollbar {

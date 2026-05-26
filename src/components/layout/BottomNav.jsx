@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Droplets, Dumbbell, Settings, Plus } from 'lucide-react';
 
 const tabs = [
@@ -11,6 +11,20 @@ const tabs = [
 
 export default function BottomNav() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const btnRef = useRef(null);
+  const [ripple, setRipple] = useState(null);
+
+  const handleScannerClick = (e) => {
+    e.preventDefault();
+    if (!btnRef.current) { navigate('/scanner'); return; }
+    const rect = btnRef.current.getBoundingClientRect();
+    setRipple({ top: rect.top, left: rect.left });
+    setTimeout(() => {
+      navigate('/scanner');
+      setRipple(null);
+    }, 420);
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
@@ -44,9 +58,10 @@ export default function BottomNav() {
           })}
         </div>
       
-      <Link
-          to="/scanner"
-          className="w-14 h-14 rounded-2xl flex items-center justify-center -mt-4 ml-2"
+      <button
+          ref={btnRef}
+          onClick={handleScannerClick}
+          className="w-14 h-14 rounded-2xl flex items-center justify-center -mt-4 ml-2 active:scale-95 transition-transform"
           style={{
             background: 'rgba(26,26,26,0.70)',
             backdropFilter: 'blur(24px) saturate(180%) brightness(1.1)',
@@ -54,9 +69,15 @@ export default function BottomNav() {
             border: '1px solid rgba(255,255,255,0.18)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.15)'
           }}>
-          
           <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
-        </Link>
+        </button>
+
+      {ripple && (
+        <div
+          className="scanner-ripple"
+          style={{ '--btn-top': `${ripple.top}px`, '--btn-left': `${ripple.left}px` }}
+        />
+      )}
       </div>
     </div>);
 

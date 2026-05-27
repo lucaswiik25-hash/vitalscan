@@ -33,6 +33,16 @@
         "tea"
       ],
       "default": "water"
+    },
+    "slot": {
+      "type": "string",
+      "enum": [
+        "morning",
+        "lunch",
+        "dinner",
+        "night"
+      ],
+      "description": "Time-of-day slot for water logging"
     }
   },
   "required": [

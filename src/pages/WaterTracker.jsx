@@ -3,19 +3,20 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
-import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Plus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
+import WaterCalendarModal from '../components/water/WaterCalendarModal';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
-const DAY_LABELS = ['MON', 'TUE', 'WED', 'TURS', 'FRI', 'SAT', 'SUN'];
 
-// Water slot time-of-day definitions
 const WATER_SLOTS = [
   { key: 'morning',  label: 'Morning',   icon: '🥛' },
   { key: 'lunch',    label: 'Lunchtime', icon: '💧' },
   { key: 'dinner',   label: 'Dinnertime',icon: '🫗' },
   { key: 'night',    label: 'Night',     icon: '💧' },
 ];
+
+const QUICK_ML = [100, 200, 300, 500, 750, 1000];
 
 // Log Water panel (full-screen slide-up)
 function LogWaterPanel({ onClose, slotLabel, onAdd }) {
@@ -75,106 +76,26 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
   );
 }
 
-// 7-Day Calendar Strip
-function WeekStrip({ allLogs, dailyTarget }) {
-  const today = new Date();
-  const todayDow = today.getDay(); // 0=Sun
-  const mondayOffset = todayDow === 0 ? 6 : todayDow - 1;
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = subDays(today, mondayOffset - i);
-    const dateStr = format(d, 'yyyy-MM-dd');
-    const total = allLogs.filter(l => l.date === dateStr && l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
-    const pct = dailyTarget > 0 ? Math.min(1, total / dailyTarget) : 0;
-    const isToday = dateStr === TODAY;
-    return { label: DAY_LABELS[i], pct, isToday, dateStr };
-  });
-
-  return (
-    <div className="mx-5 mt-10 mb-4 rounded-[20px] px-4 pt-4 pb-5"
-      style={{ background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)' }}>
-      {/* Title */}
-      <p className="text-center text-gray-400 text-base mb-5"
-        style={{ fontFamily: 'var(--font-inria)', fontStyle: 'italic' }}>
-        7-Day view
-      </p>
-
-      {/* Strip */}
-      <div className="relative flex items-end justify-between">
-        {/* Connecting line */}
-        <div className="absolute left-0 right-0 flex items-center pointer-events-none"
-          style={{ top: '50%', transform: 'translateY(-50%)' }}>
-          <div className="w-full" style={{ height: 1.5, background: '#1a1a1a', opacity: 0.18 }} />
-        </div>
-
-        {days.map((day, i) => {
-          const CAPSULE_H = 90;
-          const CAPSULE_W = 38;
-          const waterH = Math.round(day.pct * (CAPSULE_H - 16));
-          return (
-            <div key={i} className="flex flex-col items-center gap-1 z-10"
-              style={{ transform: day.isToday ? 'translateY(-10px)' : 'translateY(0)', transition: 'transform 0.3s ease' }}>
-              {/* Day label */}
-              <span className="text-[11px] mb-1"
-                style={{
-                  fontFamily: 'var(--font-inria)', fontStyle: 'italic',
-                  fontWeight: day.isToday ? 600 : 400,
-                  color: day.isToday ? '#1A1814' : '#9CA3AF',
-                }}>
-                {day.label}
-              </span>
-              {/* Capsule */}
-              <div className="relative overflow-hidden"
-                style={{
-                  width: CAPSULE_W, height: CAPSULE_H,
-                  borderRadius: 999,
-                  border: '1.5px solid rgba(0,0,0,0.10)',
-                  background: '#F9FAFB',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)',
-                }}>
-                {/* Water fill */}
-                {waterH > 0 && (
-                  <div className="absolute bottom-0 left-0 right-0 transition-all duration-700"
-                    style={{
-                      height: waterH,
-                      background: 'linear-gradient(to top, #60A5FA, #93C5FD)',
-                      borderRadius: '0 0 999px 999px',
-                    }} />
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // Progress Ring + Metric Bars module
 function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile }) {
   const SIZE = 160, STROKE = 20, R = (SIZE - STROKE) / 2;
   const CIRC = 2 * Math.PI * R;
   const dash = (Math.min(pct, 100) / 100) * CIRC;
 
-  // Calculate metrics
   const pureWater = todayLogs.filter(l => l.amount_ml > 0 && l.type === 'water').reduce((s, l) => s + l.amount_ml, 0);
   const caffeineLogs = todayLogs.filter(l => ['coffee', 'tea', 'energy_drink'].includes(l.type));
   const sodaLogs = todayLogs.filter(l => l.type === 'soda');
   const alcoholLogs = todayLogs.filter(l => l.type === 'alcohol');
-  const dehydratingTotal = todayLogs.filter(l => l.amount_ml < 0).reduce((s, l) => s + Math.abs(l.amount_ml), 0);
 
-  // Effectiveness: ratio of pure water to goal, penalised by caffeine/exercise
   const exerciseBonus = (profile.last_active_date === TODAY) ? 0.15 : 0;
   const caffeineHits = caffeineLogs.length;
   const effectivenessPct = Math.min(100, Math.max(0,
     pct - caffeineHits * 8 - exerciseBonus * 100 + (pureWater / (dailyTarget || 2000)) * 100
   ) / 2);
 
-  // Quality: how much is pure water vs other drinks
   const totalPositive = todayLogs.filter(l => l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
   const qualityPct = totalPositive > 0 ? Math.min(100, (pureWater / totalPositive) * 100) : 0;
 
-  // Hydration: penalise for soda/alcohol
   const sodaPenalty = sodaLogs.length * 15 + alcoholLogs.length * 20;
   const hydrationPct = Math.min(100, Math.max(0, pct - sodaPenalty));
 
@@ -194,10 +115,7 @@ function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile 
           {pct > 0 && (
             <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="#fff" strokeWidth={STROKE}
               strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
-              style={{
-                transition: 'stroke-dasharray 0.7s ease',
-                filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.4))',
-              }} />
+              style={{ transition: 'stroke-dasharray 0.7s ease', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.4))' }} />
           )}
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
@@ -212,10 +130,7 @@ function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile 
             <p className="mb-1.5" style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{label}</p>
             <div className="rounded-full overflow-hidden" style={{ height: 6, background: 'rgba(255,255,255,0.1)' }}>
               <div className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${value}%`,
-                  background: 'linear-gradient(to right, #93C5FD, #60A5FA)',
-                }} />
+                style={{ width: `${value}%`, background: 'linear-gradient(to right, #93C5FD, #60A5FA)' }} />
             </div>
           </div>
         ))}
@@ -224,28 +139,41 @@ function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile 
   );
 }
 
-// Water Slots (like MealSlotsModule)
+// Inline Quick Add strip
+function QuickAddStrip({ onAdd }) {
+  return (
+    <div className="mx-5">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</p>
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {QUICK_ML.map(ml => (
+          <button key={ml} onClick={() => onAdd(ml)}
+            className="shrink-0 h-12 px-4 rounded-2xl flex flex-col items-center justify-center active:scale-95 transition-transform"
+            style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <span className="text-sm font-black text-gray-900">{ml >= 1000 ? `${ml/1000}L` : `${ml}`}</span>
+            <span className="text-[10px] text-gray-400 leading-none">{ml >= 1000 ? '' : 'ml'}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// AI Insights panel
+const insightStyle = (type) => {
+  if (type === 'warning') return { icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, iconBg: '#FEF3C7' };
+  if (type === 'positive') return { icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, iconBg: '#D1FAE5' };
+  return { icon: <Lightbulb className="w-4 h-4 text-violet-500" />, iconBg: '#EDE9FE' };
+};
+
+// Water Slots
 function WaterSlotsModule({ dailyTarget, todayLogs, onLogSlot, onRemoveLog }) {
-  const slotTarget = Math.round(dailyTarget / 4);
   const [openSlot, setOpenSlot] = useState(null);
 
-  // Group logs by time-of-day slot
   const slotLogs = WATER_SLOTS.reduce((acc, slot) => {
     acc[slot.key] = todayLogs.filter(l => l.amount_ml > 0 && l.slot === slot.key);
     return acc;
   }, {});
 
-  // Running balance: redistribute remaining after each slot
-  let remaining = dailyTarget;
-  const slotData = WATER_SLOTS.map((slot) => {
-    const logged = slotLogs[slot.key].reduce((s, l) => s + l.amount_ml, 0);
-    const target = Math.round(remaining / (WATER_SLOTS.length - WATER_SLOTS.indexOf(slot) + 1));
-    const slotTarget = Math.round(remaining / (4 - WATER_SLOTS.indexOf(slot)));
-    remaining = Math.max(0, remaining - logged);
-    return { ...slot, logged, slotTarget };
-  });
-
-  // Recompute with proper redistribution
   let rem = dailyTarget;
   const slotsWithTargets = WATER_SLOTS.map((slot, idx) => {
     const logged = slotLogs[slot.key].reduce((s, l) => s + l.amount_ml, 0);
@@ -263,11 +191,9 @@ function WaterSlotsModule({ dailyTarget, todayLogs, onLogSlot, onRemoveLog }) {
           <div key={slot.key}>
             {i > 0 && <div className="mx-4 h-px bg-gray-100" />}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              {/* Icon */}
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-lg">
                 {i % 2 === 0 ? '🥛' : '🫗'}
               </div>
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
                   <p className="text-sm font-bold text-gray-900">{slot.label}</p>
@@ -277,7 +203,6 @@ function WaterSlotsModule({ dailyTarget, todayLogs, onLogSlot, onRemoveLog }) {
                   {slot.logged > 0 ? `${slot.logged}` : '0'} / {slot.target} ml
                 </p>
               </div>
-              {/* Plus button */}
               <button onClick={() => setOpenSlot(slot)}
                 className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: '#1a1a1a' }}>
@@ -288,7 +213,6 @@ function WaterSlotsModule({ dailyTarget, todayLogs, onLogSlot, onRemoveLog }) {
         ))}
       </div>
 
-      {/* Log panel */}
       <AnimatePresence>
         {openSlot && (
           <LogWaterPanel
@@ -306,6 +230,9 @@ export default function WaterTracker() {
   const queryClient = useQueryClient();
   const { profile } = useUserProfile();
   const dailyTarget = profile.water_target_ml || 2000;
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [aiInsights, setAiInsights] = useState(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const { data: todayLogs = [] } = useQuery({
     queryKey: ['waterLogs', TODAY],
@@ -328,18 +255,79 @@ export default function WaterTracker() {
     queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
+  const quickAdd = async (ml) => {
+    // Determine current slot by time
+    const hour = new Date().getHours();
+    const slot = hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night';
+    await logSlot(ml, slot);
+  };
+
   const removeLog = async (id) => {
     await base44.entities.WaterLog.delete(id);
     queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
     queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
+  const getAiInsights = async () => {
+    setLoadingAI(true);
+    const last14 = Array.from({ length: 14 }, (_, i) => {
+      const d = subDays(new Date(), 13 - i);
+      const dateStr = format(d, 'yyyy-MM-dd');
+      const total = allLogs.filter(l => l.date === dateStr && l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
+      return { date: format(d, 'EEE MMM d'), ml: total };
+    });
+
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a hydration coach. Analyze the user's last 14 days of water consumption and give 3 specific, actionable insights.
+
+Data (daily ml consumed):
+${JSON.stringify(last14, null, 2)}
+
+Daily target: ${dailyTarget}ml
+
+Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 sentences with actual numbers), type ("warning" | "positive" | "tip").`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          insights: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                description: { type: 'string' },
+                type: { type: 'string', enum: ['warning', 'positive', 'tip'] },
+              }
+            }
+          }
+        }
+      },
+    });
+
+    setAiInsights(res?.insights || []);
+    setLoadingAI(false);
+  };
+
   return (
     <div className="min-h-screen pb-28">
-      {/* 7-Day calendar strip */}
-      <WeekStrip allLogs={allLogs} dailyTarget={dailyTarget} />
+      {/* Header row */}
+      <div className="flex items-center justify-between px-5 pt-10 pb-5">
+        <h1 className="text-2xl font-bold text-gray-900">Hydration</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={getAiInsights}
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center">
+            {loadingAI
+              ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+              : <Sparkles className="w-5 h-5 text-violet-500" />}
+          </button>
+          <button onClick={() => setShowCalendar(true)}
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center">
+            <CalendarDays className="w-5 h-5 text-gray-700" />
+          </button>
+        </div>
+      </div>
 
-      {/* Progress ring + bars */}
+      {/* Stats module */}
       <div className="mb-5">
         <HydrationStatsModule
           pct={pct}
@@ -350,6 +338,47 @@ export default function WaterTracker() {
         />
       </div>
 
+      {/* AI Insights */}
+      <AnimatePresence>
+        {aiInsights && aiInsights.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="mx-5 mb-5 bg-white border border-gray-100 rounded-[24px] shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-violet-500" />
+                <p className="text-sm font-bold text-gray-900">AI Hydration Insights</p>
+              </div>
+              <button onClick={() => setAiInsights(null)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="w-3.5 h-3.5 text-gray-500" />
+              </button>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {aiInsights.map((insight, i) => {
+                const style = insightStyle(insight.type);
+                return (
+                  <div key={i} className="flex items-start gap-3 px-5 py-4">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ background: style.iconBg }}>
+                      {style.icon}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 mb-0.5">{insight.title}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed">{insight.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Add */}
+      <div className="mb-5">
+        <QuickAddStrip onAdd={quickAdd} />
+      </div>
+
       {/* Water slots */}
       <WaterSlotsModule
         dailyTarget={dailyTarget}
@@ -357,6 +386,17 @@ export default function WaterTracker() {
         onLogSlot={logSlot}
         onRemoveLog={removeLog}
       />
+
+      {/* Calendar modal */}
+      <AnimatePresence>
+        {showCalendar && (
+          <WaterCalendarModal
+            allLogs={allLogs}
+            dailyTarget={dailyTarget}
+            onClose={() => setShowCalendar(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -91,7 +91,8 @@ function WeekStrip({ allLogs, dailyTarget }) {
   });
 
   return (
-    <div className="px-5 pt-10 pb-4">
+    <div className="mx-5 mt-10 mb-4 rounded-[20px] px-4 pt-4 pb-5"
+      style={{ background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)' }}>
       {/* Title */}
       <p className="text-center text-gray-400 text-base mb-5"
         style={{ fontFamily: 'var(--font-inria)', fontStyle: 'italic' }}>
@@ -114,8 +115,12 @@ function WeekStrip({ allLogs, dailyTarget }) {
             <div key={i} className="flex flex-col items-center gap-1 z-10"
               style={{ transform: day.isToday ? 'translateY(-10px)' : 'translateY(0)', transition: 'transform 0.3s ease' }}>
               {/* Day label */}
-              <span className="text-[11px] text-gray-400 mb-1"
-                style={{ fontFamily: 'var(--font-inria)', fontStyle: 'italic', fontWeight: 400 }}>
+              <span className="text-[11px] mb-1"
+                style={{
+                  fontFamily: 'var(--font-inria)', fontStyle: 'italic',
+                  fontWeight: day.isToday ? 600 : 400,
+                  color: day.isToday ? '#1A1814' : '#9CA3AF',
+                }}>
                 {day.label}
               </span>
               {/* Capsule */}
@@ -123,26 +128,18 @@ function WeekStrip({ allLogs, dailyTarget }) {
                 style={{
                   width: CAPSULE_W, height: CAPSULE_H,
                   borderRadius: 999,
-                  border: '1.5px solid rgba(0,0,0,0.12)',
-                  background: 'rgba(255,255,255,0.7)',
+                  border: '1.5px solid rgba(0,0,0,0.10)',
+                  background: '#F9FAFB',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)',
                 }}>
-                {/* Water fill — blurred blue */}
+                {/* Water fill */}
                 {waterH > 0 && (
                   <div className="absolute bottom-0 left-0 right-0 transition-all duration-700"
                     style={{
                       height: waterH,
-                      background: 'radial-gradient(ellipse at 50% 80%, rgba(202,230,254,0.95) 0%, rgba(202,230,254,0.55) 70%, transparent 100%)',
-                      filter: 'blur(3px)',
+                      background: 'linear-gradient(to top, #60A5FA, #93C5FD)',
+                      borderRadius: '0 0 999px 999px',
                     }} />
-                )}
-                {/* Today label inside */}
-                {day.isToday && (
-                  <div className="absolute bottom-1.5 left-0 right-0 flex justify-center">
-                    <span className="text-[8px] font-bold text-gray-400"
-                      style={{ fontFamily: 'var(--font-inria)', fontStyle: 'italic' }}>
-                      {day.label}
-                    </span>
-                  </div>
                 )}
               </div>
             </div>
@@ -189,7 +186,7 @@ function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile 
 
   return (
     <div className="mx-5 rounded-[28px] p-5 flex items-center gap-5"
-      style={{ background: '#494949' }}>
+      style={{ background: 'linear-gradient(135deg, #2D2A26 0%, #1A1814 100%)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
       {/* Ring */}
       <div className="relative shrink-0">
         <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
@@ -199,12 +196,12 @@ function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile 
               strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
               style={{
                 transition: 'stroke-dasharray 0.7s ease',
-                filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.6))',
+                filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.4))',
               }} />
           )}
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-4xl font-black text-white">{pct}%</span>
+          <span className="text-white" style={{ fontSize: 32, fontWeight: 700 }}>{pct}%</span>
         </div>
       </div>
 
@@ -212,18 +209,13 @@ function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile 
       <div className="flex-1 space-y-4">
         {bars.map(({ label, value }) => (
           <div key={label}>
-            <p className="text-sm font-semibold text-white mb-1.5"
-              style={{ fontFamily: 'var(--font-inria)' }}>{label}</p>
-            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#2a2a2a' }}>
-              {value > 0 && (
-                <div className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${value}%`,
-                    background: 'radial-gradient(ellipse at 30% 50%, rgba(202,230,254,0.95) 0%, rgba(150,200,254,0.7) 100%)',
-                    filter: 'blur(1px)',
-                    boxShadow: '0 0 8px rgba(202,230,254,0.8)',
-                  }} />
-              )}
+            <p className="mb-1.5" style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{label}</p>
+            <div className="rounded-full overflow-hidden" style={{ height: 6, background: 'rgba(255,255,255,0.1)' }}>
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${value}%`,
+                  background: 'linear-gradient(to right, #93C5FD, #60A5FA)',
+                }} />
             </div>
           </div>
         ))}

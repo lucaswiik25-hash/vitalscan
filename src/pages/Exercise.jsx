@@ -6,8 +6,8 @@ import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
 
-const PINK = '#FF375F';
-const TRACK = '#1C0A0E';
+const ACCENT = '#1A1814';
+const TRACK_COLOR = '#FFFFFF';
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 function getMondayIndex(date) { const d = date.getDay(); return d === 0 ? 6 : d - 1; }
 
@@ -116,51 +116,39 @@ export default function Exercise() {
       </div>
 
       <div className="px-5 space-y-5">
-        {/* Today's Burn Hero Card — Apple Watch style */}
-        <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1" style={{ background: '#000' }}>
-          <div className="px-5 pt-5 pb-6">
+        {/* Today's Burn Hero Card */}
+        <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1" style={{ background: '#F7F7F7', maxHeight: 320 }}>
+          <div className="px-5 pt-5 pb-5">
 
-            {/* Weekly day rings */}
+            {/* Weekly day strip */}
             {(() => {
               const todayDate = new Date();
               const mondayIdx = getMondayIndex(todayDate);
               const weekDays = Array.from({ length: 7 }, (_, i) => {
                 const d = subDays(todayDate, mondayIdx - i);
                 const dateStr = format(d, 'yyyy-MM-dd');
-                const burned = exercises
-                  .filter(e => e.date === dateStr)
-                  .reduce((s, e) => s + (e.calories_burned || 0), 0);
-                const dayPct = exerciseTarget > 0 ? Math.min(100, (burned / exerciseTarget) * 100) : 0;
-                return { label: DAY_LABELS[i], pct: dayPct, isToday: dateStr === today };
+                return { label: DAY_LABELS[i], isToday: dateStr === today };
               });
-              const R2 = 16, S2 = 5, C2 = 2 * Math.PI * R2;
               return (
-                <div className="flex justify-between mb-6">
+                <div className="flex justify-between mb-4">
                   {weekDays.map((d, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1.5">
-                      {d.isToday ? (
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: PINK }}>
-                          <span className="text-black text-[10px] font-bold">{d.label}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] font-medium" style={{ color: '#8E8E93' }}>{d.label}</span>
-                      )}
-                      <svg width="38" height="38" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)' }}>
-                        <circle cx="20" cy="20" r={R2} fill="none" stroke={TRACK} strokeWidth={S2} strokeLinecap="round" />
-                        {d.pct > 0 && (
-                          <circle cx="20" cy="20" r={R2} fill="none" stroke={PINK} strokeWidth={S2}
-                            strokeDasharray={`${(d.pct / 100) * C2} ${C2}`} strokeLinecap="round" />
-                        )}
-                      </svg>
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center"
+                        style={d.isToday
+                          ? { background: ACCENT }
+                          : { border: '1.5px solid #D1D5DB', background: 'transparent' }}>
+                        <span className="text-[11px] font-bold"
+                          style={{ color: d.isToday ? '#FFFFFF' : '#9CA3AF' }}>{d.label}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               );
             })()}
 
-            {/* Main activity ring */}
+            {/* Main activity ring — 180px diameter */}
             {(() => {
-              const R = 100, STROKE = 45, CX = 140, CY = 140;
+              const SIZE = 180, R = 68, STROKE = 22, CX = 90, CY = 90;
               const CIRC = 2 * Math.PI * R;
               const dash = (Math.min(pct, 100) / 100) * CIRC;
               const angleDeg = (Math.min(pct, 100) / 100) * 360 - 90;
@@ -168,11 +156,12 @@ export default function Exercise() {
               const arrowX = CX + R * Math.cos(angleRad);
               const arrowY = CY + R * Math.sin(angleRad);
               return (
-                <div className="relative flex justify-center mb-6">
-                  <svg width="280" height="280" viewBox="0 0 280 280" style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx={CX} cy={CY} r={R} fill="none" stroke={TRACK} strokeWidth={STROKE} strokeLinecap="round" />
+                <div className="relative flex justify-center mb-4">
+                  <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx={CX} cy={CY} r={R} fill="none" stroke={TRACK_COLOR} strokeWidth={STROKE} strokeLinecap="round"
+                      style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.9))' }} />
                     {pct > 0 && (
-                      <circle cx={CX} cy={CY} r={R} fill="none" stroke={PINK} strokeWidth={STROKE}
+                      <circle cx={CX} cy={CY} r={R} fill="none" stroke={ACCENT} strokeWidth={STROKE}
                         strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
                         style={{ transition: 'stroke-dasharray 0.7s ease' }} />
                     )}
@@ -180,13 +169,12 @@ export default function Exercise() {
                   {pct > 2 && (
                     <div className="absolute flex items-center justify-center rounded-full"
                       style={{
-                        width: 44, height: 44, background: PINK,
-                        left: `calc(50% + ${arrowX - CX}px - 22px)`,
-                        top: `calc(50% + ${arrowY - CY}px - 22px)`,
+                        width: 28, height: 28, background: ACCENT,
+                        left: `calc(50% + ${arrowX - CX}px - 14px)`,
+                        top: `calc(50% + ${arrowY - CY}px - 14px)`,
                         transform: `rotate(${angleDeg + 90}deg)`,
-                        boxShadow: `0 0 12px ${PINK}88`,
                       }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M5 12h14M12 5l7 7-7 7" />
                       </svg>
                     </div>
@@ -195,71 +183,17 @@ export default function Exercise() {
               );
             })()}
 
-            {/* Stats + goal button */}
-            <div className="flex justify-between items-end mb-5">
-              <div>
-                <p className="text-white text-2xl font-normal mb-1">Movement</p>
-                <p className="text-4xl font-semibold tracking-tight" style={{ color: PINK }}>
-                  {totalBurned}/{exerciseTarget} <span className="text-3xl font-medium">KCAL</span>
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-full flex items-center justify-center border border-gray-700"
-                style={{ background: 'linear-gradient(135deg,#2C2C2E 0%,#1C1C1E 100%)' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" fill="none" stroke={PINK} strokeWidth="2" />
-                  <path d="M8 12h8M12 8v8" stroke={PINK} strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </div>
+            {/* Stats */}
+            <div className="mb-1">
+              <p className="text-base font-semibold mb-0.5" style={{ color: ACCENT }}>Movement</p>
+              <p className="text-3xl font-bold tracking-tight" style={{ color: ACCENT }}>
+                {totalBurned}/{exerciseTarget} <span className="text-2xl font-medium">KCAL</span>
+              </p>
             </div>
-
-            {/* Hourly bar chart */}
-            {(() => {
-              const buckets = Array(24).fill(0);
-              exercises.forEach(e => {
-                if (e.created_date) {
-                  const hr = new Date(e.created_date).getHours();
-                  buckets[hr] += e.calories_burned || 0;
-                }
-              });
-              const maxVal = Math.max(...buckets, 1);
-              return (
-                <div>
-                  <span className="text-sm" style={{ color: '#8E8E93' }}>{Math.round(exerciseTarget / 4)} KCAL</span>
-                  <div className="relative mt-1">
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                      {[0, 1, 2].map(i => (
-                        <div key={i} className="w-full" style={{
-                          height: 1,
-                          backgroundImage: `linear-gradient(to right, ${PINK} 50%, transparent 50%)`,
-                          backgroundSize: '4px 1px', backgroundRepeat: 'repeat-x',
-                          opacity: i === 2 ? 1 : 0.3,
-                        }} />
-                      ))}
-                    </div>
-                    <div className="flex items-end justify-between relative" style={{ height: 80, zIndex: 1 }}>
-                      {buckets.map((v, i) => (
-                        <div key={i} className="flex-1 mx-px flex items-end" style={{ height: '100%' }}>
-                          {v > 0 ? (
-                            <div style={{
-                              width: '100%', maxWidth: 4,
-                              height: `${Math.max(4, (v / maxVal) * 100)}%`,
-                              background: PINK, borderRadius: '1px 1px 0 0', margin: '0 auto',
-                            }} />
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-between mt-2 text-sm" style={{ color: '#8E8E93' }}>
-                    <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span>
-                  </div>
-                </div>
-              );
-            })()}
-
-            <p className="text-lg font-medium tracking-wide mt-4" style={{ color: PINK }}>
-              TOTAL {totalBurned} KCAL
-            </p>
+            <div className="flex justify-between">
+              <span style={{ fontSize: 13, color: '#9CA3AF' }}>{totalBurned} kcal burned</span>
+              <span style={{ fontSize: 13, color: '#9CA3AF' }}>{exerciseTarget} kcal goal</span>
+            </div>
           </div>
         </motion.div>
 

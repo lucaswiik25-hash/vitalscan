@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 
 const glassStyle = {
   background: 'rgba(255,255,255,0.82)',
-  border: '1px solid rgba(0,0,0,0.06)',
-  boxShadow: 'none',
+  border: 'none',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)',
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {
   const pct = Math.min(100, Math.max(0, progress));
   return (
-    <div className="flex-1 rounded-[22px] p-4 flex flex-col gap-3" style={glassStyle}>
+    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">{label}</p>
       <p className="text-3xl font-light text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
       <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
@@ -41,7 +41,7 @@ function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold text-foreground/50">Calories left</p>
-          <p className="text-5xl font-light text-foreground leading-none mt-1">{Math.max(0, Math.round(caloriesLeft))}<span className="text-lg font-semibold text-foreground/40 ml-1">kcal</span></p>
+          <p className="leading-none mt-1" style={{ fontSize: 52, fontWeight: 800, color: 'hsl(var(--foreground))' }}>{Math.max(0, Math.round(caloriesLeft))}<span className="text-lg font-semibold text-foreground/40 ml-1">kcal</span></p>
           <p className="text-xs text-foreground/40 mt-1">of {caloriesTarget}</p>
         </div>
         <div className="relative flex items-center justify-center" style={{ width: 72, height: 72 }}>
@@ -68,7 +68,7 @@ function GlassCaffeineCard({ waterLogs = [] }) {
   const color = pct >= 100 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0';
   const hasData = caffeinated.length > 0;
   return (
-    <div className="flex-1 rounded-[22px] p-4 flex flex-col gap-3" style={glassStyle}>
+    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">Caffeine</p>
       <p className="text-3xl font-light text-foreground leading-none">
         {hasData ? mgEstimate : '—'}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{hasData ? 'mg' : ''}</span>
@@ -93,7 +93,7 @@ function GlassSleepCard({ profile }) {
   const hasData = hours != null;
   const color = !hasData ? '#aaa' : hours >= 7 ? '#6CC5A0' : hours >= 5 ? '#F5C842' : '#F47C7C';
   return (
-    <div className="flex-1 rounded-[22px] p-4 flex flex-col gap-3" style={glassStyle}>
+    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">Sleep</p>
       <p className="text-3xl font-light text-foreground leading-none" style={{ color: hasData ? color : undefined }}>
         {hasData ? hours : '—'}<span className="text-sm font-semibold text-foreground/50 ml-0.5">h</span>
@@ -117,7 +117,7 @@ function GlassHealthScore({ consumed, profile }) {
   const healthScore = hasMeals ? Math.round(calScore * 0.6 + protScore * 0.4) : null;
   const scoreColor = healthScore === null ? '#aaa' : healthScore >= 75 ? '#6CC5A0' : healthScore >= 45 ? '#F5C842' : '#F47C7C';
   return (
-    <div className="rounded-[18px] p-4" style={glassStyle}>
+    <div className="rounded-[18px] p-5" style={glassStyle}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-bold text-foreground">Health Score</span>
         <span className="text-base font-extrabold" style={{ color: scoreColor }}>
@@ -251,7 +251,7 @@ function CarnivoreCarousel({ consumed, profile, todayMeals = [] }) {
         <GlassMacroCard value={proteinConsumed} unit="g" label="Protein today" progress={(proteinConsumed / proteinTarget) * 100} />
         <GlassMacroCard value={fatConsumed} unit="g" label="Fat today" progress={(fatConsumed / fatTarget) * 100} />
       </div>
-      <div className="rounded-[22px] p-4" style={glassStyle}>
+      <div className="rounded-[22px] p-5" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50 mb-1">Meals Logged</p>
         <p className="text-3xl font-light text-foreground">{todayMeals.length}</p>
         <div className="flex items-center gap-2 mt-2">
@@ -332,11 +332,11 @@ function HighProteinCarousel({ consumed, profile, todayMeals = [] }) {
         </div>
       </div>
       <div className="flex gap-2">
-        <div className="flex-1 rounded-[20px] p-4" style={glassStyle}>
+        <div className="flex-1 rounded-[20px] p-5" style={glassStyle}>
           <p className="text-xs text-foreground/50 mb-1">Avg per meal</p>
           <p className="text-2xl font-light text-foreground">{avgProteinPerMeal}<span className="text-sm text-foreground/40"> g</span></p>
         </div>
-        <div className="flex-1 rounded-[20px] p-4" style={glassStyle}>
+        <div className="flex-1 rounded-[20px] p-5" style={glassStyle}>
           <p className="text-xs text-foreground/50 mb-1">Meals logged</p>
           <p className="text-2xl font-light text-foreground">{todayMeals.length}</p>
         </div>

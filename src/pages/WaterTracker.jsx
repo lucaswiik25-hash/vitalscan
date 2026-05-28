@@ -78,7 +78,7 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
 
 // Progress Ring + Metric Bars module
 function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile }) {
-  const SIZE = 160, STROKE = 20, R = (SIZE - STROKE) / 2;
+  const SIZE = 160, STROKE = 14, R = (SIZE - STROKE) / 2;
   const CIRC = 2 * Math.PI * R;
   const dash = (Math.min(pct, 100) / 100) * CIRC;
 
@@ -111,11 +111,14 @@ function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile 
       {/* Ring */}
       <div className="relative shrink-0">
         <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="#000" strokeWidth={STROKE} strokeLinecap="round" />
+          {/* Barely visible ghost track */}
+          <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
+            stroke="rgba(255,255,255,0.07)" strokeWidth={STROKE} strokeLinecap="round" />
+          {/* Progress arc — only shows when water logged */}
           {pct > 0 && (
             <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="#fff" strokeWidth={STROKE}
               strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
-              style={{ transition: 'stroke-dasharray 0.7s ease', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.4))' }} />
+              style={{ transition: 'stroke-dasharray 0.7s ease', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.6))' }} />
           )}
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
@@ -144,13 +147,19 @@ function QuickAddStrip({ onAdd }) {
   return (
     <div className="mx-5">
       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</p>
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
         {QUICK_ML.map(ml => (
           <button key={ml} onClick={() => onAdd(ml)}
-            className="shrink-0 h-12 px-4 rounded-2xl flex flex-col items-center justify-center active:scale-95 transition-transform"
-            style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <span className="text-sm font-black text-gray-900">{ml >= 1000 ? `${ml/1000}L` : `${ml}`}</span>
-            <span className="text-[10px] text-gray-400 leading-none">{ml >= 1000 ? '' : 'ml'}</span>
+            className="shrink-0 h-16 px-5 rounded-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+            style={{
+              background: 'rgba(255,255,255,0.45)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255,255,255,0.6)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.06)',
+            }}>
+            <span className="text-base font-black text-gray-900">{ml >= 1000 ? `${ml/1000}L` : `${ml}`}</span>
+            <span className="text-[10px] text-gray-400 leading-none font-medium">{ml >= 1000 ? 'litre' : 'ml'}</span>
           </button>
         ))}
       </div>
@@ -233,6 +242,7 @@ export default function WaterTracker() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [aiInsights, setAiInsights] = useState(null);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [showAiResults, setShowAiResults] = useState(false);
 
   const { data: todayLogs = [] } = useQuery({
     queryKey: ['waterLogs', TODAY],
@@ -270,6 +280,7 @@ export default function WaterTracker() {
 
   const getAiInsights = async () => {
     setLoadingAI(true);
+    setAiInsights(null);
     const last14 = Array.from({ length: 14 }, (_, i) => {
       const d = subDays(new Date(), 13 - i);
       const dateStr = format(d, 'yyyy-MM-dd');
@@ -306,6 +317,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
 
     setAiInsights(res?.insights || []);
     setLoadingAI(false);
+    setShowAiResults(true);
   };
 
   return (
@@ -338,35 +350,57 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
         />
       </div>
 
-      {/* AI Insights */}
+      {/* AI loading overlay */}
       <AnimatePresence>
-        {aiInsights && aiInsights.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="mx-5 mb-5 bg-white border border-gray-100 rounded-[24px] shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
+        {loadingAI && (
+          <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <Loader2 className="w-10 h-10 text-violet-400 animate-spin mb-4" />
+            <p className="text-white text-lg font-semibold">Analysing 14 days...</p>
+            <p className="text-white/50 text-sm mt-1">Your hydration coach is reviewing your data</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Results full-screen page */}
+      <AnimatePresence>
+        {showAiResults && aiInsights && (
+          <motion.div className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+            style={{ background: 'linear-gradient(160deg, #1e1b4b 0%, #0f0f1a 60%, #0d1117 100%)' }}
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-14 pb-6">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-500" />
-                <p className="text-sm font-bold text-gray-900">AI Hydration Insights</p>
+                <Sparkles className="w-5 h-5 text-violet-400" />
+                <h2 className="text-white text-xl font-bold">Hydration Analysis</h2>
               </div>
-              <button onClick={() => setAiInsights(null)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="w-3.5 h-3.5 text-gray-500" />
+              <button onClick={() => setShowAiResults(false)}
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <X className="w-4 h-4 text-white" />
               </button>
             </div>
-            <div className="divide-y divide-gray-100">
+            <p className="px-5 text-white/40 text-sm mb-8">Based on your last 14 days of data</p>
+            <div className="flex-1 overflow-y-auto px-5 space-y-4 pb-16">
               {aiInsights.map((insight, i) => {
                 const style = insightStyle(insight.type);
                 return (
-                  <div key={i} className="flex items-start gap-3 px-5 py-4">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                      style={{ background: style.iconBg }}>
-                      {style.icon}
+                  <motion.div key={i}
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.12, duration: 0.4, ease: 'easeOut' }}
+                    className="rounded-[24px] p-5"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0"
+                        style={{ background: style.iconBg }}>
+                        {style.icon}
+                      </div>
+                      <p className="text-white font-bold text-base">{insight.title}</p>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 mb-0.5">{insight.title}</p>
-                      <p className="text-xs text-gray-500 leading-relaxed">{insight.description}</p>
-                    </div>
-                  </div>
+                    <p className="text-white/60 text-sm leading-relaxed">{insight.description}</p>
+                  </motion.div>
                 );
               })}
             </div>

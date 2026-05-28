@@ -117,8 +117,8 @@ export default function Exercise() {
 
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
-        <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1" style={{ background: '#F7F7F7', maxHeight: 320 }}>
-          <div className="px-5 pt-5 pb-5">
+        <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1" style={{ background: '#F7F7F7' }}>
+          <div className="px-5 pt-5 pb-8">
 
             {/* Weekly day strip */}
             {(() => {
@@ -136,7 +136,7 @@ export default function Exercise() {
                       <div className="w-7 h-7 rounded-full flex items-center justify-center"
                         style={d.isToday
                           ? { background: ACCENT }
-                          : { border: '1.5px solid #D1D5DB', background: 'transparent' }}>
+                          : { border: '2.5px solid #D1D5DB', background: 'transparent' }}>
                         <span className="text-[11px] font-bold"
                           style={{ color: d.isToday ? '#FFFFFF' : '#9CA3AF' }}>{d.label}</span>
                       </div>
@@ -148,7 +148,7 @@ export default function Exercise() {
 
             {/* Main activity ring — 180px diameter */}
             {(() => {
-              const SIZE = 180, R = 68, STROKE = 22, CX = 90, CY = 90;
+              const SIZE = 180, R = 65, STROKE = 28, CX = 90, CY = 90;
               const CIRC = 2 * Math.PI * R;
               const dash = (Math.min(pct, 100) / 100) * CIRC;
               const angleDeg = (Math.min(pct, 100) / 100) * 360 - 90;

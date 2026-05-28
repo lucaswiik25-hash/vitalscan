@@ -39,10 +39,12 @@ export default function WaterCalendarModal({ allLogs, dailyTarget, onClose }) {
       <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }} onClick={onClose} />
-      <motion.div className="absolute inset-0 flex flex-col"
-        style={{ background: '#000' }}
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+      <motion.div className="absolute left-0 right-0 bottom-0 flex flex-col overflow-hidden"
+        style={{ background: '#0a0a0a', top: 0, borderRadius: '32px 32px 0 0' }}
+        initial={{ y: '100%', borderRadius: '32px 32px 0 0' }}
+        animate={{ y: 0, borderRadius: '32px 32px 0 0' }}
+        exit={{ y: '100%' }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-14 pb-4">

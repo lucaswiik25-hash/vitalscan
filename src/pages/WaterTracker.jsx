@@ -150,7 +150,7 @@ function QuickAddStrip({ onAdd }) {
       <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
         {QUICK_ML.map(ml => (
           <button key={ml} onClick={() => onAdd(ml)}
-            className="shrink-0 h-16 px-5 rounded-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+            className="shrink-0 h-20 px-6 rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
             style={{
               background: 'rgba(255,255,255,0.45)',
               backdropFilter: 'blur(20px) saturate(180%)',
@@ -158,8 +158,8 @@ function QuickAddStrip({ onAdd }) {
               border: '1px solid rgba(255,255,255,0.6)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.06)',
             }}>
-            <span className="text-base font-black text-gray-900">{ml >= 1000 ? `${ml/1000}L` : `${ml}`}</span>
-            <span className="text-[10px] text-gray-400 leading-none font-medium">{ml >= 1000 ? 'litre' : 'ml'}</span>
+            <span className="text-lg font-black text-gray-900">{ml >= 1000 ? `${ml/1000}L` : `${ml}`}</span>
+            <span className="text-xs text-gray-400 leading-none font-medium">{ml >= 1000 ? 'litre' : 'ml'}</span>
           </button>
         ))}
       </div>

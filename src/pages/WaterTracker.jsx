@@ -4,19 +4,32 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
+import { X, Plus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb, BarChart2, Zap } from 'lucide-react';
 import WaterCalendarModal from '../components/water/WaterCalendarModal';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
 const WATER_SLOTS = [
-  { key: 'morning',  label: 'Morning',   icon: '🥛' },
-  { key: 'lunch',    label: 'Lunchtime', icon: '💧' },
-  { key: 'dinner',   label: 'Dinnertime',icon: '🫗' },
-  { key: 'night',    label: 'Night',     icon: '💧' },
+  { key: 'morning',  label: 'Morning',   icon: '🌅' },
+  { key: 'lunch',    label: 'Lunchtime', icon: '☀️' },
+  { key: 'dinner',   label: 'Dinnertime',icon: '🌆' },
+  { key: 'night',    label: 'Night',     icon: '🌙' },
 ];
 
-const QUICK_ML = [100, 200, 300, 500, 750, 1000];
+const QUICK_ML = [150, 250, 300, 500, 750, 1000];
+
+// Neumorphic shadow styles
+const NM = '8px 8px 16px rgba(174,174,192,0.4), -8px -8px 16px rgba(255,255,255,0.8), inset 1px 1px 1px rgba(255,255,255,0.6)';
+const NM_SM = '6px 6px 12px rgba(174,174,192,0.3), -6px -6px 12px rgba(255,255,255,0.7)';
+const NM_INSET = 'inset 4px 4px 8px rgba(174,174,192,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)';
+const LAV = '6px 6px 12px rgba(99,102,241,0.25), -6px -6px 12px rgba(255,255,255,0.6)';
+const LAV_SM = '4px 4px 8px rgba(99,102,241,0.3), -4px -4px 8px rgba(255,255,255,0.5)';
+
+const BG = '#e8e8ec';
+const SURFACE = '#f0f0f4';
+const LAVENDER = '#818cf8';
+const LAVENDER_LIGHT = '#a5b4fc';
+const LAVENDER_DARK = '#6366f1';
 
 // Log Water panel (full-screen slide-up)
 function LogWaterPanel({ onClose, slotLabel, onAdd }) {
@@ -28,46 +41,52 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
 
   return (
     <div className="fixed inset-0 z-50">
-      <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+      <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }} onClick={onClose} />
-      <motion.div className="absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden"
-        style={{ borderRadius: '24px 24px 0 0' }}
+      <motion.div className="absolute left-0 right-0 bottom-0 flex flex-col overflow-hidden"
+        style={{ background: BG, borderRadius: '28px 28px 0 0' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
+          <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(174,174,192,0.5)' }} />
         </div>
-        <div className="flex items-start justify-between px-6 pt-3 pb-4 border-b border-gray-100">
+        <div className="flex items-start justify-between px-6 pt-3 pb-4" style={{ borderBottom: '1px solid rgba(174,174,192,0.2)' }}>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Log Water</h2>
-            <p className="text-sm text-gray-400 mt-0.5">{slotLabel}</p>
+            <h2 className="text-xl font-bold" style={{ color: '#1f2937' }}>Log Water</h2>
+            <p className="text-sm mt-0.5" style={{ color: '#9ca3af' }}>{slotLabel}</p>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-            <X className="w-4 h-4 text-gray-600" />
+          <button onClick={onClose} className="w-9 h-9 rounded-2xl flex items-center justify-center"
+            style={{ background: SURFACE, boxShadow: NM_SM }}>
+            <X className="w-4 h-4" style={{ color: '#6b7280' }} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</p>
-            <div className="grid grid-cols-4 gap-2">
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Quick Add</p>
+            <div className="grid grid-cols-4 gap-3">
               {QUICK.map(ml => (
                 <button key={ml} onClick={() => handleAdd(ml)}
-                  className="h-14 rounded-[16px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform bg-gray-100">
-                  <span className="text-base font-black text-gray-900">{ml >= 1000 ? `${ml/1000}L` : ml}</span>
-                  <span className="text-[10px] text-gray-400">{ml >= 1000 ? '' : 'ml'}</span>
+                  className="h-14 rounded-[18px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+                  style={{ background: SURFACE, boxShadow: NM_SM }}>
+                  <span className="text-base font-bold" style={{ color: '#1f2937' }}>{ml >= 1000 ? `${ml/1000}L` : ml}</span>
+                  <span className="text-[10px]" style={{ color: '#9ca3af' }}>{ml >= 1000 ? '' : 'ml'}</span>
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Custom</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Custom</p>
             <div className="flex gap-2">
               <input type="number" value={customVal} onChange={e => setCustomVal(e.target.value)}
                 placeholder="Enter ml..." autoFocus
-                className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                className="flex-1 rounded-2xl px-4 py-3 text-sm focus:outline-none"
+                style={{ background: SURFACE, boxShadow: NM_INSET, border: 'none', color: '#1f2937' }} />
               <button onClick={handleCustom}
-                className="px-5 py-3 rounded-2xl bg-gray-900 text-white text-sm font-semibold">Add</button>
+                className="px-5 py-3 rounded-2xl text-white text-sm font-semibold"
+                style={{ background: `linear-gradient(135deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`, boxShadow: LAV_SM }}>
+                Add
+              </button>
             </div>
           </div>
         </div>
@@ -76,164 +95,12 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
   );
 }
 
-// Progress Ring + Metric Bars module
-function HydrationStatsModule({ pct, effective, dailyTarget, todayLogs, profile }) {
-  const SIZE = 160, STROKE = 14, R = (SIZE - STROKE) / 2;
-  const CIRC = 2 * Math.PI * R;
-  const dash = (Math.min(pct, 100) / 100) * CIRC;
-
-  const pureWater = todayLogs.filter(l => l.amount_ml > 0 && l.type === 'water').reduce((s, l) => s + l.amount_ml, 0);
-  const caffeineLogs = todayLogs.filter(l => ['coffee', 'tea', 'energy_drink'].includes(l.type));
-  const sodaLogs = todayLogs.filter(l => l.type === 'soda');
-  const alcoholLogs = todayLogs.filter(l => l.type === 'alcohol');
-
-  const exerciseBonus = (profile.last_active_date === TODAY) ? 0.15 : 0;
-  const caffeineHits = caffeineLogs.length;
-  const effectivenessPct = Math.min(100, Math.max(0,
-    pct - caffeineHits * 8 - exerciseBonus * 100 + (pureWater / (dailyTarget || 2000)) * 100
-  ) / 2);
-
-  const totalPositive = todayLogs.filter(l => l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
-  const qualityPct = totalPositive > 0 ? Math.min(100, (pureWater / totalPositive) * 100) : 0;
-
-  const sodaPenalty = sodaLogs.length * 15 + alcoholLogs.length * 20;
-  const hydrationPct = Math.min(100, Math.max(0, pct - sodaPenalty));
-
-  const bars = [
-    { label: 'Effectiveness', value: effectivenessPct },
-    { label: 'Quality', value: qualityPct },
-    { label: 'Hydration', value: hydrationPct },
-  ];
-
-  return (
-    <div className="mx-5 rounded-[28px] p-5 flex items-center gap-5"
-      style={{ background: 'linear-gradient(135deg, #2D2A26 0%, #1A1814 100%)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-      {/* Ring */}
-      <div className="relative shrink-0">
-        <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
-          {/* Barely visible ghost track */}
-          <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-            stroke="rgba(255,255,255,0.07)" strokeWidth={STROKE} strokeLinecap="round" />
-          {/* Progress arc — only shows when water logged */}
-          {pct > 0 && (
-            <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="#fff" strokeWidth={STROKE}
-              strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
-              style={{ transition: 'stroke-dasharray 0.7s ease', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.6))' }} />
-          )}
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-white" style={{ fontSize: 32, fontWeight: 700 }}>{pct}%</span>
-        </div>
-      </div>
-
-      {/* Bars */}
-      <div className="flex-1 space-y-4">
-        {bars.map(({ label, value }) => (
-          <div key={label}>
-            <p className="mb-1.5" style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{label}</p>
-            <div className="rounded-full overflow-hidden" style={{ height: 6, background: 'rgba(255,255,255,0.1)' }}>
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${value}%`, background: 'linear-gradient(to right, #93C5FD, #60A5FA)' }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Inline Quick Add strip
-function QuickAddStrip({ onAdd }) {
-  return (
-    <div className="mx-5">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</p>
-      <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-        {QUICK_ML.map(ml => (
-          <button key={ml} onClick={() => onAdd(ml)}
-            className="shrink-0 h-20 px-6 rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
-            style={{
-              background: 'rgba(255,255,255,0.45)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              border: '1px solid rgba(255,255,255,0.6)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.06)',
-            }}>
-            <span className="text-lg font-black text-gray-900">{ml >= 1000 ? `${ml/1000}L` : `${ml}`}</span>
-            <span className="text-xs text-gray-400 leading-none font-medium">{ml >= 1000 ? 'litre' : 'ml'}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // AI Insights panel
 const insightStyle = (type) => {
   if (type === 'warning') return { icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, iconBg: '#FEF3C7' };
   if (type === 'positive') return { icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, iconBg: '#D1FAE5' };
-  return { icon: <Lightbulb className="w-4 h-4 text-violet-500" />, iconBg: '#EDE9FE' };
+  return { icon: <Lightbulb className="w-4 h-4 text-indigo-500" />, iconBg: '#E0E7FF' };
 };
-
-// Water Slots
-function WaterSlotsModule({ dailyTarget, todayLogs, onLogSlot, onRemoveLog }) {
-  const [openSlot, setOpenSlot] = useState(null);
-
-  const slotLogs = WATER_SLOTS.reduce((acc, slot) => {
-    acc[slot.key] = todayLogs.filter(l => l.amount_ml > 0 && l.slot === slot.key);
-    return acc;
-  }, {});
-
-  let rem = dailyTarget;
-  const slotsWithTargets = WATER_SLOTS.map((slot, idx) => {
-    const logged = slotLogs[slot.key].reduce((s, l) => s + l.amount_ml, 0);
-    const slotsLeft = 4 - idx;
-    const t = Math.round(rem / slotsLeft);
-    rem = Math.max(0, rem - logged);
-    return { ...slot, logged, target: t };
-  });
-
-  return (
-    <div className="mx-5 mb-8">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Log</p>
-      <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
-        {slotsWithTargets.map((slot, i) => (
-          <div key={slot.key}>
-            {i > 0 && <div className="mx-4 h-px bg-gray-100" />}
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-lg">
-                {i % 2 === 0 ? '🥛' : '🫗'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <p className="text-sm font-bold text-gray-900">{slot.label}</p>
-                  <span className="text-sm text-gray-400">→</span>
-                </div>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {slot.logged > 0 ? `${slot.logged}` : '0'} / {slot.target} ml
-                </p>
-              </div>
-              <button onClick={() => setOpenSlot(slot)}
-                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: '#1a1a1a' }}>
-                <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <AnimatePresence>
-        {openSlot && (
-          <LogWaterPanel
-            slotLabel={openSlot.label}
-            onClose={() => setOpenSlot(null)}
-            onAdd={(ml) => { onLogSlot(ml, openSlot.key); setOpenSlot(null); }}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 export default function WaterTracker() {
   const queryClient = useQueryClient();
@@ -243,6 +110,7 @@ export default function WaterTracker() {
   const [aiInsights, setAiInsights] = useState(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showAiResults, setShowAiResults] = useState(false);
+  const [openSlot, setOpenSlot] = useState(null);
 
   const { data: todayLogs = [] } = useQuery({
     queryKey: ['waterLogs', TODAY],
@@ -255,9 +123,13 @@ export default function WaterTracker() {
   });
 
   const consumed = todayLogs.filter(l => l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
-  const deducted = todayLogs.filter(l => l.amount_ml < 0).reduce((s, l) => s + Math.abs(l.amount_ml), 0);
-  const effective = Math.max(0, consumed - deducted);
+  const effective = Math.max(0, consumed);
   const pct = Math.min(100, Math.round((effective / dailyTarget) * 100));
+
+  // Glass count (each glass = 250ml)
+  const glassSize = 250;
+  const totalGlasses = Math.round(dailyTarget / glassSize);
+  const filledGlasses = Math.min(totalGlasses, Math.round(effective / glassSize));
 
   const logSlot = async (ml, slot) => {
     await base44.entities.WaterLog.create({ date: TODAY, amount_ml: ml, type: 'water', slot });
@@ -266,16 +138,9 @@ export default function WaterTracker() {
   };
 
   const quickAdd = async (ml) => {
-    // Determine current slot by time
     const hour = new Date().getHours();
     const slot = hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night';
     await logSlot(ml, slot);
-  };
-
-  const removeLog = async (id) => {
-    await base44.entities.WaterLog.delete(id);
-    queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
-    queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
   const getAiInsights = async () => {
@@ -320,106 +185,308 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
     setShowAiResults(true);
   };
 
+  // Slot targets
+  let rem = dailyTarget;
+  const slotsWithTargets = WATER_SLOTS.map((slot, idx) => {
+    const logged = todayLogs.filter(l => l.amount_ml > 0 && l.slot === slot.key).reduce((s, l) => s + l.amount_ml, 0);
+    const slotsLeft = 4 - idx;
+    const t = Math.round(rem / slotsLeft);
+    rem = Math.max(0, rem - logged);
+    return { ...slot, logged, target: t };
+  });
+
+  // Ring
+  const RING_SIZE = 120, RING_STROKE = 12, RING_R = (RING_SIZE - RING_STROKE) / 2;
+  const RING_CIRC = 2 * Math.PI * RING_R;
+  const ringDash = (pct / 100) * RING_CIRC;
+
   return (
-    <div className="min-h-screen pb-28">
-      {/* Header row */}
-      <div className="flex items-center justify-between px-5 pt-10 pb-5">
-        <h1 className="text-2xl font-bold text-gray-900">Hydration</h1>
-        <div className="flex items-center gap-2">
+    <div className="min-h-screen pb-28" style={{ background: BG }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-10 pb-4">
+        <h1 className="text-xl font-semibold" style={{ color: '#1f2937' }}>Hydro</h1>
+        <div className="flex items-center gap-3">
           <button onClick={getAiInsights}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center">
+            className="w-10 h-10 rounded-[14px] flex items-center justify-center"
+            style={{ background: SURFACE, boxShadow: NM_SM }}>
             {loadingAI
-              ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
-              : <Sparkles className="w-5 h-5 text-violet-500" />}
+              ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: LAVENDER }} />
+              : <Sparkles className="w-5 h-5" style={{ color: '#6b7280' }} />}
           </button>
           <button onClick={() => setShowCalendar(true)}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center">
-            <CalendarDays className="w-5 h-5 text-gray-700" />
+            className="w-10 h-10 rounded-[14px] flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${LAVENDER_DARK} 0%, #4f46e5 100%)`, boxShadow: LAV_SM }}>
+            <CalendarDays className="w-5 h-5 text-white" />
           </button>
         </div>
       </div>
 
-      {/* Stats module */}
-      <div className="mb-5">
-        <HydrationStatsModule
-          pct={pct}
-          effective={effective}
-          dailyTarget={dailyTarget}
-          todayLogs={todayLogs}
-          profile={profile}
-        />
+      <div className="px-5 space-y-4">
+
+        {/* Daily progress banner */}
+        <div className="rounded-[28px] px-5 py-5 relative overflow-hidden"
+          style={{ background: `linear-gradient(135deg, #c7d2fe 0%, ${LAVENDER_LIGHT} 100%)`, boxShadow: LAV }}>
+          <p className="text-xs font-medium mb-1" style={{ color: 'rgba(49,46,129,0.7)' }}>Daily progress</p>
+          <p className="text-3xl font-bold" style={{ color: '#1e1b4b' }}>
+            {effective.toLocaleString()} <span className="text-xl font-medium" style={{ color: 'rgba(49,46,129,0.6)' }}>/ {dailyTarget.toLocaleString()} ml</span>
+          </p>
+          {/* Decorative circle */}
+          <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-20 h-20 rounded-full opacity-30"
+            style={{ background: 'white' }} />
+        </div>
+
+        {/* Icon row */}
+        <div className="flex justify-between">
+          {[
+            { icon: <CalendarDays className="w-6 h-6 text-white" />, label: 'Calendar', accent: true, action: () => setShowCalendar(true) },
+            { icon: <Sparkles className="w-6 h-6" style={{ color: '#374151' }} />, label: 'Analyze', accent: false, action: getAiInsights },
+            { icon: <Zap className="w-6 h-6 text-white" />, label: 'Streak', accent: true, action: null },
+            { icon: <BarChart2 className="w-6 h-6" style={{ color: '#374151' }} />, label: 'Stats', accent: false, action: null },
+          ].map(({ icon, label, accent, action }) => (
+            <div key={label} className="flex flex-col items-center gap-2">
+              <button
+                onClick={action || undefined}
+                className="w-14 h-14 rounded-[18px] flex items-center justify-center active:scale-95 transition-transform"
+                style={accent
+                  ? { background: `linear-gradient(135deg, ${LAVENDER_DARK} 0%, #4f46e5 100%)`, boxShadow: LAV_SM }
+                  : { background: SURFACE, boxShadow: NM_SM }}>
+                {icon}
+              </button>
+              <span className="text-xs font-medium" style={{ color: '#6b7280' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Main row: tracker card + vertical bar */}
+        <div className="flex gap-3">
+          {/* Tracker card */}
+          <div className="flex-1 rounded-[28px] p-5" style={{ background: SURFACE, boxShadow: NM }}>
+            <p className="text-base font-semibold mb-0.5" style={{ color: '#374151' }}>Drink water!</p>
+            <p className="text-sm mb-5" style={{ color: '#9ca3af' }}>Check off a glass</p>
+            <div className="flex items-center gap-5">
+              {/* Water glass illustration */}
+              <div className="w-14 h-[72px] relative rounded-t-lg rounded-b-[14px] overflow-hidden shrink-0"
+                style={{ border: `2.5px solid ${LAVENDER_DARK}`, background: 'rgba(99,102,241,0.06)' }}>
+                <div className="absolute bottom-0 left-0 right-0 rounded-b-[11px] transition-all duration-700"
+                  style={{
+                    height: `${pct}%`,
+                    background: `linear-gradient(180deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`
+                  }} />
+              </div>
+              {/* Progress ring */}
+              <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
+                <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_R} fill="none"
+                    stroke="#d4d4e0" strokeWidth={RING_STROKE} />
+                  {pct > 0 && (
+                    <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_R} fill="none"
+                      stroke={`url(#lavGrad)`} strokeWidth={RING_STROKE}
+                      strokeDasharray={`${ringDash} ${RING_CIRC}`} strokeLinecap="round"
+                      style={{ transition: 'stroke-dasharray 0.7s ease' }} />
+                  )}
+                  <defs>
+                    <linearGradient id="lavGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor={LAVENDER_LIGHT} />
+                      <stop offset="100%" stopColor={LAVENDER_DARK} />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xl font-bold" style={{ color: '#4b5563' }}>
+                    {filledGlasses}/{totalGlasses}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Vertical add bar */}
+          <div className="w-[72px] rounded-[28px] relative overflow-hidden flex flex-col items-center"
+            style={{ background: SURFACE, boxShadow: NM, minHeight: 180 }}>
+            {/* Top: avatar circle + label */}
+            <div className="flex flex-col items-center pt-3 pb-2 z-10">
+              <div className="w-10 h-10 rounded-full mb-1"
+                style={{ background: LAVENDER_LIGHT }} />
+              <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>Drank</span>
+            </div>
+            {/* Middle: amount */}
+            <div className="flex-1 flex items-center justify-center z-10">
+              <span className="text-lg font-bold" style={{ color: effective > 0 ? 'white' : '#4b5563' }}>
+                {effective >= 1000 ? `${(effective/1000).toFixed(1)}L` : effective}
+              </span>
+            </div>
+            {/* Fill bar */}
+            <div className="absolute bottom-0 left-0 right-0 transition-all duration-700 rounded-b-[28px]"
+              style={{
+                height: `${Math.max(20, pct)}%`,
+                background: `linear-gradient(180deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`
+              }} />
+            {/* Add button */}
+            <button onClick={() => setOpenSlot({ label: 'Quick Add', key: null })}
+              className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center mb-3 active:scale-95 transition-transform"
+              style={{ background: `linear-gradient(135deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`, boxShadow: LAV_SM }}>
+              <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom grid: Quick Add + Slots */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Quick Add</p>
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+            {QUICK_ML.map(ml => (
+              <button key={ml} onClick={() => quickAdd(ml)}
+                className="shrink-0 h-16 px-5 rounded-[20px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
+                style={{ background: SURFACE, boxShadow: NM_SM, minWidth: 64 }}>
+                <span className="text-base font-bold" style={{ color: '#1f2937' }}>{ml >= 1000 ? `${ml/1000}L` : ml}</span>
+                <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>{ml >= 1000 ? 'litre' : 'ml'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Meal-time slots */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Log by time</p>
+          <div className="rounded-[24px] overflow-hidden" style={{ background: SURFACE, boxShadow: NM }}>
+            {slotsWithTargets.map((slot, i) => (
+              <div key={slot.key}>
+                {i > 0 && <div className="mx-4 h-px" style={{ background: 'rgba(174,174,192,0.2)' }} />}
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0 text-lg"
+                    style={{ background: BG, boxShadow: NM_SM }}>
+                    {slot.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: '#374151' }}>{slot.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>
+                      {slot.logged > 0 ? slot.logged : 0} / {slot.target} ml
+                    </p>
+                  </div>
+                  {/* Mini progress bar */}
+                  <div className="w-16 h-1.5 rounded-full mr-2" style={{ background: '#d4d4e0' }}>
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, (slot.logged / slot.target) * 100)}%`,
+                        background: `linear-gradient(to right, ${LAVENDER_LIGHT}, ${LAVENDER_DARK})`
+                      }} />
+                  </div>
+                  <button onClick={() => setOpenSlot(slot)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                    style={{ background: `linear-gradient(135deg, ${LAVENDER_DARK} 0%, #4f46e5 100%)`, boxShadow: LAV_SM }}>
+                    <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
+
+      {/* Log Water Panel */}
+      <AnimatePresence>
+        {openSlot && (
+          <LogWaterPanel
+            slotLabel={openSlot.label}
+            onClose={() => setOpenSlot(null)}
+            onAdd={(ml) => {
+              const hour = new Date().getHours();
+              const autoSlot = openSlot.key || (hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night');
+              logSlot(ml, autoSlot);
+              setOpenSlot(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* AI loading overlay */}
       <AnimatePresence>
         {loadingAI && (
           <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
+            style={{ background: 'rgba(30,27,75,0.9)', backdropFilter: 'blur(12px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <Loader2 className="w-10 h-10 text-violet-400 animate-spin mb-4" />
+            <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: LAVENDER_LIGHT }} />
             <p className="text-white text-lg font-semibold">Analysing 14 days...</p>
-            <p className="text-white/50 text-sm mt-1">Your hydration coach is reviewing your data</p>
+            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Your hydration coach is reviewing your data</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* AI Results full-screen page */}
+      {/* AI Results full-screen */}
       <AnimatePresence>
         {showAiResults && aiInsights && (
           <motion.div className="fixed inset-0 z-50 flex flex-col overflow-hidden"
-            style={{ background: 'linear-gradient(160deg, #1e1b4b 0%, #0f0f1a 60%, #0d1117 100%)' }}
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-14 pb-6">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-violet-400" />
-                <h2 className="text-white text-xl font-bold">Hydration Analysis</h2>
-              </div>
+            style={{ background: BG }}
+            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+            <div className="flex items-center justify-between px-5 pt-12 pb-4">
+              <h2 className="text-2xl font-bold" style={{ color: '#1f2937' }}>AI Analysis</h2>
               <button onClick={() => setShowAiResults(false)}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.1)' }}>
-                <X className="w-4 h-4 text-white" />
+                className="w-10 h-10 rounded-[14px] flex items-center justify-center"
+                style={{ background: SURFACE, boxShadow: NM_SM }}>
+                <X className="w-5 h-5" style={{ color: '#6b7280' }} />
               </button>
             </div>
-            <p className="px-5 text-white/40 text-sm mb-8">Based on your last 14 days of data</p>
             <div className="flex-1 overflow-y-auto px-5 space-y-4 pb-16">
+              {/* Score card */}
+              <div className="rounded-[24px] p-5 flex gap-5 items-center"
+                style={{ background: SURFACE, boxShadow: NM }}>
+                <div className="relative shrink-0" style={{ width: 100, height: 100 }}>
+                  <svg width={100} height={100} style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx={50} cy={50} r={42} fill="none" stroke="#d4d4e0" strokeWidth={10} />
+                    <circle cx={50} cy={50} r={42} fill="none" stroke={LAVENDER} strokeWidth={10}
+                      strokeLinecap="round"
+                      strokeDasharray={`${(pct / 100) * 2 * Math.PI * 42} ${2 * Math.PI * 42}`} />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xl font-bold" style={{ color: '#1f2937' }}>{pct}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: '#374151' }}>Hydration Score</p>
+                  <p className="text-xs mt-1 mb-2" style={{ color: '#9ca3af' }}>Based on your last 14 days</p>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold"
+                    style={{ background: '#d1fae5', color: '#059669' }}>
+                    {pct >= 80 ? 'Great' : pct >= 60 ? 'Good' : 'Needs work'}
+                  </span>
+                </div>
+              </div>
+
               {aiInsights.map((insight, i) => {
                 const style = insightStyle(insight.type);
                 return (
                   <motion.div key={i}
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.12, duration: 0.4, ease: 'easeOut' }}
-                    className="rounded-[24px] p-5"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0"
+                    transition={{ delay: i * 0.1, duration: 0.35, ease: 'easeOut' }}
+                    className="rounded-[24px] p-4"
+                    style={{ background: SURFACE, boxShadow: NM_SM }}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-[12px] flex items-center justify-center shrink-0"
                         style={{ background: style.iconBg }}>
                         {style.icon}
                       </div>
-                      <p className="text-white font-bold text-base">{insight.title}</p>
+                      <div>
+                        <p className="text-sm font-semibold mb-1" style={{ color: '#374151' }}>{insight.title}</p>
+                        <p className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>{insight.description}</p>
+                      </div>
                     </div>
-                    <p className="text-white/60 text-sm leading-relaxed">{insight.description}</p>
                   </motion.div>
                 );
               })}
+
+              {/* Recommendation banner */}
+              <div className="rounded-[24px] p-5"
+                style={{ background: `linear-gradient(135deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`, boxShadow: LAV }}>
+                <p className="text-sm font-semibold text-white mb-2">AI Recommendation</p>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Keep a consistent schedule — drinking at the same time each day trains your body to signal thirst more reliably.
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Quick Add */}
-      <div className="mb-5">
-        <QuickAddStrip onAdd={quickAdd} />
-      </div>
-
-      {/* Water slots */}
-      <WaterSlotsModule
-        dailyTarget={dailyTarget}
-        todayLogs={todayLogs}
-        onLogSlot={logSlot}
-        onRemoveLog={removeLog}
-      />
 
       {/* Calendar modal */}
       <AnimatePresence>

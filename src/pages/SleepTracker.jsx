@@ -1,39 +1,24 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { format, subDays } from 'date-fns';
+import { format, subDays, differenceInMinutes, parse } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
-import { Moon, Sparkles, Loader2, Info, X, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
-import SleepReadinessModule from '../components/sleep/SleepReadinessModule';
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: 'easeOut', delay },
-});
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
+import { Moon, Sun, Clock, Star, Zap, Plus, X, Sparkles, Loader2, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
-
-const SLEEP_TIPS = [
-  { icon: '🌙', tip: 'Go to bed at the same time every night — consistency regulates your circadian rhythm.' },
-  { icon: '📵', tip: 'Put your phone away 30 min before sleep. Blue light suppresses melatonin production.' },
-  { icon: '🌡️', tip: 'Keep your bedroom cool (16–19°C). Body temperature drop signals sleep onset.' },
-  { icon: '☕', tip: 'Avoid caffeine after 2pm. It has a half-life of ~5–6 hours in your body.' },
-  { icon: '🧘', tip: '7–9 hours is optimal for adults. Less than 6h impairs cognition like 24h of no sleep.' },
-  { icon: '🌅', tip: 'Get sunlight exposure within 30–60 minutes of waking. This anchors your circadian rhythm.' },
-  { icon: '🏋️', tip: 'Exercise improves sleep quality, but intense workouts within 2h of bedtime can delay sleep onset.' },
-  { icon: '🍷', tip: 'Alcohol may help you fall asleep but disrupts REM sleep, leaving you less rested.' },
-  { icon: '🧠', tip: "Writing tomorrow's to-do list before bed reduces the mental chatter that keeps you awake." },
-];
+const PRIMARY = '#4A7DFF';
+const PRIMARY_LIGHT = '#E8F0FE';
+const BG = '#F0F4F8';
+const TEXT_PRIMARY = '#1A1A2E';
+const TEXT_SECONDARY = '#6B7280';
 
 const WAKE_FEELINGS = [
+  { value: 'refreshed', label: 'Refreshed', emoji: '😊' },
   { value: 'tired', label: 'Tired', emoji: '😴' },
-  { value: 'okay', label: 'Okay', emoji: '😐' },
-  { value: 'rested', label: 'Rested', emoji: '🙂' },
-  { value: 'great', label: 'Great', emoji: '😄' },
+  { value: 'groggy', label: 'Groggy', emoji: '😑' },
+  { value: 'energetic', label: 'Energetic', emoji: '⚡' },
 ];
 
 function getSleepData() {
@@ -49,358 +34,405 @@ function saveSleepMeta(data) {
   localStorage.setItem('scanly_sleep_meta', JSON.stringify(data));
 }
 
-// Insight card styling based on type
+function calcDuration(bedTime, wakeTime) {
+  if (!bedTime || !wakeTime) return null;
+  try {
+    const bed = parse(bedTime, 'HH:mm', new Date());
+    let wake = parse(wakeTime, 'HH:mm', new Date());
+    let mins = differenceInMinutes(wake, bed);
+    if (mins < 0) mins += 24 * 60; // crossed midnight
+    return Math.round((mins / 60) * 100) / 100;
+  } catch { return null; }
+}
+
 const insightStyle = (type) => {
-  if (type === 'warning') return { bg: '#FFF8ED', icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, iconBg: '#FEF3C7' };
-  if (type === 'positive') return { bg: '#EFFFF6', icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, iconBg: '#D1FAE5' };
-  return { bg: '#F5F3FF', icon: <Lightbulb className="w-4 h-4 text-violet-500" />, iconBg: '#EDE9FE' };
+  if (type === 'warning') return { icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, iconBg: '#FEF3C7' };
+  if (type === 'positive') return { icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, iconBg: '#D1FAE5' };
+  return { icon: <Lightbulb className="w-4 h-4" style={{ color: PRIMARY }} />, iconBg: PRIMARY_LIGHT };
 };
 
-export default function SleepTracker() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [hoursInput, setHoursInput] = useState('');
-  const [saved, setSaved] = useState(false);
-  const [aiInsights, setAiInsights] = useState(null);
-  const [loadingInsights, setLoadingInsights] = useState(false);
-  const [showTips, setShowTips] = useState(false);
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [wakeFeelingInput, setWakeFeelingInput] = useState('');
+// Log Sleep Panel
+function LogSleepPanel({ onClose, onSave }) {
+  const [bedTime, setBedTime] = useState('23:00');
+  const [wakeTime, setWakeTime] = useState('07:00');
+  const [quality, setQuality] = useState(7);
+  const [feelings, setFeelings] = useState([]);
 
-  const { profile } = useUserProfile();
+  const duration = calcDuration(bedTime, wakeTime);
+  const TARGET = 8;
+  const debtMin = duration ? Math.round(Math.max(0, TARGET - duration) * 60) : 0;
 
-  const sleepData = getSleepData();
-  const sleepMeta = getSleepMeta();
-  const todaySleep = sleepData[TODAY];
-  const todayMeta = sleepMeta[TODAY] || {};
+  const toggleFeeling = (val) => setFeelings(f => f.includes(val) ? f.filter(x => x !== val) : [...f, val]);
 
-  const saveSleep = async (h) => {
-    const updated = { ...sleepData, [TODAY]: h };
-    saveSleepData(updated);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    setHoursInput(String(h));
-    if (profile.id) {
-      await base44.entities.UserProfile.update(profile.id, {
-        last_sleep_hours: h,
-        last_sleep_date: TODAY,
-      });
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-    }
-  };
-
-  const saveWakeFeeling = (feeling) => {
-    setWakeFeelingInput(feeling);
-    const updatedMeta = { ...sleepMeta, [TODAY]: { ...todayMeta, wake_feeling: feeling } };
-    saveSleepMeta(updatedMeta);
-  };
-
-  const handleLogSleep = () => {
-    const h = parseFloat(hoursInput);
-    if (h >= 1 && h <= 24) saveSleep(h);
-  };
-
-  const chartData = Array.from({ length: 14 }, (_, i) => {
-    const d = subDays(new Date(), 13 - i);
-    const dateStr = format(d, 'yyyy-MM-dd');
-    return { day: format(d, 'MMM d'), hours: sleepData[dateStr] || null };
-  });
-
-  const avgSleep = (() => {
-    const vals = Object.values(sleepData).filter(v => v > 0);
-    if (vals.length === 0) return 0;
-    return (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1);
-  })();
-
-  const qualityLabel = (h) => {
-    if (!h) return '';
-    if (h < 5) return 'Very low';
-    if (h < 6.5) return 'Low';
-    if (h <= 9) return 'Optimal';
-    return 'Oversleeping';
-  };
-  const qualityColor = (h) => {
-    if (!h) return '#888';
-    if (h < 5) return '#F47C7C';
-    if (h < 6.5) return '#F5C842';
-    if (h <= 9) return '#6CC5A0';
-    return '#F5C842';
-  };
-
-  const getAiInsights = async () => {
-    setLoadingInsights(true);
-    setShowAiPanel(true);
-
-    // Build rich context: last 7 days sleep + wake feelings + meals today
-    const recentSleep = Array.from({ length: 7 }, (_, i) => {
-      const d = subDays(new Date(), 6 - i);
-      const dateStr = format(d, 'yyyy-MM-dd');
-      const meta = sleepMeta[dateStr] || {};
-      return {
-        date: format(d, 'EEE MMM d'),
-        hours: sleepData[dateStr] || null,
-        wake_feeling: meta.wake_feeling || null,
-      };
-    });
-
-    // Fetch today's meals for pattern analysis
-    let todayMeals = [];
-    try {
-      todayMeals = await base44.entities.Meal.filter({ date: TODAY, logged: true });
-    } catch (_) {}
-
-    const mealContext = todayMeals.length > 0
-      ? `Today's meals: ${todayMeals.map(m => `${m.name} (${m.calories}kcal, sodium:${m.sodium || 0}mg, sugar:${m.sugar || 0}g)`).join(', ')}`
-      : 'No meals logged today.';
-
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a personalized sleep coach. Analyze this user's sleep data and give specific, actionable insights in a friendly tone.
-
-Sleep log (last 7 days with wake feelings):
-${JSON.stringify(recentSleep, null, 2)}
-
-Average sleep: ${avgSleep}h
-${mealContext}
-
-Return exactly 3 insights. Each insight should:
-- Have a short, direct title (5-8 words max)
-- Have a specific, data-driven description (1-2 sentences referencing their actual numbers)
-- Be typed as: "warning" (problem/concern), "positive" (doing well), or "tip" (actionable suggestion)
-
-Consider patterns like: inconsistent sleep times, wake feelings vs hours slept (e.g. tired despite 8h could indicate diet/caffeine issues), weekday vs weekend differences, recent food that could impact sleep.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          insights: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                title: { type: 'string' },
-                description: { type: 'string' },
-                type: { type: 'string', enum: ['warning', 'positive', 'tip'] },
-              }
-            }
-          }
-        }
-      },
-    });
-
-    setAiInsights(res?.insights || []);
-    setLoadingInsights(false);
+  const handleSave = () => {
+    if (!duration) return;
+    onSave({ bedTime, wakeTime, duration, quality, feelings });
+    onClose();
   };
 
   return (
-    <div className="min-h-screen pb-10">
-      {/* Header */}
-      <motion.div {...fadeUp(0)} className="px-5 pt-6 pb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Sleep Tracker</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Track and improve your sleep</p>
+    <div className="fixed inset-0 z-50">
+      <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }} onClick={onClose} />
+      <motion.div className="absolute left-0 right-0 bottom-0 flex flex-col overflow-hidden bg-white"
+        style={{ borderRadius: '28px 28px 0 0', maxHeight: '90vh' }}
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
-        <div className="flex items-center gap-2">
-          {/* AI Insights button */}
-          <button onClick={getAiInsights}
-            className="w-10 h-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center">
-            {loadingInsights
-              ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
-              : <Sparkles className="w-5 h-5 text-violet-500" />}
-          </button>
-          {/* Tips button */}
-          <button onClick={() => setShowTips(true)}
-            className="w-10 h-10 rounded-full bg-white border border-border shadow-sm flex items-center justify-center">
-            <Info className="w-5 h-5 text-foreground" />
+        <div className="flex items-center justify-between px-6 pt-2 pb-4 shrink-0">
+          <h2 className="text-xl font-bold" style={{ color: TEXT_PRIMARY }}>Log Sleep</h2>
+          <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100">
+            <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-      </motion.div>
-
-      <div className="px-5 space-y-4">
-        {/* 14-day chart */}
-        <motion.div {...fadeUp(0.2)} className="rounded-[24px] overflow-hidden" style={{ background: '#B8C4DA' }}>
-          <div className="px-5 pt-5 pb-2 flex items-start justify-between">
-            <div>
-              <span className="text-white text-base font-bold">Sleep Trend </span>
-              <span className="text-white/70 text-sm font-normal">· 14 days</span>
+        <div className="flex-1 overflow-y-auto px-6 pb-8 space-y-5">
+          {/* Time pickers */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[16px] p-4 bg-white border border-gray-100" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Moon className="w-4 h-4" style={{ color: PRIMARY }} />
+                <span className="text-xs font-semibold" style={{ color: TEXT_SECONDARY }}>Bedtime</span>
+              </div>
+              <input type="time" value={bedTime} onChange={e => setBedTime(e.target.value)}
+                className="w-full text-lg font-bold border-none outline-none" style={{ color: TEXT_PRIMARY }} />
             </div>
-            {todaySleep && (
-              <div className="px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                <span className="text-white text-xs font-semibold">{todaySleep}h last night</span>
+            <div className="rounded-[16px] p-4 bg-white border border-gray-100" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-semibold" style={{ color: TEXT_SECONDARY }}>Wake time</span>
               </div>
-            )}
+              <input type="time" value={wakeTime} onChange={e => setWakeTime(e.target.value)}
+                className="w-full text-lg font-bold border-none outline-none" style={{ color: TEXT_PRIMARY }} />
+            </div>
           </div>
-          <div className="pb-2" style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-                <XAxis dataKey="day" axisLine={false} tickLine={false}
-                  tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)', fontWeight: 500 }}
-                  interval={0} tickFormatter={(v) => v.split(' ')[1] || v} />
-                <YAxis domain={[0, 13]} ticks={[0, 3, 6, 9, 12]} tickFormatter={(v) => `${v}h`}
-                  axisLine={false} tickLine={false}
-                  tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.75)', fontWeight: 500 }} width={28} />
-                <CartesianGrid vertical={false} strokeDasharray="0" stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 14, background: 'white', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', fontSize: 12, padding: '8px 14px' }}
-                  labelStyle={{ color: '#888', fontSize: 10, marginBottom: 2 }}
-                  formatter={(v) => v ? [`${v}h`, 'Sleep'] : ['—', 'No data']}
-                  cursor={{ stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1 }}
-                />
-                <Line type="monotone" dataKey="hours" stroke="white" strokeWidth={2.5}
-                  strokeLinecap="round" strokeLinejoin="round"
-                  isAnimationActive animationDuration={800} animationEasing="ease-out"
-                  dot={(props) => {
-                    const { cx, cy, payload } = props;
-                    if (payload.hours == null) return <g key={`empty-${payload.day}`} />;
-                    return <circle key={`dot-${payload.day}`} cx={cx} cy={cy} r={5} fill="white" stroke="rgba(255,255,255,0.4)" strokeWidth={3} />;
-                  }}
-                  activeDot={{ fill: 'white', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 4, r: 6 }}
-                  connectNulls={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
 
-        {/* AI Insights inline (if loaded) */}
-        <AnimatePresence>
-          {aiInsights && aiInsights.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              className="bg-white border border-border rounded-[24px] shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-violet-500" />
-                  <p className="text-sm font-bold text-foreground">AI Sleep Insights</p>
-                </div>
-                <button onClick={() => setAiInsights(null)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-                  <X className="w-3.5 h-3.5 text-gray-500" />
-                </button>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {aiInsights.map((insight, i) => {
-                  const style = insightStyle(insight.type);
-                  return (
-                    <div key={i} className="flex items-start gap-3 px-5 py-4">
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                        style={{ background: style.iconBg }}>
-                        {style.icon}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 mb-0.5">{insight.title}</p>
-                        <p className="text-xs text-gray-500 leading-relaxed">{insight.description}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
+          {/* Duration preview */}
+          {duration && (
+            <div className="rounded-[16px] p-4 text-center" style={{ background: PRIMARY_LIGHT }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: PRIMARY }}>Calculated Duration</p>
+              <p className="text-3xl font-bold" style={{ color: TEXT_PRIMARY }}>{duration}h</p>
+            </div>
           )}
-        </AnimatePresence>
 
-        {/* Log Sleep title */}
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Log Sleep</p>
-
-        {/* Log last night */}
-        <motion.div {...fadeUp(0.6)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Moon className="w-5 h-5 text-blue-500" />
-            <p className="text-sm font-bold text-foreground">Last Night's Sleep</p>
+          {/* Quality slider */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm font-semibold" style={{ color: TEXT_PRIMARY }}>Sleep Quality</p>
+              <span className="text-sm font-bold" style={{ color: PRIMARY }}>{quality}/10</span>
+            </div>
+            <input type="range" min={1} max={10} step={1} value={quality}
+              onChange={e => setQuality(Number(e.target.value))}
+              className="w-full" style={{ accentColor: PRIMARY }} />
+            <div className="flex justify-between text-xs mt-1" style={{ color: TEXT_SECONDARY }}>
+              <span>Poor</span><span>Excellent</span>
+            </div>
           </div>
 
-          {/* Hour buttons */}
-          <div className="flex gap-1.5 flex-wrap mb-4">
-            {[5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10].map((h, i) => (
-              <motion.button key={h}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + i * 0.04, duration: 0.3, ease: 'easeOut' }}
-                onClick={() => saveSleep(h)}
-                className="px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
-                style={{
-                  background: todaySleep === h ? '#3b82f6' : 'hsl(var(--secondary))',
-                  color: todaySleep === h ? 'white' : 'hsl(var(--foreground))',
-                }}>
-                {h}h
-              </motion.button>
-            ))}
-          </div>
-
-          {/* How did you feel */}
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-gray-500 mb-2">How did you feel when you woke up?</p>
-            <div className="flex gap-2">
+          {/* Feelings */}
+          <div>
+            <p className="text-sm font-semibold mb-3" style={{ color: TEXT_PRIMARY }}>How did you feel?</p>
+            <div className="flex flex-wrap gap-2">
               {WAKE_FEELINGS.map(({ value, label, emoji }) => {
-                const current = wakeFeelingInput || todayMeta.wake_feeling;
-                const isSelected = current === value;
+                const sel = feelings.includes(value);
                 return (
-                  <button key={value} onClick={() => saveWakeFeeling(value)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex flex-col items-center gap-0.5"
+                  <button key={value} onClick={() => toggleFeeling(value)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95"
                     style={{
-                      background: isSelected ? '#3b82f6' : 'hsl(var(--secondary))',
-                      color: isSelected ? 'white' : 'hsl(var(--foreground))',
+                      background: sel ? PRIMARY : BG,
+                      color: sel ? 'white' : TEXT_SECONDARY,
                     }}>
-                    <span className="text-base">{emoji}</span>
-                    <span>{label}</span>
+                    <span>{emoji}</span>{label}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Custom input */}
-          <div className="flex gap-2">
-            <input
-              type="number" min="1" max="24" step="0.5"
-              value={hoursInput}
-              onChange={e => setHoursInput(e.target.value)}
-              placeholder="Custom hours (e.g. 7.5)"
-              className="flex-1 border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-            />
-            <button onClick={handleLogSleep}
-              className="px-4 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-semibold active:scale-95 transition-transform">
-              Log
-            </button>
-          </div>
-          {saved && <p className="text-xs text-green-600 mt-2 font-medium">Saved!</p>}
-        </motion.div>
+          {/* Save */}
+          <button onClick={handleSave} disabled={!duration}
+            className="w-full h-14 rounded-[16px] text-white text-base font-semibold flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99] transition-transform"
+            style={{ background: TEXT_PRIMARY }}>
+            Save Sleep Log
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
-        {/* Tonight's Sleep Readiness */}
-        <SleepReadinessModule />
+export default function SleepTracker() {
+  const queryClient = useQueryClient();
+  const { profile } = useUserProfile();
+  const [showLog, setShowLog] = useState(false);
+  const [aiInsights, setAiInsights] = useState(null);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+
+  const sleepData = getSleepData();
+  const sleepMeta = getSleepMeta();
+  const todaySleep = sleepData[TODAY]; // hours
+  const todayMeta = sleepMeta[TODAY] || {};
+
+  const TARGET_HOURS = 8;
+
+  // Stats
+  const vals = Object.values(sleepData).filter(v => v > 0);
+  const avgSleep = vals.length ? (vals.reduce((s, v) => s + v, 0) / vals.length) : 0;
+  const lastQuality = todayMeta.quality || null;
+  const sleepDebtMin = todaySleep ? Math.round(Math.max(0, TARGET_HOURS - todaySleep) * 60) : null;
+  const timeInBed = todayMeta.bedTime && todayMeta.wakeTime ? calcDuration(todayMeta.bedTime, todayMeta.wakeTime) : todaySleep;
+
+  // Streak
+  const streak = useMemo(() => {
+    let s = 0;
+    for (let i = 0; i < 365; i++) {
+      const d = format(subDays(new Date(), i), 'yyyy-MM-dd');
+      if (sleepData[d]) s++;
+      else break;
+    }
+    return s;
+  }, [sleepData]);
+
+  // Progress ring
+  const RING_SIZE = 220, RING_STROKE = 14, RING_R = (RING_SIZE - RING_STROKE) / 2;
+  const RING_CIRC = 2 * Math.PI * RING_R;
+  const ringPct = todaySleep ? Math.min(1, todaySleep / TARGET_HOURS) : 0;
+  const ringDash = ringPct * RING_CIRC;
+
+  // 7-day chart
+  const weekData = Array.from({ length: 7 }, (_, i) => {
+    const d = subDays(new Date(), 6 - i);
+    const dateStr = format(d, 'yyyy-MM-dd');
+    return { day: format(d, 'EEE'), hours: sleepData[dateStr] || 0 };
+  });
+  const avgLine = weekData.filter(d => d.hours > 0).reduce((s, d, _, a) => s + d.hours / a.length, 0);
+
+  const handleSave = async ({ bedTime, wakeTime, duration, quality, feelings }) => {
+    const updated = { ...sleepData, [TODAY]: duration };
+    saveSleepData(updated);
+    const meta = { ...sleepMeta, [TODAY]: { bedTime, wakeTime, quality, feelings, wake_feeling: feelings[0] || '' } };
+    saveSleepMeta(meta);
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, { last_sleep_hours: duration, last_sleep_date: TODAY });
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
+  };
+
+  const getAiInsights = async () => {
+    setLoadingAI(true);
+    setAiInsights(null);
+    setShowAI(true);
+    const recentSleep = Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(new Date(), 6 - i);
+      const dateStr = format(d, 'yyyy-MM-dd');
+      const meta = sleepMeta[dateStr] || {};
+      return { date: format(d, 'EEE MMM d'), hours: sleepData[dateStr] || null, quality: meta.quality || null };
+    });
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a sleep coach. Analyze 7 days of sleep data and return 3 specific insights.
+Data: ${JSON.stringify(recentSleep)}
+Target: ${TARGET_HOURS}h/night
+Each insight: title (short), description (1-2 sentences with numbers), type: "warning"|"positive"|"tip"`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          insights: { type: 'array', items: { type: 'object', properties: {
+            title: { type: 'string' }, description: { type: 'string' }, type: { type: 'string' }
+          }}}
+        }
+      },
+    });
+    setAiInsights(res?.insights || []);
+    setLoadingAI(false);
+  };
+
+  return (
+    <div className="min-h-screen pb-28" style={{ background: BG }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-10 pb-2">
+        <div className="flex items-center gap-2">
+          <Moon className="w-6 h-6" style={{ color: TEXT_SECONDARY }} />
+          <h1 className="text-lg font-semibold" style={{ color: TEXT_PRIMARY }}>SleepLogger</h1>
+        </div>
+        <button onClick={getAiInsights}
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-white"
+          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          {loadingAI
+            ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: PRIMARY }} />
+            : <Sparkles className="w-5 h-5" style={{ color: PRIMARY }} />}
+        </button>
       </div>
 
-      {/* Sleep Tips — full screen slide-up */}
-      {showTips && (
-        <div className="fixed inset-0 z-50">
-          <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
-            onClick={() => setShowTips(false)} />
-          <motion.div className="absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden"
-            style={{ top: 0, borderRadius: '24px 24px 0 0' }}
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-gray-200" />
-            </div>
-            <div className="flex items-start justify-between px-6 pt-3 pb-4 shrink-0 border-b border-gray-100">
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Sleep Science Tips</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">Evidence-based sleep advice</p>
+      <div className="px-4 space-y-4">
+        {/* Stat row */}
+        <div className="grid grid-cols-3 gap-3 mt-2">
+          {[
+            { label: 'Duration', value: todaySleep ? `${todaySleep}` : '—', unit: 'h', icon: <Clock className="w-4 h-4" style={{ color: PRIMARY }} />, color: PRIMARY },
+            { label: 'Quality', value: lastQuality || '—', unit: '/10', icon: <Star className="w-4 h-4 text-amber-400" />, color: '#F59E0B' },
+            { label: 'Streak', value: streak, unit: 'days', icon: <Zap className="w-4 h-4 text-red-400" />, color: '#EF4444' },
+          ].map(({ label, value, unit, icon, color }) => (
+            <div key={label} className="bg-white rounded-[14px] p-4" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div className="flex items-center gap-1.5 mb-2">
+                {icon}
+                <span className="text-[11px] font-medium" style={{ color: TEXT_SECONDARY }}>{label}</span>
               </div>
-              <button onClick={() => setShowTips(false)} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-                <X className="w-4 h-4 text-foreground" />
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-2xl font-bold" style={{ color: TEXT_PRIMARY }}>{value}</span>
+                <span className="text-xs font-medium" style={{ color: TEXT_SECONDARY }}>{unit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main ring card */}
+        <div className="bg-white rounded-[24px] p-6 flex flex-col items-center"
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+          {/* Ring */}
+          <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
+            {/* Outer glow bg */}
+            <div className="absolute inset-0 rounded-full"
+              style={{ background: 'radial-gradient(circle, #F8FAFC 60%, #E8F0FE 100%)' }} />
+            <svg width={RING_SIZE} height={RING_SIZE} style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
+              <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_R} fill="none"
+                stroke={PRIMARY_LIGHT} strokeWidth={RING_STROKE} />
+              {ringPct > 0 && (
+                <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_R} fill="none"
+                  stroke={PRIMARY} strokeWidth={RING_STROKE}
+                  strokeDasharray={`${ringDash} ${RING_CIRC}`} strokeLinecap="round"
+                  style={{ transition: 'stroke-dasharray 0.8s ease', filter: `drop-shadow(0 0 6px ${PRIMARY}55)` }} />
+              )}
+            </svg>
+            {/* Clock badge */}
+            <div className="absolute" style={{ top: 28, left: 28 }}>
+              <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center"
+                style={{ boxShadow: '0 2px 6px rgba(0,0,0,0.1)', border: `2px solid ${PRIMARY_LIGHT}` }}>
+                <Clock className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
+              </div>
+            </div>
+            {/* Center */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-5xl font-bold" style={{ color: TEXT_PRIMARY }}>
+                {todaySleep ? `${todaySleep}h` : '—'}
+              </span>
+              <span className="text-sm mt-1" style={{ color: TEXT_SECONDARY }}>hours</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Duration section */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3" style={{ color: TEXT_PRIMARY }}>Duration</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-[14px] p-4" style={{ background: '#F0F9FF', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <p className="text-xs font-medium mb-1" style={{ color: TEXT_SECONDARY }}>Sleep</p>
+              <p className="text-2xl font-bold" style={{ color: TEXT_PRIMARY }}>{todaySleep ? `${todaySleep}h` : '—'}</p>
+            </div>
+            <div className="rounded-[14px] p-4" style={{ background: '#F0FDF4', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <p className="text-xs font-medium mb-1" style={{ color: TEXT_SECONDARY }}>Time in bed</p>
+              <p className="text-2xl font-bold" style={{ color: TEXT_PRIMARY }}>{timeInBed ? `${timeInBed}h` : '—'}</p>
+            </div>
+            <div className="rounded-[14px] p-4" style={{ background: '#FEF2F2', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <p className="text-xs font-medium mb-1" style={{ color: TEXT_SECONDARY }}>Sleep debt</p>
+              <p className="text-2xl font-bold" style={{ color: '#EF4444' }}>
+                {sleepDebtMin != null ? `${sleepDebtMin}min` : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 7-day chart */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3" style={{ color: TEXT_PRIMARY }}>7 day view</h2>
+          <div className="bg-white rounded-[16px] p-4" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={weekData} barCategoryGap="30%">
+                <XAxis dataKey="day" axisLine={false} tickLine={false}
+                  tick={{ fontSize: 11, fill: TEXT_SECONDARY, fontWeight: 500 }} />
+                <YAxis domain={[0, 12]} hide />
+                {avgLine > 0 && (
+                  <ReferenceLine y={avgLine} stroke="#F59E0B" strokeDasharray="4 3" strokeWidth={1.5} />
+                )}
+                <Bar dataKey="hours" radius={[6, 6, 6, 6]}>
+                  {weekData.map((entry, i) => (
+                    <Cell key={i}
+                      fill={format(new Date(), 'EEE') === entry.day ? PRIMARY : PRIMARY_LIGHT} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-4 h-px" style={{ background: '#F59E0B', borderTop: '2px dashed #F59E0B' }} />
+              <span className="text-xs" style={{ color: TEXT_SECONDARY }}>
+                Avg {avgLine > 0 ? avgLine.toFixed(1) : '—'}h
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Log Sleep button */}
+        <button onClick={() => setShowLog(true)}
+          className="w-full h-14 rounded-[16px] flex items-center justify-center gap-2 text-white text-base font-semibold active:scale-[0.99] transition-transform"
+          style={{ background: TEXT_PRIMARY, boxShadow: '0 4px 12px rgba(26,26,46,0.25)' }}>
+          <Plus className="w-5 h-5" />
+          Log Sleep
+        </button>
+      </div>
+
+      {/* Log Sleep Panel */}
+      <AnimatePresence>
+        {showLog && (
+          <LogSleepPanel onClose={() => setShowLog(false)} onSave={handleSave} />
+        )}
+      </AnimatePresence>
+
+      {/* AI Insights full-screen */}
+      <AnimatePresence>
+        {showAI && (
+          <motion.div className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+            style={{ background: BG }}
+            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+            <div className="flex items-center justify-between px-5 pt-12 pb-4">
+              <h2 className="text-2xl font-bold" style={{ color: TEXT_PRIMARY }}>Sleep Insights</h2>
+              <button onClick={() => setShowAI(false)}
+                className="w-10 h-10 rounded-full bg-white flex items-center justify-center"
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                <X className="w-5 h-5" style={{ color: TEXT_SECONDARY }} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-              {SLEEP_TIPS.map((t, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.07, duration: 0.35, ease: 'easeOut' }}
-                  className="flex items-start gap-4 p-4 rounded-[20px]" style={{ background: '#f8f9fa' }}>
-                  <span className="text-2xl shrink-0">{t.icon}</span>
-                  <p className="text-sm text-gray-700 leading-relaxed">{t.tip}</p>
-                </motion.div>
-              ))}
+            <div className="flex-1 overflow-y-auto px-5 space-y-4 pb-16">
+              {loadingAI ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: PRIMARY }} />
+                  <p className="font-semibold" style={{ color: TEXT_PRIMARY }}>Analysing your sleep...</p>
+                </div>
+              ) : aiInsights?.map((insight, i) => {
+                const s = insightStyle(insight.type);
+                return (
+                  <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="bg-white rounded-[20px] p-5"
+                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                        style={{ background: s.iconBg }}>
+                        {s.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold mb-1" style={{ color: TEXT_PRIMARY }}>{insight.title}</p>
+                        <p className="text-xs leading-relaxed" style={{ color: TEXT_SECONDARY }}>{insight.description}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

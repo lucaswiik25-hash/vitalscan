@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
+import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward, CheckCircle2 } from 'lucide-react';
 
 const ACCENT = '#1A1814';
 const TRACK_COLOR = '#FFFFFF';
@@ -49,6 +49,7 @@ export default function Exercise() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
+  const [selectedDate, setSelectedDate] = useState(today);
   const [showAdd, setShowAdd] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
@@ -59,15 +60,15 @@ export default function Exercise() {
   const weight = profile.weight || 70;
 
   const { data: exercises = [] } = useQuery({
-    queryKey: ['exercises', today],
-    queryFn: () => base44.entities.Exercise.filter({ date: today }),
+    queryKey: ['exercises', selectedDate],
+    queryFn: () => base44.entities.Exercise.filter({ date: selectedDate }),
   });
 
   const bmr = useMemo(() => calcBMR(profile), [profile]);
   const totalBurned = exercises.reduce((s, e) => s + (e.calories_burned || 0), 0);
-  const totalMinutes = exercises.reduce((s, e) => s + (e.duration_minutes || 0), 0);
   const exerciseTarget = Math.round(bmr * 0.3);
   const pct = exerciseTarget > 0 ? (totalBurned / exerciseTarget) * 100 : 0;
+  const goalCrushed = pct >= 100;
 
   const handleQuickSelect = (ex) => {
     const cal = calcCalories(ex.met, weight, 30);
@@ -87,7 +88,7 @@ export default function Exercise() {
     const met = QUICK_EXERCISES.find(e => e.name === form.name)?.met || 5;
     const cal = form.calories_burned || calcCalories(met, weight, form.duration_minutes || 30);
     await base44.entities.Exercise.create({ ...form, date: today, calories_burned: cal });
-    queryClient.invalidateQueries({ queryKey: ['exercises', today] });
+    queryClient.invalidateQueries({ queryKey: ['exercises', selectedDate] });
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
     setShowAdd(false);
     setForm({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
@@ -96,7 +97,7 @@ export default function Exercise() {
 
   const handleDelete = async (id) => {
     await base44.entities.Exercise.delete(id);
-    queryClient.invalidateQueries({ queryKey: ['exercises', today] });
+    queryClient.invalidateQueries({ queryKey: ['exercises', selectedDate] });
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
   };
 
@@ -120,73 +121,82 @@ export default function Exercise() {
         <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1" style={{ background: '#F7F7F7' }}>
           <div className="px-5 pt-5 pb-8">
 
-            {/* Weekly day strip */}
+            {/* Weekly day strip — interactive */}
             {(() => {
               const todayDate = new Date();
               const mondayIdx = getMondayIndex(todayDate);
               const weekDays = Array.from({ length: 7 }, (_, i) => {
                 const d = subDays(todayDate, mondayIdx - i);
                 const dateStr = format(d, 'yyyy-MM-dd');
-                return { label: DAY_LABELS[i], isToday: dateStr === today };
+                return { label: DAY_LABELS[i], dateStr, isToday: dateStr === today };
               });
               return (
                 <div className="flex justify-between mb-4">
-                  {weekDays.map((d, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center"
-                        style={d.isToday
-                          ? { background: ACCENT }
-                          : { border: '2.5px solid #D1D5DB', background: 'transparent' }}>
-                        <span className="text-[11px] font-bold"
-                          style={{ color: d.isToday ? '#FFFFFF' : '#9CA3AF' }}>{d.label}</span>
-                      </div>
-                    </div>
-                  ))}
+                  {weekDays.map((d, i) => {
+                    const isSelected = d.dateStr === selectedDate;
+                    return (
+                      <button key={i} onClick={() => setSelectedDate(d.dateStr)}
+                        className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center"
+                          style={isSelected
+                            ? { background: ACCENT }
+                            : { border: '2.5px solid #D1D5DB', background: 'transparent' }}>
+                          <span className="text-[11px] font-bold"
+                            style={{ color: isSelected ? '#FFFFFF' : '#9CA3AF' }}>{d.label}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               );
             })()}
 
             {/* Main activity ring — 180px diameter */}
             {(() => {
-              const SIZE = 180, R = 65, STROKE = 28, CX = 90, CY = 90;
+              const SIZE = 180, R = 65, STROKE = 22, CX = 90, CY = 90;
               const CIRC = 2 * Math.PI * R;
-              const dash = (Math.min(pct, 100) / 100) * CIRC;
-              const angleDeg = (Math.min(pct, 100) / 100) * 360 - 90;
-              const angleRad = (angleDeg * Math.PI) / 180;
-              const arrowX = CX + R * Math.cos(angleRad);
-              const arrowY = CY + R * Math.sin(angleRad);
+              const clampedPct = Math.min(pct, 100);
+              const dash = (clampedPct / 100) * CIRC;
+              const ringColor = goalCrushed ? '#22c55e' : ACCENT;
               return (
                 <div className="relative flex justify-center mb-4">
                   <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx={CX} cy={CY} r={R} fill="none" stroke={TRACK_COLOR} strokeWidth={STROKE} strokeLinecap="round"
-                      style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.9))' }} />
+                    {/* Track */}
+                    <circle cx={CX} cy={CY} r={R} fill="none" stroke={TRACK_COLOR} strokeWidth={STROKE} strokeLinecap="round" />
+                    {/* Progress arc */}
                     {pct > 0 && (
-                      <circle cx={CX} cy={CY} r={R} fill="none" stroke={ACCENT} strokeWidth={STROKE}
+                      <circle cx={CX} cy={CY} r={R} fill="none"
+                        stroke={ringColor} strokeWidth={STROKE}
                         strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
-                        style={{ transition: 'stroke-dasharray 0.7s ease' }} />
+                        style={{ transition: 'stroke-dasharray 0.7s ease', filter: goalCrushed ? 'drop-shadow(0 0 8px #22c55e88)' : 'none' }} />
                     )}
                   </svg>
-                  {pct > 2 && (
-                    <div className="absolute flex items-center justify-center rounded-full"
-                      style={{
-                        width: 28, height: 28, background: ACCENT,
-                        left: `calc(50% + ${arrowX - CX}px - 14px)`,
-                        top: `calc(50% + ${arrowY - CY}px - 14px)`,
-                        transform: `rotate(${angleDeg + 90}deg)`,
-                      }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  )}
+                  {/* Center content */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    {goalCrushed ? (
+                      <>
+                        <CheckCircle2 className="w-8 h-8 mb-1" style={{ color: '#22c55e' }} />
+                        <span className="text-xs font-bold" style={{ color: '#22c55e' }}>Goal Crushed!</span>
+                      </>
+                    ) : pct === 0 ? (
+                      <span className="text-sm font-semibold text-gray-400">No data</span>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-black" style={{ color: ACCENT }}>{Math.round(pct)}%</span>
+                        <span className="text-[10px] font-semibold text-gray-400">of goal</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               );
             })()}
 
             {/* Stats */}
             <div className="mb-1">
-              <p className="text-base font-semibold mb-0.5" style={{ color: ACCENT }}>Movement</p>
-              <p className="text-3xl font-bold tracking-tight" style={{ color: ACCENT }}>
+              <p className="text-base font-semibold mb-0.5" style={{ color: ACCENT }}>
+                Movement {selectedDate !== today && <span className="text-sm font-normal text-gray-400">· {format(new Date(selectedDate), 'MMM d')}</span>}
+              </p>
+              <p className="text-3xl font-bold tracking-tight" style={{ color: goalCrushed ? '#22c55e' : ACCENT }}>
                 {totalBurned}/{exerciseTarget} <span className="text-2xl font-medium">KCAL</span>
               </p>
             </div>
@@ -236,10 +246,12 @@ export default function Exercise() {
           )}
         </div>
 
-        {/* Today's Sessions */}
+        {/* Sessions */}
         {exercises.length > 0 && (
           <div>
-            <h2 className="text-base font-bold text-gray-900 mb-3">Today's Sessions</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-3">
+              {selectedDate === today ? "Today's Sessions" : format(new Date(selectedDate), 'MMM d') + "'s Sessions"}
+            </h2>
             <div className="space-y-2">
               {exercises.map(ex => (
                 <div key={ex.id} className="bg-white rounded-[14px] p-4 flex items-center gap-3 shadow-sm border border-gray-100">

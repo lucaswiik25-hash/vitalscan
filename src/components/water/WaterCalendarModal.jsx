@@ -79,7 +79,7 @@ export default function WaterCalendarModal({ allLogs, dailyTarget, onClose }) {
 
         {/* Month label */}
         <p className="px-5 text-white text-2xl font-bold mb-3 mt-2">
-          {format(viewDate, 'MMMM').toLowerCase()}
+          {format(viewDate, 'MMMM')}
         </p>
 
         {/* Calendar grid */}

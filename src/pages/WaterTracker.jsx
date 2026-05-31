@@ -264,14 +264,27 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
             <p className="text-base font-semibold mb-0.5" style={{ color: '#374151' }}>Drink water!</p>
             <p className="text-sm mb-5" style={{ color: '#9ca3af' }}>Check off a glass</p>
             <div className="flex items-center gap-5">
-              {/* Water glass illustration */}
-              <div className="w-14 h-[72px] relative rounded-t-lg rounded-b-[14px] overflow-hidden shrink-0"
-                style={{ border: `2.5px solid ${LAVENDER_DARK}`, background: 'rgba(99,102,241,0.06)' }}>
-                <div className="absolute bottom-0 left-0 right-0 rounded-b-[11px] transition-all duration-700"
-                  style={{
-                    height: `${pct}%`,
-                    background: `linear-gradient(180deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`
-                  }} />
+              {/* Water drop progress indicator */}
+              <div className="shrink-0 flex flex-col items-center gap-1">
+                <svg width="52" height="68" viewBox="0 0 52 68" fill="none">
+                  <defs>
+                    <clipPath id="dropClip">
+                      <path d="M26 2 C26 2 4 28 4 42 C4 55.255 13.745 65 26 65 C38.255 65 48 55.255 48 42 C48 28 26 2 26 2Z" />
+                    </clipPath>
+                    <linearGradient id="dropFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={LAVENDER_LIGHT} />
+                      <stop offset="100%" stopColor={LAVENDER_DARK} />
+                    </linearGradient>
+                  </defs>
+                  {/* Drop outline */}
+                  <path d="M26 2 C26 2 4 28 4 42 C4 55.255 13.745 65 26 65 C38.255 65 48 55.255 48 42 C48 28 26 2 26 2Z"
+                    fill="rgba(99,102,241,0.08)" stroke={LAVENDER_DARK} strokeWidth="2.5" />
+                  {/* Fill level */}
+                  <rect x="0" y={65 - (63 * pct / 100)} width="52" height="63"
+                    fill="url(#dropFill)" clipPath="url(#dropClip)"
+                    style={{ transition: 'y 0.7s ease, height 0.7s ease' }} />
+                </svg>
+                <span className="text-[10px] font-bold" style={{ color: LAVENDER_DARK }}>{pct}%</span>
               </div>
               {/* Progress ring */}
               <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>

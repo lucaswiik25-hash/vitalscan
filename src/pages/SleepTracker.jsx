@@ -173,7 +173,7 @@ export default function SleepTracker() {
   const displayHours = selectedHours ?? sleepHours;
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden select-none"
+    <div className="min-h-screen flex flex-col select-none"
       style={{ background: '#1C1E2A' }}>
 
       {/* Purple radial glow behind ring */}

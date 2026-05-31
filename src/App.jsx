@@ -18,7 +18,6 @@ import MealPlanner from './pages/MealPlanner';
 import ShoppingList from './pages/ShoppingList';
 import HealthRisk from './pages/HealthRisk';
 import Settings from './pages/Settings';
-import SleepTracker from './pages/SleepTracker';
 import FaceScanner from './pages/FaceScanner';
 import BodyScanner from './pages/BodyScanner';
 import Exercise from './pages/Exercise';
@@ -55,7 +54,6 @@ const AuthenticatedApp = () => {
         <Route path="/shopping" element={<ShoppingList />} />
         <Route path="/health-risk" element={<HealthRisk />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/sleep" element={<SleepTracker />} />
         <Route path="/exercise" element={<Exercise />} />
       </Route>
       <Route path="/onboarding" element={<Onboarding />} />

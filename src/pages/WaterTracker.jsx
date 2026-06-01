@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb, BarChart2, Zap } from 'lucide-react';
+import { X, Plus, Minus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb, BarChart2, Zap } from 'lucide-react';
 import WaterCalendarModal from '../components/water/WaterCalendarModal';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
@@ -16,20 +16,16 @@ const WATER_SLOTS = [
   { key: 'night',    label: 'Night',     icon: '🌙' },
 ];
 
-const QUICK_ML = [150, 250, 300, 500, 750, 1000];
-
 // Neumorphic shadow styles
 const NM = '8px 8px 16px rgba(174,174,192,0.4), -8px -8px 16px rgba(255,255,255,0.8), inset 1px 1px 1px rgba(255,255,255,0.6)';
 const NM_SM = '6px 6px 12px rgba(174,174,192,0.3), -6px -6px 12px rgba(255,255,255,0.7)';
 const NM_INSET = 'inset 4px 4px 8px rgba(174,174,192,0.3), inset -4px -4px 8px rgba(255,255,255,0.7)';
-const LAV = '6px 6px 12px rgba(99,102,241,0.25), -6px -6px 12px rgba(255,255,255,0.6)';
-const LAV_SM = '4px 4px 8px rgba(99,102,241,0.3), -4px -4px 8px rgba(255,255,255,0.5)';
+const BLK_SM = '4px 4px 8px rgba(0,0,0,0.25), -2px -2px 6px rgba(255,255,255,0.4)';
 
 const BG = '#e8e8ec';
 const SURFACE = '#f0f0f4';
-const LAVENDER = '#818cf8';
-const LAVENDER_LIGHT = '#a5b4fc';
-const LAVENDER_DARK = '#6366f1';
+const BLACK = '#1a1a1a';
+const BLACK_MED = '#374151';
 
 // Log Water panel (full-screen slide-up)
 function LogWaterPanel({ onClose, slotLabel, onAdd }) {
@@ -84,7 +80,7 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
                 style={{ background: SURFACE, boxShadow: NM_INSET, border: 'none', color: '#1f2937' }} />
               <button onClick={handleCustom}
                 className="px-5 py-3 rounded-2xl text-white text-sm font-semibold"
-                style={{ background: `linear-gradient(135deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`, boxShadow: LAV_SM }}>
+                style={{ background: BLACK, boxShadow: BLK_SM }}>
                 Add
               </button>
             </div>
@@ -99,7 +95,7 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
 const insightStyle = (type) => {
   if (type === 'warning') return { icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, iconBg: '#FEF3C7' };
   if (type === 'positive') return { icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, iconBg: '#D1FAE5' };
-  return { icon: <Lightbulb className="w-4 h-4 text-indigo-500" />, iconBg: '#E0E7FF' };
+  return { icon: <Lightbulb className="w-4 h-4" style={{ color: BLACK }} />, iconBg: '#e5e7eb' };
 };
 
 export default function WaterTracker() {
@@ -137,10 +133,13 @@ export default function WaterTracker() {
     queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
-  const quickAdd = async (ml) => {
-    const hour = new Date().getHours();
-    const slot = hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night';
-    await logSlot(ml, slot);
+  // Remove last log entry (undo)
+  const removeLastLog = async () => {
+    if (todayLogs.length === 0) return;
+    const sorted = [...todayLogs].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    await base44.entities.WaterLog.delete(sorted[0].id);
+    queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
+    queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
   };
 
   const getAiInsights = async () => {
@@ -210,12 +209,12 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
             className="w-10 h-10 rounded-[14px] flex items-center justify-center"
             style={{ background: SURFACE, boxShadow: NM_SM }}>
             {loadingAI
-              ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: LAVENDER }} />
+              ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: BLACK }} />
               : <Sparkles className="w-5 h-5" style={{ color: '#6b7280' }} />}
           </button>
           <button onClick={() => setShowCalendar(true)}
             className="w-10 h-10 rounded-[14px] flex items-center justify-center"
-            style={{ background: `linear-gradient(135deg, ${LAVENDER_DARK} 0%, #4f46e5 100%)`, boxShadow: LAV_SM }}>
+            style={{ background: BLACK, boxShadow: BLK_SM }}>
             <CalendarDays className="w-5 h-5 text-white" />
           </button>
         </div>
@@ -225,13 +224,12 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
 
         {/* Daily progress banner */}
         <div className="rounded-[28px] px-5 py-5 relative overflow-hidden"
-          style={{ background: `linear-gradient(135deg, #c7d2fe 0%, ${LAVENDER_LIGHT} 100%)`, boxShadow: LAV }}>
-          <p className="text-xs font-medium mb-1" style={{ color: 'rgba(49,46,129,0.7)' }}>Daily progress</p>
-          <p className="text-3xl font-bold" style={{ color: '#1e1b4b' }}>
-            {effective.toLocaleString()} <span className="text-xl font-medium" style={{ color: 'rgba(49,46,129,0.6)' }}>/ {dailyTarget.toLocaleString()} ml</span>
+          style={{ background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)', boxShadow: BLK_SM }}>
+          <p className="text-xs font-medium mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Daily progress</p>
+          <p className="text-3xl font-bold text-white">
+            {effective.toLocaleString()} <span className="text-xl font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>/ {dailyTarget.toLocaleString()} ml</span>
           </p>
-          {/* Decorative circle */}
-          <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-20 h-20 rounded-full opacity-30"
+          <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-20 h-20 rounded-full opacity-10"
             style={{ background: 'white' }} />
         </div>
 
@@ -248,7 +246,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                 onClick={action || undefined}
                 className="w-14 h-14 rounded-[18px] flex items-center justify-center active:scale-95 transition-transform"
                 style={accent
-                  ? { background: `linear-gradient(135deg, ${LAVENDER_DARK} 0%, #4f46e5 100%)`, boxShadow: LAV_SM }
+                  ? { background: BLACK, boxShadow: BLK_SM }
                   : { background: SURFACE, boxShadow: NM_SM }}>
                 {icon}
               </button>
@@ -272,37 +270,29 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                       <path d="M26 2 C26 2 4 28 4 42 C4 55.255 13.745 65 26 65 C38.255 65 48 55.255 48 42 C48 28 26 2 26 2Z" />
                     </clipPath>
                     <linearGradient id="dropFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={LAVENDER_LIGHT} />
-                      <stop offset="100%" stopColor={LAVENDER_DARK} />
+                      <stop offset="0%" stopColor="#555" />
+                      <stop offset="100%" stopColor="#111" />
                     </linearGradient>
                   </defs>
-                  {/* Drop outline */}
                   <path d="M26 2 C26 2 4 28 4 42 C4 55.255 13.745 65 26 65 C38.255 65 48 55.255 48 42 C48 28 26 2 26 2Z"
-                    fill="rgba(99,102,241,0.08)" stroke={LAVENDER_DARK} strokeWidth="2.5" />
-                  {/* Fill level */}
+                    fill="rgba(0,0,0,0.06)" stroke={BLACK} strokeWidth="2.5" />
                   <rect x="0" y={65 - (63 * pct / 100)} width="52" height="63"
                     fill="url(#dropFill)" clipPath="url(#dropClip)"
                     style={{ transition: 'y 0.7s ease, height 0.7s ease' }} />
                 </svg>
-                <span className="text-[10px] font-bold" style={{ color: LAVENDER_DARK }}>{pct}%</span>
+                <span className="text-[10px] font-bold" style={{ color: BLACK }}>{pct}%</span>
               </div>
               {/* Progress ring */}
               <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
                 <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: 'rotate(-90deg)' }}>
                   <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_R} fill="none"
-                    stroke="#d4d4e0" strokeWidth={RING_STROKE} />
+                    stroke="#d4d4d4" strokeWidth={RING_STROKE} />
                   {pct > 0 && (
                     <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_R} fill="none"
-                      stroke={`url(#lavGrad)`} strokeWidth={RING_STROKE}
+                      stroke={BLACK} strokeWidth={RING_STROKE}
                       strokeDasharray={`${ringDash} ${RING_CIRC}`} strokeLinecap="round"
                       style={{ transition: 'stroke-dasharray 0.7s ease' }} />
                   )}
-                  <defs>
-                    <linearGradient id="lavGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor={LAVENDER_LIGHT} />
-                      <stop offset="100%" stopColor={LAVENDER_DARK} />
-                    </linearGradient>
-                  </defs>
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-xl font-bold" style={{ color: '#4b5563' }}>
@@ -313,14 +303,19 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
             </div>
           </div>
 
-          {/* Vertical add bar */}
+          {/* Vertical add/minus bar */}
           <div className="w-[72px] rounded-[28px] relative overflow-hidden flex flex-col items-center"
             style={{ background: SURFACE, boxShadow: NM, minHeight: 180 }}>
-            {/* Top: avatar circle + label */}
+            {/* Top: Minus button */}
             <div className="flex flex-col items-center pt-3 pb-2 z-10">
-              <div className="w-10 h-10 rounded-full mb-1"
-                style={{ background: LAVENDER_LIGHT }} />
-              <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>Drank</span>
+              <button
+                onClick={removeLastLog}
+                disabled={todayLogs.length === 0}
+                className="w-10 h-10 rounded-full flex items-center justify-center mb-1 active:scale-90 transition-transform disabled:opacity-30"
+                style={{ background: '#e5e7eb', boxShadow: NM_SM }}>
+                <Minus className="w-4 h-4" style={{ color: BLACK }} strokeWidth={2.5} />
+              </button>
+              <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>Undo</span>
             </div>
             {/* Middle: amount */}
             <div className="flex-1 flex items-center justify-center z-10">
@@ -332,29 +327,14 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
             <div className="absolute bottom-0 left-0 right-0 transition-all duration-700 rounded-b-[28px]"
               style={{
                 height: `${Math.max(20, pct)}%`,
-                background: `linear-gradient(180deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`
+                background: `linear-gradient(180deg, #555 0%, #1a1a1a 100%)`
               }} />
             {/* Add button */}
             <button onClick={() => setOpenSlot({ label: 'Quick Add', key: null })}
               className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center mb-3 active:scale-95 transition-transform"
-              style={{ background: `linear-gradient(135deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`, boxShadow: LAV_SM }}>
+              style={{ background: BLACK, boxShadow: BLK_SM }}>
               <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
             </button>
-          </div>
-        </div>
-
-        {/* Bottom grid: Quick Add + Slots */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Quick Add</p>
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-            {QUICK_ML.map(ml => (
-              <button key={ml} onClick={() => quickAdd(ml)}
-                className="shrink-0 h-16 px-5 rounded-[20px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
-                style={{ background: SURFACE, boxShadow: NM_SM, minWidth: 64 }}>
-                <span className="text-base font-bold" style={{ color: '#1f2937' }}>{ml >= 1000 ? `${ml/1000}L` : ml}</span>
-                <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>{ml >= 1000 ? 'litre' : 'ml'}</span>
-              </button>
-            ))}
           </div>
         </div>
 
@@ -377,16 +357,16 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                     </p>
                   </div>
                   {/* Mini progress bar */}
-                  <div className="w-16 h-1.5 rounded-full mr-2" style={{ background: '#d4d4e0' }}>
+                  <div className="w-16 h-1.5 rounded-full mr-2" style={{ background: '#d4d4d4' }}>
                     <div className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${Math.min(100, (slot.logged / slot.target) * 100)}%`,
-                        background: `linear-gradient(to right, ${LAVENDER_LIGHT}, ${LAVENDER_DARK})`
+                        background: BLACK
                       }} />
                   </div>
                   <button onClick={() => setOpenSlot(slot)}
                     className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                    style={{ background: `linear-gradient(135deg, ${LAVENDER_DARK} 0%, #4f46e5 100%)`, boxShadow: LAV_SM }}>
+                    style={{ background: BLACK, boxShadow: BLK_SM }}>
                     <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
                   </button>
                 </div>
@@ -417,9 +397,9 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
       <AnimatePresence>
         {loadingAI && (
           <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-            style={{ background: 'rgba(30,27,75,0.9)', backdropFilter: 'blur(12px)' }}
+            style={{ background: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(12px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: LAVENDER_LIGHT }} />
+            <Loader2 className="w-10 h-10 animate-spin mb-4 text-white" />
             <p className="text-white text-lg font-semibold">Analysing 14 days...</p>
             <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Your hydration coach is reviewing your data</p>
           </motion.div>
@@ -447,8 +427,8 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                 style={{ background: SURFACE, boxShadow: NM }}>
                 <div className="relative shrink-0" style={{ width: 100, height: 100 }}>
                   <svg width={100} height={100} style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx={50} cy={50} r={42} fill="none" stroke="#d4d4e0" strokeWidth={10} />
-                    <circle cx={50} cy={50} r={42} fill="none" stroke={LAVENDER} strokeWidth={10}
+                    <circle cx={50} cy={50} r={42} fill="none" stroke="#d4d4d4" strokeWidth={10} />
+                    <circle cx={50} cy={50} r={42} fill="none" stroke={BLACK} strokeWidth={10}
                       strokeLinecap="round"
                       strokeDasharray={`${(pct / 100) * 2 * Math.PI * 42} ${2 * Math.PI * 42}`} />
                   </svg>
@@ -490,9 +470,9 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
 
               {/* Recommendation banner */}
               <div className="rounded-[24px] p-5"
-                style={{ background: `linear-gradient(135deg, ${LAVENDER_LIGHT} 0%, ${LAVENDER} 100%)`, boxShadow: LAV }}>
+                style={{ background: 'linear-gradient(135deg, #2d2d2d 0%, #111 100%)', boxShadow: BLK_SM }}>
                 <p className="text-sm font-semibold text-white mb-2">AI Recommendation</p>
-                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
                   Keep a consistent schedule — drinking at the same time each day trains your body to signal thirst more reliably.
                 </p>
               </div>

@@ -200,7 +200,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
   const ringDash = (pct / 100) * RING_CIRC;
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: BG }}>
+    <div className="min-h-screen pb-28">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-10 pb-4">
         <h1 className="text-xl font-semibold" style={{ color: '#1f2937' }}>Hydro</h1>

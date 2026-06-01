@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
 
 const ACCENT = '#1A1814';
 const TRACK_COLOR = '#FFFFFF';
@@ -32,13 +32,6 @@ const QUICK_EXERCISES = [
   { name: 'Rowing', icon: Activity, met: 8.5, category: 'cardio' },
 ];
 
-function calcBMR(profile) {
-  const w = profile.weight || 70, h = profile.height || 170, a = profile.age || 25;
-  return profile.sex === 'female'
-    ? 10 * w + 6.25 * h - 5 * a - 161
-    : 10 * w + 6.25 * h - 5 * a + 5;
-}
-
 function calcCalories(met, weight, minutes) {
   return Math.round((met * weight * minutes) / 60);
 }
@@ -64,10 +57,9 @@ export default function Exercise() {
     queryFn: () => base44.entities.Exercise.filter({ date: selectedDate }),
   });
 
-  const bmr = useMemo(() => calcBMR(profile), [profile]);
   const totalBurned = exercises.reduce((s, e) => s + (e.calories_burned || 0), 0);
-  const exerciseTarget = Math.round(bmr * 0.3);
-  const pct = exerciseTarget > 0 ? (totalBurned / exerciseTarget) * 100 : 0;
+  const exerciseTarget = 500;
+  const pct = totalBurned > 0 ? (totalBurned / exerciseTarget) * 100 : 0;
   const goalCrushed = pct >= 100;
 
   const handleQuickSelect = (ex) => {
@@ -157,7 +149,7 @@ export default function Exercise() {
               const CIRC = 2 * Math.PI * R;
               const clampedPct = Math.min(pct, 100);
               const dash = (clampedPct / 100) * CIRC;
-              const ringColor = goalCrushed ? '#22c55e' : ACCENT;
+              const ringColor = ACCENT;
               return (
                 <div className="relative flex justify-center mb-4">
                   <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: 'rotate(-90deg)' }}>
@@ -168,15 +160,15 @@ export default function Exercise() {
                       <circle cx={CX} cy={CY} r={R} fill="none"
                         stroke={ringColor} strokeWidth={STROKE}
                         strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
-                        style={{ transition: 'stroke-dasharray 0.7s ease', filter: goalCrushed ? 'drop-shadow(0 0 8px #22c55e88)' : 'none' }} />
+                        style={{ transition: 'stroke-dasharray 0.7s ease' }} />
                     )}
                   </svg>
                   {/* Center content */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     {goalCrushed ? (
                       <>
-                        <CheckCircle2 className="w-8 h-8 mb-1" style={{ color: '#22c55e' }} />
-                        <span className="text-xs font-bold" style={{ color: '#22c55e' }}>Goal Crushed!</span>
+                        <span className="text-2xl font-black" style={{ color: ACCENT }}>100%</span>
+                        <span className="text-[10px] font-semibold text-gray-400">Goal Crushed!</span>
                       </>
                     ) : pct === 0 ? (
                       <span className="text-sm font-semibold text-gray-400">No data</span>
@@ -196,7 +188,7 @@ export default function Exercise() {
               <p className="text-base font-semibold mb-0.5" style={{ color: ACCENT }}>
                 Movement {selectedDate !== today && <span className="text-sm font-normal text-gray-400">· {format(new Date(selectedDate), 'MMM d')}</span>}
               </p>
-              <p className="text-3xl font-bold tracking-tight" style={{ color: goalCrushed ? '#22c55e' : ACCENT }}>
+              <p className="text-3xl font-bold tracking-tight" style={{ color: ACCENT }}>
                 {totalBurned}/{exerciseTarget} <span className="text-2xl font-medium">KCAL</span>
               </p>
             </div>

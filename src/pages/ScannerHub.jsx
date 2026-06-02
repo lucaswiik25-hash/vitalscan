@@ -47,12 +47,17 @@ function FoodSearch() {
     if (!query.trim()) return;
     setLoading(true);
     setResults(null);
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `Provide nutrition info for: "${query}". Return an array of 3 serving size options (e.g. 100g, 1 cup, 1 piece). For each: name (string, include query + serving size label), serving_label (e.g. "100g" / "1 cup"), calories, protein, carbs, fat, fiber, sugar, sodium. NEVER fail.`,
-      response_json_schema: { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, serving_label: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, fiber: { type: 'number' }, sugar: { type: 'number' }, sodium: { type: 'number' } } } } } },
-    });
-    setResults(res.items || []);
-    setLoading(false);
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Provide nutrition info for: "${query}". Return an array of 3 serving size options (e.g. 100g, 1 cup, 1 piece). For each: name (string, include query + serving size label), serving_label (e.g. "100g" / "1 cup"), calories, protein, carbs, fat, fiber, sugar, sodium. NEVER fail.`,
+        response_json_schema: { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, serving_label: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, fiber: { type: 'number' }, sugar: { type: 'number' }, sodium: { type: 'number' } } } } } },
+      });
+      setResults(res.items || []);
+    } catch (_) {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addMeal = async (item) => {

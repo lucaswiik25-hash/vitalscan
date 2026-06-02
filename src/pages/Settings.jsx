@@ -1,11 +1,46 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, User, Shield, Info, RefreshCw, Trash2 } from 'lucide-react';
+import { LogOut, User, Shield, Info, RefreshCw, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile } from '../hooks/useUserProfile';
+
+const DIET_OPTIONS = [
+  { id: 'none', label: 'No restrictions' },
+  { id: 'standard', label: 'Standard' },
+  { id: 'calorie_deficit', label: 'Calorie Deficit' },
+  { id: 'high_protein', label: 'High Protein' },
+  { id: 'keto', label: 'Ketogenic' },
+  { id: 'carnivore', label: 'Carnivore' },
+  { id: 'vegan', label: 'Vegan' },
+  { id: 'vegetarian', label: 'Vegetarian' },
+  { id: 'pescatarian', label: 'Pescatarian' },
+  { id: 'gluten_free', label: 'Gluten Free' },
+  { id: 'dairy_free', label: 'Dairy Free' },
+  { id: 'paleo', label: 'Paleo' },
+  { id: 'mediterranean', label: 'Mediterranean' },
+  { id: 'intermittent_fasting', label: 'Intermittent Fasting' },
+  { id: 'low_sodium', label: 'Low Sodium' },
+  { id: 'low_sugar', label: 'Low Sugar' },
+  { id: 'appearance_mode', label: '✦ Appearance Mode' },
+];
+
+const GOAL_LABELS = {
+  lose_weight: 'Lose Weight',
+  maintain: 'Maintain',
+  gain_muscle: 'Gain Muscle',
+  lean_bulk: 'Lean Bulk',
+};
+
+const ACTIVITY_LABELS = {
+  sedentary: 'Sedentary',
+  lightly_active: 'Lightly Active',
+  moderately_active: 'Moderately Active',
+  very_active: 'Very Active',
+  extra_active: 'Extra Active',
+};
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -18,8 +53,29 @@ export default function Settings() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editForm, setEditForm] = useState({});
 
   const { profile } = useUserProfile();
+
+  const startEdit = () => {
+    setEditForm({ name: profile.name || '', age: profile.age || '', weight: profile.weight || '', height: profile.height || '' });
+    setEditingProfile(true);
+  };
+
+  const saveEdit = async () => {
+    if (!profile.id) return;
+    setSaving(true);
+    await base44.entities.UserProfile.update(profile.id, {
+      name: editForm.name,
+      age: Number(editForm.age),
+      weight: Number(editForm.weight),
+      height: Number(editForm.height),
+    });
+    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    setSaving(false);
+    setEditingProfile(false);
+  };
 
   const updateField = async (field, value) => {
     if (!profile.id) return;
@@ -66,14 +122,51 @@ export default function Settings() {
 
       <div className="px-5 space-y-4">
         {/* Profile summary */}
-        <motion.div {...fadeUp(0)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-xl font-bold text-foreground">
-            {profile.name?.[0]?.toUpperCase() || '?'}
-          </div>
-          <div>
-            <p className="font-bold text-foreground">{profile.name || 'User'}</p>
-            <p className="text-xs text-muted-foreground capitalize">{profile.goal?.replace(/_/g, ' ')} · {profile.diet_mode?.replace(/_/g, ' ')}</p>
-          </div>
+        <motion.div {...fadeUp(0)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+          {!editingProfile ? (
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-xl font-bold text-foreground shrink-0">
+                {profile.name?.[0]?.toUpperCase() || '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-foreground">{profile.name || 'User'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {profile.age ? `${profile.age}y` : ''}{profile.age && profile.weight ? ' · ' : ''}{profile.weight ? `${profile.weight}kg` : ''}{profile.height ? ` · ${profile.height}cm` : ''}
+                </p>
+                <p className="text-xs text-muted-foreground capitalize">{GOAL_LABELS[profile.goal] || profile.goal?.replace(/_/g, ' ')} · {DIET_OPTIONS.find(d => d.id === profile.diet_mode)?.label || profile.diet_mode?.replace(/_/g, ' ')}</p>
+              </div>
+              <button onClick={startEdit} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <Pencil className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-bold text-foreground">Edit Profile</p>
+                <button onClick={() => setEditingProfile(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+              </div>
+              {[
+                { label: 'Name', key: 'name', type: 'text' },
+                { label: 'Age', key: 'age', type: 'number' },
+                { label: 'Weight (kg)', key: 'weight', type: 'number' },
+                { label: 'Height (cm)', key: 'height', type: 'number' },
+              ].map(({ label, key, type }) => (
+                <div key={key}>
+                  <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                  <input
+                    type={type}
+                    value={editForm[key]}
+                    onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full h-10 rounded-xl border border-border bg-secondary px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  />
+                </div>
+              ))}
+              <button onClick={saveEdit} disabled={saving}
+                className="w-full h-11 rounded-2xl bg-foreground text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+                {saving ? 'Saving...' : <><Check className="w-4 h-4" /> Save Changes</>}
+              </button>
+            </div>
+          )}
         </motion.div>
 
         {/* Diet & Goals */}
@@ -82,11 +175,11 @@ export default function Settings() {
           <SettingRow icon={User} label="Goal">
             <Select value={profile.goal || 'maintain'} onValueChange={v => updateField('goal', v)}>
               <SelectTrigger className="w-36 rounded-xl border-0 bg-secondary h-8 text-xs">
-                <SelectValue />
+                <SelectValue>{GOAL_LABELS[profile.goal] || profile.goal?.replace(/_/g, ' ')}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {['lose_weight', 'maintain', 'gain_muscle', 'lean_bulk'].map(g => (
-                  <SelectItem key={g} value={g} className="text-xs capitalize">{g.replace(/_/g, ' ')}</SelectItem>
+                {Object.entries(GOAL_LABELS).map(([id, label]) => (
+                  <SelectItem key={id} value={id} className="text-xs">{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -94,11 +187,11 @@ export default function Settings() {
           <SettingRow icon={null} label="Activity Level">
             <Select value={profile.activity_level || 'moderately_active'} onValueChange={v => updateField('activity_level', v)}>
               <SelectTrigger className="w-40 rounded-xl border-0 bg-secondary h-8 text-xs">
-                <SelectValue />
+                <SelectValue>{ACTIVITY_LABELS[profile.activity_level] || profile.activity_level?.replace(/_/g, ' ')}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extra_active'].map(a => (
-                  <SelectItem key={a} value={a} className="text-xs capitalize">{a.replace(/_/g, ' ')}</SelectItem>
+                {Object.entries(ACTIVITY_LABELS).map(([id, label]) => (
+                  <SelectItem key={id} value={id} className="text-xs">{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -106,11 +199,11 @@ export default function Settings() {
           <SettingRow icon={null} label="Diet Mode">
             <Select value={profile.diet_mode || 'none'} onValueChange={v => updateField('diet_mode', v)}>
               <SelectTrigger className="w-36 rounded-xl border-0 bg-secondary h-8 text-xs">
-                <SelectValue />
+                <SelectValue>{DIET_OPTIONS.find(d => d.id === (profile.diet_mode || 'none'))?.label}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {['none', 'standard', 'keto', 'vegan', 'vegetarian', 'paleo', 'mediterranean', 'gluten_free', 'dairy_free', 'carnivore', 'low_sodium', 'low_sugar', 'high_protein', 'calorie_deficit'].map(d => (
-                  <SelectItem key={d} value={d} className="text-xs capitalize">{d === 'none' ? 'No restrictions' : d.replace(/_/g, ' ')}</SelectItem>
+                {DIET_OPTIONS.map(d => (
+                  <SelectItem key={d.id} value={d.id} className="text-xs">{d.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

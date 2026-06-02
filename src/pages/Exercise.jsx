@@ -146,6 +146,7 @@ export default function Exercise() {
             {/* Main activity ring — 180px diameter */}
             {(() => {
               const SIZE = 180, R = 65, STROKE = 22, CX = 90, CY = 90;
+              // Note: ring progress uses CSS transition for smooth day-switch animation
               const CIRC = 2 * Math.PI * R;
               const clampedPct = Math.min(pct, 100);
               const dash = (clampedPct / 100) * CIRC;
@@ -184,14 +185,14 @@ export default function Exercise() {
             })()}
 
             {/* Stats */}
-            <div className="mb-1">
+            <motion.div key={selectedDate} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }} className="mb-1">
               <p className="text-base font-semibold mb-0.5" style={{ color: ACCENT }}>
                 Movement {selectedDate !== today && <span className="text-sm font-normal text-gray-400">· {format(new Date(selectedDate), 'MMM d')}</span>}
               </p>
               <p className="text-3xl font-bold tracking-tight" style={{ color: ACCENT }}>
                 {totalBurned}/{exerciseTarget} <span className="text-2xl font-medium">KCAL</span>
               </p>
-            </div>
+            </motion.div>
             <div className="flex justify-between">
               <span style={{ fontSize: 13, color: '#9CA3AF' }}>{totalBurned} kcal burned</span>
               <span style={{ fontSize: 13, color: '#9CA3AF' }}>{exerciseTarget} kcal goal</span>

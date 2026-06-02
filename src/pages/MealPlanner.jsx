@@ -8,6 +8,15 @@ const MEAL_COUNTS = [2, 3, 4, 5, 6];
 const STORAGE_KEY = 'scanly_meal_plan';
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
+const DIET_LABELS = {
+  none: 'No restrictions', standard: 'Standard', calorie_deficit: 'Calorie Deficit',
+  high_protein: 'High Protein', keto: 'Ketogenic', carnivore: 'Carnivore',
+  vegan: 'Vegan', vegetarian: 'Vegetarian', pescatarian: 'Pescatarian',
+  gluten_free: 'Gluten Free', dairy_free: 'Dairy Free', paleo: 'Paleo',
+  mediterranean: 'Mediterranean', intermittent_fasting: 'Intermittent Fasting',
+  low_sodium: 'Low Sodium', low_sugar: 'Low Sugar', appearance_mode: '✦ Appearance Mode',
+};
+
 export default function MealPlanner() {
   const [mealCount, setMealCount] = useState(3);
   const [plan, setPlan] = useState(null);
@@ -120,7 +129,9 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
 
     setPlan({ ...result, is_appearance_mode: isAppearance });
     setExpanded({});
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: TODAY, plan: { ...result, is_appearance_mode: isAppearance }, mealCount }));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: TODAY, plan: { ...result, is_appearance_mode: isAppearance }, mealCount }));
+    } catch (_) {}
     setLoading(false);
   };
 
@@ -152,7 +163,7 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
         {profile.diet_mode && profile.diet_mode !== 'none' && (
           <div className="bg-secondary/50 border border-border rounded-[20px] px-4 py-3 flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Diet mode active:</span>
-            <span className="text-xs font-bold text-foreground capitalize">{profile.diet_mode?.replace(/_/g, ' ')}</span>
+            <span className="text-xs font-bold text-foreground capitalize">{DIET_LABELS[profile.diet_mode] || profile.diet_mode?.replace(/_/g, ' ')}</span>
           </div>
         )}
 

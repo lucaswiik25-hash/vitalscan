@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, Sparkles, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { motion } from 'framer-motion';
 
 const DIET_OPTIONS = [
   {
@@ -377,7 +378,12 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
         )}
 
         {step === 'review' && parsedProfile && (
-          <div className="space-y-4 pb-8">
+          <motion.div
+            className="space-y-4 pb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+          >
             <div className="bg-white border border-border rounded-[20px] p-5 shadow-sm">
               <h3 className="text-lg font-bold text-foreground mb-4">Your Profile</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -428,7 +434,7 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
                 <>Let's go <ArrowRight className="w-5 h-5" /></>
               )}
             </Button>
-          </div>
+          </motion.div>
         )}
       </div>
 

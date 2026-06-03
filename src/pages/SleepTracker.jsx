@@ -3,467 +3,572 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Plus, X, Sparkles, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Moon, Sparkles, Clock, TrendingUp, Zap, Plus, X, ChevronRight } from 'lucide-react';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import SleepReadinessModule from '@/components/sleep/SleepReadinessModule';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
+const TARGET_HOURS = 8;
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 24 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
+});
+
+function readSleepStore() {
+  try {
+    return JSON.parse(localStorage.getItem('scanly_sleep') || '{}');
+  } catch {
+    return {};
+  }
+}
 
 function formatHours(h) {
-  if (!h) return '—';
+  if (h == null) return '—';
   const hrs = Math.floor(h);
   const mins = Math.round((h - hrs) * 60);
   return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
 }
 
-function getSleepQuality(h) {
-  if (!h) return { label: 'No data', color: '#9ca3af' };
-  if (h < 5) return { label: 'Very Poor', color: '#ef4444' };
-  if (h < 6) return { label: 'Poor', color: '#f97316' };
-  if (h < 7) return { label: 'Fair', color: '#eab308' };
-  if (h <= 9) return { label: 'Good', color: '#22c55e' };
-  return { label: 'Long', color: '#3b82f6' };
+function scoreLabel(score) {
+  if (!score) return 'Log sleep to unlock';
+  if (score >= 90) return 'Excellent';
+  if (score >= 80) return 'Very Good';
+  if (score >= 70) return 'Good';
+  if (score >= 55) return 'Fair';
+  return 'Needs rest';
 }
 
-function getSleepScore(h) {
-  if (!h) return 0;
-  if (h < 4) return 20;
-  if (h < 6) return Math.round(20 + (h - 4) * 20);
-  if (h <= 9) return Math.round(60 + ((h - 6) / 3) * 40);
-  return Math.max(40, 100 - Math.round((h - 9) * 15));
+function computeScore(hours) {
+  if (!hours) return 0;
+  const duration = Math.min(100, Math.round((hours / TARGET_HOURS) * 100));
+  const quality = Math.min(100, Math.round(duration * 0.95 + 5));
+  const habits = Math.min(100, Math.round(duration * 0.9 + 10));
+  return Math.min(100, Math.round(duration * 0.4 + quality * 0.35 + habits * 0.25));
 }
 
-function ScoreRing({ score, hours }) {
-  const SIZE = 180, STROKE = 14, R = (SIZE - STROKE) / 2;
-  const CIRC = 2 * Math.PI * R;
-  const gapAngle = 60;
-  const arcAngle = 360 - gapAngle;
-  const maxDash = (arcAngle / 360) * CIRC;
-  const dash = (score / 100) * maxDash;
-  const rotation = 90 + gapAngle / 2;
-  const quality = getSleepQuality(hours);
+const STARS = Array.from({ length: 48 }, (_, i) => ({
+  id: i,
+  x: `${(i * 37 + 11) % 100}%`,
+  y: `${(i * 53 + 7) % 100}%`,
+  size: 1 + (i % 3),
+  delay: (i % 7) * 0.4,
+  duration: 2 + (i % 4),
+}));
+
+function Starfield() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {STARS.map((s) => (
+        <motion.span
+          key={s.id}
+          className="absolute rounded-full bg-white"
+          style={{ left: s.x, top: s.y, width: s.size, height: s.size }}
+          animate={{ opacity: [0.15, 0.9, 0.15], scale: [1, 1.4, 1] }}
+          transition={{ duration: s.duration, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function AuroraBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <motion.div
+        className="absolute -top-24 -left-20 w-72 h-72 rounded-full blur-3xl"
+        style={{ background: 'rgba(99,102,241,0.35)' }}
+        animate={{ x: [0, 40, 0], y: [0, 30, 0], scale: [1, 1.15, 1] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute top-1/3 -right-16 w-64 h-64 rounded-full blur-3xl"
+        style={{ background: 'rgba(139,92,246,0.28)' }}
+        animate={{ x: [0, -30, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }}
+        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+      />
+      <motion.div
+        className="absolute bottom-32 left-1/4 w-80 h-80 rounded-full blur-3xl"
+        style={{ background: 'rgba(59,130,246,0.18)' }}
+        animate={{ x: [0, 25, 0], y: [0, -20, 0] }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+      />
+    </div>
+  );
+}
+
+function SleepRing({ score, hours }) {
+  const size = 240;
+  const stroke = 12;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: SIZE, height: SIZE }}>
-      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)' }}
+        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.85, 0.5] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="relative z-10 -rotate-90">
         <defs>
-          <linearGradient id="sleepRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#a78bfa" />
+          <linearGradient id="sleepRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#A78BFA" />
+            <stop offset="50%" stopColor="#818CF8" />
+            <stop offset="100%" stopColor="#6366F1" />
           </linearGradient>
         </defs>
-        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-          stroke="rgba(99,102,241,0.12)" strokeWidth={STROKE} strokeLinecap="round"
-          strokeDasharray={`${maxDash} ${CIRC}`}
-          style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '50% 50%' }} />
-        {score > 0 && (
-          <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-            stroke="url(#sleepRingGrad)" strokeWidth={STROKE} strokeLinecap="round"
-            strokeDasharray={`${dash} ${CIRC}`}
-            style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '50% 50%', transition: 'stroke-dasharray 1s ease' }} />
-        )}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="url(#sleepRingGrad)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ - dash }}
+          transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+        />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-        <span className="text-xs text-gray-400 uppercase tracking-widest">Score</span>
-        <span className="font-extrabold text-gray-900" style={{ fontSize: 52, lineHeight: 1 }}>
-          {score > 0 ? score : '—'}
+
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+        <motion.div
+          animate={{ y: [0, -6, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <Moon className="w-8 h-8 mb-2" style={{ color: '#FCD34D', filter: 'drop-shadow(0 0 12px rgba(252,211,77,0.6))' }} fill="#FCD34D" />
+        </motion.div>
+        <motion.span
+          key={score}
+          className="text-5xl font-black text-white tabular-nums leading-none"
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+        >
+          {hours ? score : '—'}
+        </motion.span>
+        <span className="text-xs font-semibold uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          Sleep Score
         </span>
-        <span className="text-sm font-semibold" style={{ color: quality.color }}>{quality.label}</span>
+        <span className="text-sm font-medium mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>
+          {scoreLabel(score)}
+        </span>
       </div>
     </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, sub, delay = 0, accent }) {
+  return (
+    <motion.div
+      {...fadeUp(delay)}
+      className="flex-1 rounded-2xl p-4 relative overflow-hidden"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(20px)',
+      }}
+      whileHover={{ scale: 1.02, borderColor: 'rgba(255,255,255,0.2)' }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+    >
+      <div
+        className="absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl opacity-40"
+        style={{ background: accent }}
+      />
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ background: `${accent}22` }}>
+        <Icon className="w-4 h-4" style={{ color: accent }} />
+      </div>
+      <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        {label}
+      </p>
+      <p className="text-xl font-bold text-white">{value}</p>
+      {sub && <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{sub}</p>}
+    </motion.div>
   );
 }
 
 function WeekChart({ weekData }) {
-  const max = Math.max(...weekData.map(d => d.hours || 0), 8);
+  const max = Math.max(TARGET_HOURS, ...weekData.map((d) => d.hours || 0), 1);
+
   return (
-    <div className="flex items-end justify-between gap-2 h-20">
-      {weekData.map((d, i) => {
-        const pct = d.hours ? Math.min(1, d.hours / max) : 0;
-        const isToday = d.dateStr === TODAY;
-        const quality = getSleepQuality(d.hours);
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-            <div className="w-full flex items-end" style={{ height: 64 }}>
-              <div className="w-full rounded-t-lg transition-all duration-700"
+    <motion.div
+      {...fadeUp(0.35)}
+      className="rounded-3xl p-5"
+      style={{
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        backdropFilter: 'blur(16px)',
+      }}
+    >
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-sm font-bold text-white">This Week</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>7-day sleep rhythm</p>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(139,92,246,0.2)' }}>
+          <TrendingUp className="w-3.5 h-3.5 text-violet-300" />
+          <span className="text-xs font-semibold text-violet-200">
+            {weekData.filter((d) => d.hours).length}/7 logged
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-end justify-between gap-2 h-28">
+        {weekData.map((day, i) => {
+          const h = day.hours || 0;
+          const pct = h ? (h / max) * 100 : 8;
+          const hitTarget = h >= TARGET_HOURS;
+          return (
+            <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
+              <motion.div
+                className="w-full rounded-xl relative overflow-hidden"
                 style={{
-                  height: pct > 0 ? `${Math.max(6, pct * 64)}px` : 4,
-                  background: pct > 0 ? quality.color : 'rgba(0,0,0,0.07)',
-                  opacity: isToday ? 1 : 0.65,
-                  borderRadius: 6,
-                }} />
+                  height: `${Math.max(pct, 8)}%`,
+                  minHeight: 8,
+                  background: h
+                    ? hitTarget
+                      ? 'linear-gradient(180deg, #A78BFA 0%, #6366F1 100%)'
+                      : 'linear-gradient(180deg, rgba(167,139,250,0.7) 0%, rgba(99,102,241,0.5) 100%)'
+                    : 'rgba(255,255,255,0.06)',
+                  boxShadow: h ? '0 4px 20px rgba(99,102,241,0.35)' : 'none',
+                }}
+                initial={{ scaleY: 0, originY: 1 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.6, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+              />
+              <span
+                className="text-[10px] font-semibold"
+                style={{ color: day.isToday ? '#C4B5FD' : 'rgba(255,255,255,0.35)' }}
+              >
+                {day.label}
+              </span>
             </div>
-            <span className="text-[10px]" style={{ color: isToday ? '#1f2937' : '#9ca3af', fontWeight: isToday ? 700 : 400 }}>
-              {d.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+
+      <div
+        className="mt-4 pt-3 flex items-center justify-between"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Target: {TARGET_HOURS}h / night</span>
+        <span className="text-xs font-semibold text-violet-300">
+          Avg: {(() => {
+            const logged = weekData.filter((d) => d.hours);
+            if (!logged.length) return '—';
+            const avg = logged.reduce((s, d) => s + d.hours, 0) / logged.length;
+            return formatHours(avg);
+          })()}
+        </span>
+      </div>
+    </motion.div>
   );
 }
 
-const glassCard = {
-  background: 'rgba(255,255,255,0.65)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(0,0,0,0.12)',
-  boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
-};
+function LogSleepSheet({ open, onClose, currentHours, onSave, saving }) {
+  const [picked, setPicked] = useState(currentHours ?? 7.5);
+  const options = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11];
 
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45, ease: 'easeOut', delay },
-});
+  React.useEffect(() => {
+    if (open) setPicked(currentHours ?? 7.5);
+  }, [open, currentHours]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50">
+          <motion.div
+            className="absolute inset-0"
+            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="absolute left-0 right-0 bottom-0 rounded-t-[32px] px-6 pt-3 pb-10 max-w-lg mx-auto"
+            style={{
+              background: 'linear-gradient(180deg, #1E1B4B 0%, #0F0D24 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderBottom: 'none',
+            }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+          >
+            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: 'rgba(255,255,255,0.15)' }} />
+
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-white">Log last night</h2>
+                <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>How many hours did you sleep?</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.08)' }}
+              >
+                <X className="w-4 h-4 text-white/60" />
+              </button>
+            </div>
+
+            <motion.div
+              key={picked}
+              className="text-center py-6 mb-4 rounded-2xl"
+              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)' }}
+              initial={{ scale: 0.95, opacity: 0.5 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            >
+              <span className="text-5xl font-black text-white">{formatHours(picked)}</span>
+              <p className="text-xs mt-2 font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                {computeScore(picked)} sleep score
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-4 gap-2.5 mb-6">
+              {options.map((h) => {
+                const active = picked === h;
+                return (
+                  <motion.button
+                    key={h}
+                    onClick={() => setPicked(h)}
+                    className="h-12 rounded-2xl text-sm font-bold"
+                    style={{
+                      background: active ? 'linear-gradient(135deg, #A78BFA, #6366F1)' : 'rgba(255,255,255,0.06)',
+                      color: active ? '#fff' : 'rgba(255,255,255,0.5)',
+                      border: active ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                      boxShadow: active ? '0 8px 24px rgba(99,102,241,0.4)' : 'none',
+                    }}
+                    whileTap={{ scale: 0.92 }}
+                    animate={active ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    {h % 1 === 0 ? `${h}h` : `${Math.floor(h)}:30`}
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            <motion.button
+              onClick={() => onSave(picked)}
+              disabled={saving}
+              className="w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)',
+                boxShadow: '0 12px 32px rgba(99,102,241,0.45)',
+              }}
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.01 }}
+            >
+              {saving ? 'Saving…' : 'Save Sleep'}
+              {!saving && <ChevronRight className="w-5 h-5" />}
+            </motion.button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 export default function SleepTracker() {
   const queryClient = useQueryClient();
-  const [showInput, setShowInput] = useState(false);
-  const [showAI, setShowAI] = useState(false);
-  const [aiInsights, setAiInsights] = useState(null);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [tempHours, setTempHours] = useState(7.5);
+  const { profile } = useUserProfile();
+  const [showLog, setShowLog] = useState(false);
+  const [optimisticHours, setOptimisticHours] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
-  });
-  const profile = profiles[0] || {};
-
-  // Read all sleep from localStorage
-  const sleepStore = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('scanly_sleep') || '{}'); } catch { return {}; }
-  }, [showInput]); // re-read after closing input
+  const sleepHours = optimisticHours ?? profile.last_sleep_hours ?? readSleepStore()[TODAY] ?? null;
+  const sleepScore = computeScore(sleepHours);
+  const sleepDebt = sleepHours != null ? Math.max(0, TARGET_HOURS - sleepHours) : null;
+  const timeInBed = sleepHours != null ? sleepHours + 0.75 : null;
 
   const weekData = useMemo(() => {
-    const todayProfileHours = profile.last_sleep_date === TODAY ? profile.last_sleep_hours : null;
+    const store = readSleepStore();
+    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const today = new Date();
+    const dayIdx = today.getDay();
+    const mondayOffset = dayIdx === 0 ? 6 : dayIdx - 1;
+    const profileHours = optimisticHours ?? profile.last_sleep_hours;
+
     return Array.from({ length: 7 }, (_, i) => {
-      const d = subDays(new Date(), 6 - i);
+      const d = subDays(today, mondayOffset - i);
       const dateStr = format(d, 'yyyy-MM-dd');
-      const hours = sleepStore[dateStr] ?? (dateStr === TODAY ? todayProfileHours : null);
-      return { dateStr, label: format(d, 'EEEEE'), hours };
+      const hours = store[dateStr] ?? (dateStr === TODAY && profileHours ? profileHours : null);
+      return {
+        date: dateStr,
+        label: labels[i],
+        hours,
+        isToday: dateStr === TODAY,
+      };
     });
-  }, [sleepStore, profile]);
+  }, [optimisticHours, profile.last_sleep_hours]);
 
-  const todaySleep = weekData[6]?.hours ?? null;
-  const score = getSleepScore(todaySleep);
-
-  const logged = weekData.filter(d => d.hours);
-  const avgHours = logged.length > 0 ? logged.reduce((s, d) => s + d.hours, 0) / logged.length : null;
-  const lastTwo = weekData.slice(-2);
-  const trend = lastTwo[0]?.hours && lastTwo[1]?.hours ? lastTwo[1].hours - lastTwo[0].hours : null;
-
-  const saveSleep = async (h) => {
+  const saveSleep = async (hours) => {
+    setOptimisticHours(hours);
     setSaving(true);
+
     try {
-      const stored = JSON.parse(localStorage.getItem('scanly_sleep') || '{}');
-      stored[TODAY] = h;
+      const stored = readSleepStore();
+      stored[TODAY] = hours;
       localStorage.setItem('scanly_sleep', JSON.stringify(stored));
     } catch (_) {}
+
     if (profile.id) {
-      await base44.entities.UserProfile.update(profile.id, { last_sleep_hours: h, last_sleep_date: TODAY });
+      await base44.entities.UserProfile.update(profile.id, {
+        last_sleep_hours: hours,
+        last_sleep_date: TODAY,
+      });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     }
+
     setSaving(false);
-    setShowInput(false);
-  };
-
-  const runAI = async () => {
-    setLoadingAI(true);
-    setAiInsights(null);
-    setShowAI(true);
-    const sleepHistory = weekData.map(d => ({ day: format(new Date(d.dateStr), 'EEE'), hours: d.hours || 0 }));
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a sleep health coach. Analyze this user's 7-day sleep log.
-
-Sleep data: ${JSON.stringify(sleepHistory)}
-7-day average: ${avgHours ? avgHours.toFixed(1) : 'N/A'}h
-
-Return 4 insights (title 5-7 words, description 1-2 sentences, type "positive"|"warning"|"tip", emoji).
-Also return overall_summary (2 sentences).`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          overall_summary: { type: 'string' },
-          insights: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                title: { type: 'string' },
-                description: { type: 'string' },
-                type: { type: 'string' },
-                emoji: { type: 'string' },
-              }
-            }
-          }
-        }
-      }
-    });
-    setAiInsights(res);
-    setLoadingAI(false);
-  };
-
-  const insightStyle = (type) => {
-    if (type === 'positive') return { bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)', color: '#16a34a' };
-    if (type === 'warning') return { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)', color: '#dc2626' };
-    return { bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.2)', color: '#4f46e5' };
+    setShowLog(false);
   };
 
   return (
-    <div className="min-h-screen pb-28">
-      {/* Header */}
-      <motion.div {...fadeUp(0)} className="flex items-center justify-between px-5 pt-12 pb-2">
-        <div className="flex items-center gap-2">
-          <Moon className="w-5 h-5 text-indigo-500" />
-          <span className="text-xl font-bold text-gray-900">Sleep</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={runAI}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full"
-            style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-            <span className="text-xs font-semibold text-indigo-600">AI Analysis</span>
-          </button>
-          <button
-            onClick={() => { setTempHours(todaySleep || 7.5); setShowInput(true); }}
-            className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center">
-            <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
-          </button>
-        </div>
-      </motion.div>
+    <div
+      className="min-h-screen pb-28 relative overflow-hidden select-none"
+      style={{ background: 'linear-gradient(180deg, #0B0D1A 0%, #12132A 40%, #0F0D24 100%)' }}
+    >
+      <AuroraBackground />
+      <Starfield />
 
-      <div className="px-5 space-y-4 mt-2">
+      <div className="relative z-10 px-5 pt-14">
+        {/* Header */}
+        <motion.div {...fadeUp(0)} className="flex items-center justify-between mb-8">
+          <div>
+            <motion.div
+              className="flex items-center gap-2 mb-1"
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <Sparkles className="w-4 h-4 text-violet-300" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-violet-300/80">Rest & Recovery</span>
+            </motion.div>
+            <h1 className="text-3xl font-black text-white tracking-tight">Sleep</h1>
+            <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {format(new Date(), 'EEEE, MMMM d')}
+            </p>
+          </div>
 
-        {/* Score ring card */}
-        <motion.div {...fadeUp(0.05)} className="rounded-[28px] p-6 flex flex-col items-center" style={glassCard}>
-          <p className="text-xs text-gray-400 mb-3">{format(new Date(), 'EEEE, d MMMM')}</p>
-          <ScoreRing score={score} hours={todaySleep} />
-          {todaySleep ? (
-            <motion.div {...fadeUp(0.15)} className="mt-5 flex items-center gap-4">
-              <div className="text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Duration</p>
-                <p className="text-xl font-bold text-gray-900 mt-0.5">{formatHours(todaySleep)}</p>
-              </div>
-              <div className="w-px h-8 bg-gray-200" />
-              <div className="text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Debt</p>
-                <p className="text-xl font-bold text-gray-900 mt-0.5">
-                  {todaySleep >= 8 ? 'None 🎉' : formatHours(Math.max(0, 8 - todaySleep))}
-                </p>
-              </div>
-              <div className="w-px h-8 bg-gray-200" />
-              <div className="text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Goal</p>
-                <p className="text-xl font-bold text-gray-900 mt-0.5">8h</p>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div {...fadeUp(0.15)} className="mt-5 text-center">
-              <p className="text-sm text-gray-400 mb-3">No sleep logged yet today</p>
-              <button
-                onClick={() => { setTempHours(7.5); setShowInput(true); }}
-                className="px-7 py-3 rounded-full font-semibold text-white text-sm"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
-                Log Last Night's Sleep
-              </button>
-            </motion.div>
-          )}
-          {todaySleep && (
-            <button onClick={() => { setTempHours(todaySleep); setShowInput(true); }}
-              className="mt-3 text-xs text-indigo-500 font-medium underline underline-offset-2">
-              Edit
+          <motion.button
+            onClick={() => setShowLog(true)}
+            className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, rgba(167,139,250,0.3), rgba(99,102,241,0.2))',
+              border: '1px solid rgba(167,139,250,0.35)',
+              boxShadow: '0 8px 24px rgba(99,102,241,0.25)',
+            }}
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05 }}
+            animate={{ boxShadow: ['0 8px 24px rgba(99,102,241,0.25)', '0 8px 32px rgba(99,102,241,0.45)', '0 8px 24px rgba(99,102,241,0.25)'] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+          >
+            <Plus className="w-5 h-5 text-violet-200" strokeWidth={2.5} />
+          </motion.button>
+        </motion.div>
+
+        {/* Hero ring */}
+        <motion.div {...fadeUp(0.1)} className="flex justify-center mb-8">
+          <SleepRing score={sleepScore} hours={sleepHours} />
+        </motion.div>
+
+        {/* Primary CTA when empty */}
+        {!sleepHours && (
+          <motion.button
+            {...fadeUp(0.15)}
+            onClick={() => setShowLog(true)}
+            className="w-full py-4 rounded-2xl mb-6 flex items-center justify-center gap-2 font-bold text-white"
+            style={{
+              background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)',
+              boxShadow: '0 12px 40px rgba(99,102,241,0.4)',
+            }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <Moon className="w-5 h-5" fill="white" />
+            Log Last Night&apos;s Sleep
+          </motion.button>
+        )}
+
+        {sleepHours && (
+          <motion.div {...fadeUp(0.15)} className="text-center mb-6">
+            <p className="text-2xl font-black text-white">{formatHours(sleepHours)}</p>
+            <button
+              onClick={() => setShowLog(true)}
+              className="text-xs font-medium mt-1 underline underline-offset-2"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+            >
+              Edit sleep log
             </button>
-          )}
-        </motion.div>
+          </motion.div>
+        )}
 
-        {/* 7-Day Overview */}
-        <motion.div {...fadeUp(0.1)} className="rounded-[24px] p-5" style={glassCard}>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-bold text-gray-900">7-Day Overview</p>
-            <div className="flex items-center gap-1.5">
-              {trend !== null && (
-                trend > 0.1 ? <TrendingUp className="w-3.5 h-3.5 text-green-500" /> :
-                trend < -0.1 ? <TrendingDown className="w-3.5 h-3.5 text-red-400" /> :
-                <Minus className="w-3.5 h-3.5 text-gray-400" />
-              )}
-              <span className="text-xs text-gray-400">avg {avgHours ? formatHours(avgHours) : '—'}</span>
-            </div>
-          </div>
+        {/* Stats row */}
+        <div className="flex gap-3 mb-5">
+          <StatCard
+            icon={Clock}
+            label="Duration"
+            value={sleepHours ? formatHours(sleepHours) : '—'}
+            sub={sleepHours ? `${Math.round((sleepHours / TARGET_HOURS) * 100)}% of goal` : 'Not logged'}
+            delay={0.2}
+            accent="#A78BFA"
+          />
+          <StatCard
+            icon={Zap}
+            label="Sleep Debt"
+            value={sleepDebt === 0 ? 'None' : sleepDebt != null ? formatHours(sleepDebt) : '—'}
+            sub={sleepDebt === 0 ? 'Well rested!' : sleepDebt ? 'Catch up tonight' : 'Log to calculate'}
+            delay={0.28}
+            accent="#818CF8"
+          />
+        </div>
+
+        <div className="flex gap-3 mb-6">
+          <StatCard
+            icon={Moon}
+            label="Time in Bed"
+            value={timeInBed ? formatHours(timeInBed) : '—'}
+            sub="Estimated"
+            delay={0.32}
+            accent="#6366F1"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Quality"
+            value={sleepHours ? scoreLabel(sleepScore) : '—'}
+            sub={sleepHours ? `${sleepScore}/100 score` : 'Pending'}
+            delay={0.36}
+            accent="#C4B5FD"
+          />
+        </div>
+
+        {/* Week chart */}
+        <div className="mb-6">
           <WeekChart weekData={weekData} />
-          <div className="flex gap-3 mt-3 flex-wrap">
-            {[
-              { color: '#ef4444', label: '< 6h Poor' },
-              { color: '#eab308', label: '6-7h Fair' },
-              { color: '#22c55e', label: '7-9h Good' },
-              { color: '#3b82f6', label: '9h+ Long' },
-            ].map(l => (
-              <div key={l.label} className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full" style={{ background: l.color }} />
-                <span className="text-[10px] text-gray-400">{l.label}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        </div>
 
-        {/* Stats grid */}
-        <motion.div {...fadeUp(0.15)} className="grid grid-cols-2 gap-3">
-          {[
-            { label: 'Weekly Avg', value: avgHours ? formatHours(avgHours) : '—', sub: `${logged.length}/7 days logged`, color: '#6366f1' },
-            { label: 'Best Night', value: logged.length ? formatHours(Math.max(...logged.map(d => d.hours))) : '—', sub: 'This week', color: '#22c55e' },
-            { label: 'Consistency', value: logged.length > 0 ? `${Math.round((logged.length / 7) * 100)}%` : '—', sub: 'Days logged', color: '#a78bfa' },
-            { label: 'Total Debt', value: logged.length ? formatHours(Math.max(0, logged.reduce((s, d) => s + Math.max(0, 8 - d.hours), 0))) : '—', sub: 'vs 8h goal', color: '#f97316' },
-          ].map((card, i) => (
-            <div key={card.label} className="rounded-[20px] p-4" style={glassCard}>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5">{card.label}</p>
-              <p className="text-2xl font-extrabold" style={{ color: card.color }}>{card.value}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{card.sub}</p>
-            </div>
-          ))}
+        {/* Readiness module */}
+        <motion.div {...fadeUp(0.45)} className="mb-8">
+          <SleepReadinessModule variant="dark" />
         </motion.div>
-
-        {/* Tips */}
-        <motion.div {...fadeUp(0.2)} className="rounded-[24px] p-5" style={glassCard}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">💡</span>
-            <p className="text-sm font-bold text-gray-900">Sleep Tips</p>
-          </div>
-          <div className="space-y-2.5">
-            {[
-              { emoji: '🌙', tip: 'Aim for 7–9 hours every night for optimal health and recovery' },
-              { emoji: '📱', tip: 'Avoid screens 1 hour before bed to improve melatonin production' },
-              { emoji: '🌡️', tip: 'Keep your room cool (16–19°C) — ideal for deep sleep' },
-            ].map((t, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                <span className="text-sm">{t.emoji}</span>
-                <p className="text-xs text-gray-500 leading-relaxed">{t.tip}</p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
       </div>
 
-      {/* Log Sleep Sheet */}
-      <AnimatePresence>
-        {showInput && (
-          <motion.div className="fixed inset-0 z-50 flex flex-col justify-end"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowInput(false)} />
-            <motion.div className="relative z-10 rounded-t-[28px] px-6 pb-12 pt-5 bg-white"
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-5 bg-gray-200" />
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-lg font-bold text-gray-900">Log Sleep</p>
-                <button onClick={() => setShowInput(false)}>
-                  <X className="w-5 h-5 text-gray-400" />
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mb-6">{format(new Date(), 'EEEE, d MMMM')} · Last night</p>
-
-              {/* Big display */}
-              <div className="text-center mb-3">
-                <p className="font-extrabold text-gray-900" style={{ fontSize: 52, lineHeight: 1 }}>
-                  {formatHours(tempHours)}
-                </p>
-                <p className="text-sm font-semibold mt-1" style={{ color: getSleepQuality(tempHours).color }}>
-                  {getSleepQuality(tempHours).label}
-                </p>
-              </div>
-
-              {/* Slider */}
-              <input type="range" min={3} max={12} step={0.5} value={tempHours}
-                onChange={e => setTempHours(Number(e.target.value))}
-                className="w-full mb-2"
-                style={{ accentColor: '#6366f1' }} />
-              <div className="flex justify-between text-[10px] text-gray-400 mb-6">
-                <span>3h</span><span>6h</span><span>8h ideal</span><span>10h</span><span>12h</span>
-              </div>
-
-              {/* Quick select grid */}
-              <div className="grid grid-cols-5 gap-2 mb-6">
-                {[5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10].map(h => (
-                  <button key={h} onClick={() => setTempHours(h)}
-                    className="py-2.5 rounded-[12px] text-xs font-bold transition-all"
-                    style={{
-                      background: tempHours === h ? '#6366f1' : '#f3f4f6',
-                      color: tempHours === h ? '#fff' : '#6b7280',
-                    }}>
-                    {h % 1 === 0 ? `${h}h` : `${Math.floor(h)}h30`}
-                  </button>
-                ))}
-              </div>
-
-              <button onClick={() => saveSleep(tempHours)} disabled={saving}
-                className="w-full py-4 rounded-full font-bold text-white text-base flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {saving ? 'Saving...' : `Save ${formatHours(tempHours)}`}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* AI Analysis Sheet */}
-      <AnimatePresence>
-        {showAI && (
-          <motion.div className="fixed inset-0 z-50 flex flex-col"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !loadingAI && setShowAI(false)} />
-            <motion.div className="absolute left-0 right-0 bottom-0 top-24 flex flex-col rounded-t-[28px] overflow-hidden bg-white"
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-
-              <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-500" />
-                  <p className="text-lg font-bold text-gray-900">AI Sleep Analysis</p>
-                </div>
-                {!loadingAI && (
-                  <button onClick={() => setShowAI(false)}>
-                    <X className="w-5 h-5 text-gray-400" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-                {loadingAI && (
-                  <div className="flex flex-col items-center justify-center py-20 gap-4">
-                    <Loader2 className="w-7 h-7 animate-spin text-indigo-500" />
-                    <p className="text-sm text-gray-400">Analysing your sleep patterns...</p>
-                  </div>
-                )}
-                {aiInsights && !loadingAI && (
-                  <>
-                    <motion.div {...fadeUp(0)} className="rounded-[16px] p-4 bg-indigo-50 border border-indigo-100">
-                      <p className="text-xs text-indigo-400 font-semibold mb-1.5">Overview</p>
-                      <p className="text-sm text-gray-700 leading-relaxed">{aiInsights.overall_summary}</p>
-                    </motion.div>
-                    {(aiInsights.insights || []).map((ins, i) => {
-                      const s = insightStyle(ins.type);
-                      return (
-                        <motion.div key={i} {...fadeUp(i * 0.07)}
-                          className="rounded-[16px] p-4"
-                          style={{ background: s.bg, border: `1px solid ${s.border}` }}>
-                          <div className="flex items-start gap-3">
-                            <span className="text-xl">{ins.emoji}</span>
-                            <div>
-                              <p className="text-sm font-bold text-gray-900 mb-1">{ins.title}</p>
-                              <p className="text-xs text-gray-500 leading-relaxed">{ins.description}</p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <LogSleepSheet
+        open={showLog}
+        onClose={() => setShowLog(false)}
+        currentHours={sleepHours}
+        onSave={saveSleep}
+        saving={saving}
+      />
     </div>
   );
 }

@@ -146,7 +146,7 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
 
       <div className="px-5 space-y-4">
         {/* Meal count selector */}
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <div className="bg-white rounded-[24px] p-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
           <p className="text-sm font-semibold text-foreground mb-3">How many meals per day?</p>
           <div className="flex gap-2">
             {MEAL_COUNTS.map(n => (
@@ -182,15 +182,15 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
         {plan && (
           <>
             <div className="flex gap-3">
-              <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+              <div className="flex-1 bg-white rounded-[20px] p-4 text-center" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
                 <p className="text-2xl font-extrabold text-foreground">{plan.total_calories}</p>
                 <p className="text-xs text-muted-foreground">Total kcal</p>
               </div>
-              <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+              <div className="flex-1 bg-white rounded-[20px] p-4 text-center" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
                 <p className="text-2xl font-extrabold text-foreground">{plan.total_protein}g</p>
                 <p className="text-xs text-muted-foreground">Protein</p>
               </div>
-              <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
+              <div className="flex-1 bg-white rounded-[20px] p-4 text-center" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
                 <p className="text-xs text-muted-foreground">Generated for</p>
                 <p className="text-xs font-bold text-foreground mt-0.5">Today</p>
               </div>
@@ -204,7 +204,7 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
 
             <div className="space-y-3">
               {(plan.meals || []).map((meal, i) => (
-                <div key={i} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+                <div key={i} className="bg-white rounded-[24px] p-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
                   <button onClick={() => toggleExpand(i)} className="w-full text-left">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

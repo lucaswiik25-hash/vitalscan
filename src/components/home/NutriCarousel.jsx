@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 
 const glassStyle = {
   background: 'rgba(255,255,255,0.82)',
-  border: 'none',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)',
+  border: '1px solid rgba(0,0,0,0.12)',
+  boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {

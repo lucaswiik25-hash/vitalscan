@@ -124,7 +124,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
 
       <div className="px-5 mt-3 space-y-4">
         {supplements.length === 0 ? (
-          <div className="bg-white border border-border rounded-[24px] p-8 text-center shadow-sm">
+          <div className="bg-white rounded-[24px] p-8 text-center" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
             <Pill className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="font-semibold text-foreground">No supplements added</p>
             <p className="text-sm text-muted-foreground mt-1">Tap + to add your first supplement</p>
@@ -134,7 +134,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
             const group = supplements.filter(s => s.time_of_day === tg);
             if (group.length === 0) return null;
             return (
-              <motion.div key={tg} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 + gi * 0.1 }} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+              <motion.div key={tg} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 + gi * 0.1 }} className="bg-white rounded-[24px] p-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{timeLabel[tg]}</p>
                 <div className="space-y-2">
                   {group.map(sup => (
@@ -163,7 +163,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Analysis</p>
 
         {/* AI Analysis */}
-        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.4 }} className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.4 }} className="bg-white rounded-[24px] p-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-foreground" />
             <h3 className="text-sm font-bold text-foreground">AI Deficiency Analysis</h3>

@@ -105,8 +105,8 @@ const glassCard = {
   background: 'rgba(255,255,255,0.65)',
   backdropFilter: 'blur(20px)',
   WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.5)',
-  boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+  border: '1px solid rgba(0,0,0,0.12)',
+  boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
 };
 
 const fadeUp = (delay = 0) => ({

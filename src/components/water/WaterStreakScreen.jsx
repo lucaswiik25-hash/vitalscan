@@ -6,8 +6,9 @@ import { format, subDays } from 'date-fns';
 const BG = '#e8e8ec';
 const SURFACE = '#f0f0f4';
 const BLACK = '#1a1a1a';
-const NM = '8px 8px 16px rgba(174,174,192,0.4), -8px -8px 16px rgba(255,255,255,0.8)';
-const NM_SM = '6px 6px 12px rgba(174,174,192,0.3), -6px -6px 12px rgba(255,255,255,0.7)';
+const CARD_STYLE = { border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' };
+const NM = '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)';
+const NM_SM = '0 0 0 1px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.85), 0 2px 8px rgba(0,0,0,0.05)';
 const BLK_SM = '4px 4px 8px rgba(0,0,0,0.25), -2px -2px 6px rgba(255,255,255,0.4)';
 
 export default function WaterStreakScreen({ allLogs, dailyTarget, onClose }) {
@@ -71,7 +72,7 @@ export default function WaterStreakScreen({ allLogs, dailyTarget, onClose }) {
         <h2 className="text-2xl font-bold" style={{ color: '#1f2937' }}>Streak</h2>
         <button onClick={onClose}
           className="w-10 h-10 rounded-[14px] flex items-center justify-center"
-          style={{ background: SURFACE, boxShadow: NM_SM }}>
+          style={{ background: SURFACE, ...CARD_STYLE }}>
           <X className="w-5 h-5" style={{ color: '#6b7280' }} />
         </button>
       </div>
@@ -102,7 +103,7 @@ export default function WaterStreakScreen({ allLogs, dailyTarget, onClose }) {
             { icon: <Target className="w-4 h-4" style={{ color: '#9ca3af' }} />, label: 'Goal Days', value: `${goalDays}` },
             { icon: <Zap className="w-4 h-4" style={{ color: '#9ca3af' }} />, label: 'Completion', value: `${completionRate}%` },
           ].map(card => (
-            <div key={card.label} className="rounded-[18px] p-3 text-center" style={{ background: SURFACE, boxShadow: NM_SM }}>
+            <div key={card.label} className="rounded-[18px] p-3 text-center" style={{ background: SURFACE, ...CARD_STYLE }}>
               <div className="flex justify-center mb-1">{card.icon}</div>
               <p className="text-xl font-extrabold" style={{ color: BLACK }}>{card.value}</p>
               <p className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: '#9ca3af' }}>{card.label}</p>
@@ -111,7 +112,7 @@ export default function WaterStreakScreen({ allLogs, dailyTarget, onClose }) {
         </div>
 
         {/* Activity heatmap (5 weeks × 7 days) */}
-        <div className="rounded-[24px] p-5" style={{ background: SURFACE, boxShadow: NM }}>
+        <div className="rounded-[24px] p-5" style={{ background: SURFACE, ...CARD_STYLE }}>
           <p className="text-sm font-bold mb-4" style={{ color: '#374151' }}>Last 5 Weeks</p>
           <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
             {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
@@ -146,7 +147,7 @@ export default function WaterStreakScreen({ allLogs, dailyTarget, onClose }) {
         </div>
 
         {/* Milestones */}
-        <div className="rounded-[24px] p-5" style={{ background: SURFACE, boxShadow: NM }}>
+        <div className="rounded-[24px] p-5" style={{ background: SURFACE, ...CARD_STYLE }}>
           <p className="text-sm font-bold mb-4" style={{ color: '#374151' }}>Milestones</p>
           <div className="space-y-3">
             {milestones.map(m => (

@@ -108,7 +108,7 @@ function FoodSearch() {
       {results && results.length > 0 && (
         <div className="mt-3 space-y-2">
           {results.map((item, i) => (
-            <div key={i} className="bg-white border border-border rounded-2xl p-4 shadow-sm flex items-center gap-3 fade-in-up">
+            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-3 fade-in-up" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{query}</p>
                 <p className="text-xs text-muted-foreground">{item.serving_label} · {item.calories} kcal · {item.protein}g prot · {item.carbs}g carbs</p>
@@ -255,8 +255,8 @@ function RecentScans() {
     background: 'rgba(255,255,255,0.65)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.8)',
-    boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+    border: '1px solid rgba(0,0,0,0.12)',
+    boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
   };
 
   return (

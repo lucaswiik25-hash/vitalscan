@@ -217,8 +217,8 @@ export default function Exercise() {
                     background: 'rgba(255,255,255,0.55)',
                     backdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
                     WebkitBackdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
-                    border: '1px solid rgba(255,255,255,0.75)',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
+                    border: '1px solid rgba(0,0,0,0.12)',
+                    boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
                   }}>
                   <div className="w-10 h-10 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
                     <Icon className="w-5 h-5 text-gray-900" strokeWidth={1.8} />
@@ -247,7 +247,7 @@ export default function Exercise() {
             </h2>
             <div className="space-y-2">
               {exercises.map(ex => (
-                <div key={ex.id} className="bg-white rounded-[14px] p-4 flex items-center gap-3 shadow-sm border border-gray-100">
+                <div key={ex.id} className="bg-white rounded-[14px] p-4 flex items-center gap-3" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900">{ex.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{ex.duration_minutes} min · {ex.calories_burned} kcal</p>
@@ -263,7 +263,7 @@ export default function Exercise() {
         )}
 
         {exercises.length === 0 && (
-          <div className="rounded-[14px] border border-gray-100 p-8 text-center">
+          <div className="rounded-[14px] p-8 text-center" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
             <Dumbbell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
             <p className="text-sm text-gray-400">No exercises logged today</p>
           </div>

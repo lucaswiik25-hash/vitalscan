@@ -87,7 +87,7 @@ export default function DayVerdictPage({ date, meals, waterLogs, profile, onClos
         </motion.div>
 
         {/* Score hero */}
-        <motion.div {...fadeUp(0.06)} className="bg-white rounded-[24px] p-6 mb-4 shadow-sm">
+        <motion.div {...fadeUp(0.06)} className="bg-white rounded-[24px] p-6 mb-4" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-400 mb-1">Day Score</p>
@@ -110,13 +110,13 @@ export default function DayVerdictPage({ date, meals, waterLogs, profile, onClos
         </motion.div>
 
         {meals.length === 0 ? (
-          <motion.div {...fadeUp(0.1)} className="bg-white rounded-[24px] p-8 text-center shadow-sm">
+          <motion.div {...fadeUp(0.1)} className="bg-white rounded-[24px] p-8 text-center" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
             <p className="text-gray-400 text-sm">No meals were logged on this day.</p>
           </motion.div>
         ) : (
           <>
             {/* Calories */}
-            <motion.div {...fadeUp(0.1)} className="bg-white rounded-[24px] p-5 mb-3 shadow-sm">
+            <motion.div {...fadeUp(0.1)} className="bg-white rounded-[24px] p-5 mb-3" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
                   <Flame className="w-4 h-4 text-orange-500" />
@@ -136,7 +136,7 @@ export default function DayVerdictPage({ date, meals, waterLogs, profile, onClos
             </motion.div>
 
             {/* Macros */}
-            <motion.div {...fadeUp(0.16)} className="bg-white rounded-[24px] p-5 mb-3 shadow-sm">
+            <motion.div {...fadeUp(0.16)} className="bg-white rounded-[24px] p-5 mb-3" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
               <p className="text-sm font-bold text-gray-800 mb-4">Macronutrients</p>
               <div className="space-y-3">
                 <MacroBar label={`Protein (${Math.round(totalProt)}g)`} val={totalProt} target={protTarget} color="#3b82f6" />
@@ -146,7 +146,7 @@ export default function DayVerdictPage({ date, meals, waterLogs, profile, onClos
             </motion.div>
 
             {/* Water */}
-            <motion.div {...fadeUp(0.22)} className="bg-white rounded-[24px] p-5 mb-3 shadow-sm">
+            <motion.div {...fadeUp(0.22)} className="bg-white rounded-[24px] p-5 mb-3" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
                   <Droplets className="w-4 h-4 text-blue-500" />
@@ -169,7 +169,7 @@ export default function DayVerdictPage({ date, meals, waterLogs, profile, onClos
             </motion.div>
 
             {/* Micro highlights */}
-            <motion.div {...fadeUp(0.28)} className="bg-white rounded-[24px] p-5 mb-3 shadow-sm">
+            <motion.div {...fadeUp(0.28)} className="bg-white rounded-[24px] p-5 mb-3" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
               <p className="text-sm font-bold text-gray-800 mb-3">Micronutrient Highlights</p>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -223,7 +223,7 @@ export default function DayVerdictPage({ date, meals, waterLogs, profile, onClos
             </motion.div>
 
             {/* Meals list */}
-            <motion.div {...fadeUp(0.42)} className="bg-white rounded-[24px] p-5 shadow-sm">
+            <motion.div {...fadeUp(0.42)} className="bg-white rounded-[24px] p-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Meals Logged ({meals.length})</p>
               <div className="space-y-2">
                 {meals.map((meal, i) => (

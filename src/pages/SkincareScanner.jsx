@@ -116,13 +116,31 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
     if (!s2File) return;
     setIsAnalyzing(true);
     setS2Preview(null);
-    setAnalyzingMsg('Reading ingredients & analysing safety...');
+    setAnalyzingMsg('Reading ingredients...');
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s2File });
-    const rraw = await base44.functions.invoke('analyzeWithClaude', {
-      image_url: file_url,
-      prompt: `You are a cosmetic dermatologist and ingredient toxicologist. This is the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type}).
 
-Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason, skin_type_suitability, eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary, top_beneficial (array 3 strings), top_concerning (array 3 strings), ingredients (array: name, inci_name, skin_effect, body_benefit (brief positive benefit string), body_risk (brief risk string or empty), safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating 0-5, is_hormone_disruptor, has_fragrance, is_active_beneficial). NEVER fail.`,
+    // ── Phase 1: ingredients only (fast, small payload) ──────────────────────
+    const r1 = await base44.functions.invoke('analyzeWithClaude', {
+      image_url: file_url,
+      prompt: `You are a cosmetic ingredient toxicologist. This is the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}".
+  Read EVERY ingredient visible. For each ingredient return: name, inci_name, skin_effect (one sentence), body_benefit (brief positive or empty), body_risk (brief risk or empty), safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant (boolean), is_allergen (boolean), is_comedogenic (boolean), comedogenic_rating (0-5), is_hormone_disruptor (boolean), has_fragrance (boolean), is_active_beneficial (boolean). NEVER fail.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          ingredients: { type: 'array', items: { type: 'object' } },
+        },
+      },
+    });
+    const phase1 = r1.data?.result || r1.data || {};
+    const partialResult = { ...step1Data, ingredients: phase1.ingredients || [], label_image_url: file_url, _loadingDetails: true };
+    setResult(partialResult);
+    setIsAnalyzing(false);
+
+    // ── Phase 2: full safety analysis (runs in background) ───────────────────
+    base44.functions.invoke('analyzeWithClaude', {
+      image_url: file_url,
+      prompt: `You are a cosmetic dermatologist. This is the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type}).
+  Based on the full ingredient list, return: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason (2 sentences), skin_type_suitability (e.g. "All skin types" / "Oily skin"), eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary (2-3 sentences), top_beneficial (array of 3 ingredient name strings), top_concerning (array of 3 strings). NEVER fail.`,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -131,24 +149,27 @@ Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict (
           pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' },
           top_beneficial: { type: 'array', items: { type: 'string' } },
           top_concerning: { type: 'array', items: { type: 'string' } },
-          ingredients: { type: 'array', items: { type: 'object' } },
         },
       },
+    }).then(r2 => {
+      const phase2 = r2.data?.result || r2.data || {};
+      setResult(prev => {
+        const combined = { ...prev, ...phase2, _loadingDetails: false };
+        base44.entities.ScanResult.create({
+          type: 'skincare',
+          date: new Date().toISOString().split('T')[0],
+          image_url: step1Data?.image_url || null,
+          product_name: combined.product_name,
+          brand: combined.brand || null,
+          safety_score: combined.safety_score || null,
+          verdict: combined.verdict || null,
+          result_data: combined,
+        }).catch(() => {});
+        return combined;
+      });
+    }).catch(() => {
+      setResult(prev => ({ ...prev, _loadingDetails: false }));
     });
-    const res = rraw.data?.result || rraw.data || {};
-    const combined = { ...step1Data, ...res, label_image_url: file_url };
-    setResult(combined);
-    base44.entities.ScanResult.create({
-      type: 'skincare',
-      date: new Date().toISOString().split('T')[0],
-      image_url: step1Data?.image_url || null,
-      product_name: combined.product_name,
-      brand: combined.brand || null,
-      safety_score: combined.safety_score || null,
-      verdict: combined.verdict || null,
-      result_data: combined,
-    }).catch(() => {});
-    setIsAnalyzing(false);
   };
 
   // Handle replay from scan history

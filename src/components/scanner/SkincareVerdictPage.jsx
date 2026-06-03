@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft, X, Loader2 } from 'lucide-react';
 
 const TABS = ['Details', 'Ingredients'];
 
@@ -102,6 +102,7 @@ function IngredientModal({ ingredient, onClose }) {
 
 export default function SkincareVerdictPage({ result, onBack }) {
   const [activeTab, setActiveTab] = useState('Ingredients');
+  const isLoadingDetails = result._loadingDetails === true;
   const [selectedIngredient, setSelectedIngredient] = useState(null);
 
   const scoreNum = result.safety_score || 0;
@@ -206,10 +207,19 @@ export default function SkincareVerdictPage({ result, onBack }) {
             {/* Details tab */}
             {activeTab === 'Details' && (
               <div className="space-y-0">
+                {isLoadingDetails && (
+                  <div className="flex items-center gap-2 py-3 mb-2 px-3 rounded-xl" style={{ background: '#f5f5f5' }}>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
+                    <span className="text-xs text-gray-400">Analysing safety details...</span>
+                  </div>
+                )}
                 {/* Score */}
                 <div className="flex items-center justify-between py-3.5 border-b border-gray-50">
                   <span className="text-sm text-gray-500">Safety Score</span>
-                  <span className="text-sm font-semibold" style={{ color: scoreColor }}>{scoreNum}/100</span>
+                  {isLoadingDetails && !scoreNum
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-300" />
+                    : <span className="text-sm font-semibold" style={{ color: scoreColor }}>{scoreNum}/100</span>
+                  }
                 </div>
                 {/* Stats row */}
                 <div className="flex items-center justify-between py-3.5 border-b border-gray-50">

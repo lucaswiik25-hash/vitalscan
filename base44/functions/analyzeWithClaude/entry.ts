@@ -48,16 +48,28 @@ Deno.serve(async (req) => {
 
   const message = await anthropic.messages.create({
     model: 'claude-opus-4-5',
-    max_tokens: 4096,
+    max_tokens: 8192,
     messages: [{ role: 'user', content }],
   });
 
   const text = message.content[0].text;
 
   if (response_json_schema) {
-    // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+    let jsonStr = jsonMatch ? jsonMatch[0] : text;
+    // Attempt to fix truncated JSON by closing open arrays/objects
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (_) {
+      // Try to salvage truncated JSON by trimming to last complete element
+      jsonStr = jsonStr.replace(/,\s*$/, '').replace(/,\s*\]/, ']').replace(/,\s*\}/, '}');
+      // Close any unclosed arrays/objects
+      const opens = (jsonStr.match(/\[/g) || []).length - (jsonStr.match(/\]/g) || []).length;
+      const openBraces = (jsonStr.match(/\{/g) || []).length - (jsonStr.match(/\}/g) || []).length;
+      jsonStr += ']'.repeat(Math.max(0, opens)) + '}'.repeat(Math.max(0, openBraces));
+      parsed = JSON.parse(jsonStr);
+    }
     return Response.json({ result: parsed });
   }
 

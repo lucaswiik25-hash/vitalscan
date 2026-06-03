@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Sparkles, ArrowLeft, ShoppingBag, Shield, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import SkincareVerdictPage from '../components/scanner/SkincareVerdictPage';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -175,176 +176,11 @@ Read EVERY ingredient visible. Return JSON with: safety_score (1-100), verdict (
 
   // ─── Results page ───────────────────────────────────────────────────────────
   if (result) {
-    const scoreNum = result.safety_score || 0;
-    const scoreColor = scoreNum >= 70 ? '#16a34a' : scoreNum >= 40 ? '#ca8a04' : '#dc2626';
-    const verdictLabel = result.verdict === 'recommended' ? 'Recommended'
-      : result.verdict === 'use with caution' ? 'Not Recommended'
-      : 'Avoid';
-    const VIcon = result.verdict === 'recommended' ? CheckCircle : result.verdict === 'use with caution' ? AlertTriangle : XCircle;
-
-    const safeCount = (result.ingredients || []).filter(i => (i.safety_rating || '').toLowerCase() === 'safe').length;
-    const cautionCount = (result.ingredients || []).filter(i => (i.safety_rating || '').toLowerCase() === 'caution').length;
-    const avoidCount = (result.ingredients || []).filter(i => (i.safety_rating || '').toLowerCase() === 'avoid').length;
-
     return (
-      <div className="min-h-screen pb-10">
-        {/* Header */}
-        <div className="px-5 pt-12 pb-3 flex items-center justify-between">
-          <button onClick={() => { reset(); navigate('/scanner'); }} className="flex items-center gap-1.5 text-green-700 text-sm font-semibold">
-            <ArrowLeft className="w-4 h-4" /> Back to Scanner
-          </button>
-        </div>
-
-        {/* Title */}
-        <div className="px-5 mb-4">
-          <p className="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">AI ANALYSIS</p>
-          <h1 className="text-2xl font-black text-gray-900">Skincare Analyzer</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Two-step analysis of any cosmetic product</p>
-          {/* Progress dots */}
-          <div className="flex gap-1.5 mt-3">
-            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
-            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
-            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
-          </div>
-        </div>
-
-        <div className="px-4 space-y-3">
-          {/* Main verdict card */}
-          <div className="bg-white rounded-[20px] p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Safety Score</p>
-                <p className="text-5xl font-black leading-none" style={{ color: scoreColor }}>{scoreNum}</p>
-                <p className="text-xs text-gray-400 mt-0.5">out of 100</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-black text-gray-900">{result.brand}</p>
-                <p className="text-xs text-gray-500">{result.product_name}</p>
-                <div className="flex items-center gap-1 justify-end mt-1">
-                  <VIcon className="w-3.5 h-3.5" style={{ color: scoreColor }} />
-                  <span className="text-xs font-bold" style={{ color: scoreColor }}>{verdictLabel}</span>
-                </div>
-              </div>
-            </div>
-            {result.verdict_reason && (
-              <p className="text-xs text-gray-500 mt-3 leading-relaxed">{result.verdict_reason}</p>
-            )}
-          </div>
-
-          {/* Ingredient count pills */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-[16px] p-3 text-center" style={{ background: '#f0fdf4' }}>
-              <p className="text-2xl font-black text-green-600">{safeCount}</p>
-              <p className="text-xs text-green-600 font-medium mt-0.5">Safe</p>
-            </div>
-            <div className="rounded-[16px] p-3 text-center" style={{ background: '#fefce8' }}>
-              <p className="text-2xl font-black text-yellow-600">{cautionCount}</p>
-              <p className="text-xs text-yellow-600 font-medium mt-0.5">Caution</p>
-            </div>
-            <div className="rounded-[16px] p-3 text-center" style={{ background: '#fef2f2' }}>
-              <p className="text-2xl font-black text-red-500">{avoidCount}</p>
-              <p className="text-xs text-red-500 font-medium mt-0.5">Avoid</p>
-            </div>
-          </div>
-
-          {/* Quick info */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Skin Type', value: result.skin_type_suitability || '—' },
-              { label: 'Eye Safe', value: result.eye_area_safe ? 'Yes' : 'No', color: result.eye_area_safe ? '#16a34a' : '#dc2626' },
-              { label: 'Pregnancy', value: result.pregnancy_safe ? 'Safe' : 'Check', color: result.pregnancy_safe ? '#16a34a' : '#ca8a04' },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="bg-white rounded-[16px] p-3 text-center shadow-sm">
-                <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
-                <p className="text-xs font-bold mt-0.5" style={{ color: color || '#1a1a1a' }}>{value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Long term effects — bullet points */}
-          {result.long_term_summary && (
-            <div className="bg-white rounded-[20px] p-4 shadow-sm">
-              <p className="text-sm font-bold text-gray-800 mb-2">Long-Term Effects</p>
-              {result.long_term_summary.split(/[.\n]+/).filter(s => s.trim().length > 4).map((s, i) => (
-                <div key={i} className="flex items-start gap-2 mb-1.5">
-                  <span className="text-gray-300 mt-0.5 shrink-0">•</span>
-                  <p className="text-xs text-gray-500 leading-relaxed">{s.trim()}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Top beneficial */}
-          {result.top_beneficial?.length > 0 && (
-            <div className="bg-white rounded-[20px] p-4 shadow-sm">
-              <p className="text-sm font-bold text-green-700 mb-2">✅ Top Beneficial Ingredients</p>
-              {result.top_beneficial.map((b, i) => (
-                <div key={i} className="flex items-start gap-2 mb-1.5">
-                  <span className="text-green-400 shrink-0">•</span>
-                  <p className="text-xs text-gray-600">{b}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Top concerning */}
-          {result.top_concerning?.length > 0 && (
-            <div className="bg-white rounded-[20px] p-4 shadow-sm">
-              <p className="text-sm font-bold text-red-600 mb-2">⚠️ Top Concerns</p>
-              {result.top_concerning.map((c, i) => (
-                <div key={i} className="flex items-start gap-2 mb-1.5">
-                  <span className="text-red-400 shrink-0">•</span>
-                  <p className="text-xs text-gray-600">{c}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Ingredient breakdown — grouped by rating */}
-          {['Avoid', 'Caution', 'Safe'].map(rating => {
-            const group = (result.ingredients || []).filter(ing => (ing.safety_rating || '') === rating);
-            if (!group.length) return null;
-            const sc = safetyColor(rating);
-            const bgMap = { Avoid: '#fef2f2', Caution: '#fefce8', Safe: '#f9fafb' };
-            return (
-              <div key={rating} className="bg-white rounded-[20px] p-4 shadow-sm">
-                <p className="text-sm font-bold mb-3" style={{ color: sc.text }}>{rating} Ingredients ({group.length})</p>
-                <div className="space-y-1.5">
-                  {group.map((ing, i) => {
-                    const flags = [
-                      ing.is_irritant && 'Irritant',
-                      ing.is_allergen && 'Allergen',
-                      ing.is_comedogenic && 'Comedogenic',
-                      ing.is_hormone_disruptor && 'Hormone Disruptor',
-                      ing.has_fragrance && 'Fragrance',
-                    ].filter(Boolean);
-                    return (
-                      <div key={i} className="rounded-[12px] px-3 py-2.5" style={{ background: bgMap[rating] }}>
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-gray-800">{ing.name}</p>
-                          {flags.length > 0 && (
-                            <div className="flex gap-1 shrink-0">
-                              {flags.slice(0, 2).map(f => (
-                                <span key={f} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white/70" style={{ color: sc.text }}>{f}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        {ing.skin_effect && <p className="text-[11px] text-gray-500 mt-0.5">• {ing.skin_effect}</p>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Analyse another */}
-          <button onClick={() => { reset(); navigate('/scanner'); }} className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">
-            Analyse Another Product
-          </button>
-        </div>
-      </div>
+      <SkincareVerdictPage
+        result={result}
+        onBack={() => { reset(); navigate('/scanner'); }}
+      />
     );
   }
 

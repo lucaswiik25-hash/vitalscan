@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Sparkles, ArrowLeft, Pill, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import SupplementVerdictPage from '../components/scanner/SupplementVerdictPage';
 import { useUserProfile } from '../hooks/useUserProfile';
 
 function useTypingEffect(lines, speed = 28) {
@@ -175,151 +176,11 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
 
   // ─── Results page ───────────────────────────────────────────────────────────
   if (result) {
-    const scoreNum = result.quality_score || 0;
-    const scoreColor = scoreNum >= 70 ? '#16a34a' : scoreNum >= 40 ? '#ca8a04' : '#dc2626';
-    const verdictLabel = result.verdict === 'YES' ? 'Worth Buying' : result.verdict === 'MAYBE' ? 'Maybe' : 'Not Recommended';
-    const VIcon = result.verdict === 'YES' ? CheckCircle : result.verdict === 'MAYBE' ? AlertTriangle : XCircle;
-
-    const correctCount = (result.ingredients || []).filter(i => (i.flag || '').toLowerCase() === 'correctly dosed').length;
-    const underdosedCount = (result.ingredients || []).filter(i => (i.flag || '').toLowerCase() === 'underdosed').length;
-    const poorCount = (result.ingredients || []).filter(i => ['poor form', 'filler', 'overdose risk'].includes((i.flag || '').toLowerCase())).length;
-
     return (
-      <div className="min-h-screen pb-10">
-        {/* Header */}
-        <div className="px-5 pt-12 pb-3 flex items-center justify-between">
-          <button onClick={() => { reset(); navigate('/scanner'); }} className="flex items-center gap-1.5 text-green-700 text-sm font-semibold">
-            <ArrowLeft className="w-4 h-4" /> Back to Scanner
-          </button>
-        </div>
-
-        {/* Title */}
-        <div className="px-5 mb-4">
-          <p className="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">AI ANALYSIS</p>
-          <h1 className="text-2xl font-black text-gray-900">Supplement Scanner</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Two-step quality & dosage analysis</p>
-          <div className="flex gap-1.5 mt-3">
-            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
-            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
-            <div className="h-1.5 flex-1 rounded-full bg-green-400" />
-          </div>
-        </div>
-
-        <div className="px-4 space-y-3">
-          {/* Main verdict card */}
-          <div className="bg-white rounded-[20px] p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Quality Score</p>
-                <p className="text-5xl font-black leading-none" style={{ color: scoreColor }}>{scoreNum}</p>
-                <p className="text-xs text-gray-400 mt-0.5">out of 100</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-black text-gray-900">{result.brand}</p>
-                <p className="text-xs text-gray-500">{result.product_name}</p>
-                <div className="flex items-center gap-1 justify-end mt-1">
-                  <VIcon className="w-3.5 h-3.5" style={{ color: scoreColor }} />
-                  <span className="text-xs font-bold" style={{ color: scoreColor }}>{verdictLabel}</span>
-                </div>
-              </div>
-            </div>
-            {result.verdict_reason && (
-              <p className="text-xs text-gray-500 mt-3 leading-relaxed">{result.verdict_reason}</p>
-            )}
-          </div>
-
-          {/* Ingredient count stats — single card, three columns */}
-          <div className="bg-white rounded-[20px] overflow-hidden shadow-sm">
-            <div className="grid grid-cols-3 divide-x divide-gray-100">
-              <div className="p-4 text-center">
-                <p className="text-2xl font-black text-green-600">{correctCount}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Correctly Dosed</p>
-              </div>
-              <div className="p-4 text-center">
-                <p className="text-2xl font-black text-yellow-600">{underdosedCount}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Underdosed</p>
-              </div>
-              <div className="p-4 text-center">
-                <p className="text-2xl font-black text-red-500">{poorCount}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Poor Form</p>
-              </div>
-            </div>
-            {(result.serving_size || result.servings_per_container || result.estimated_duration) && (
-              <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
-                {[
-                  { label: 'Serving', value: result.serving_size },
-                  { label: 'Servings', value: result.servings_per_container ? String(result.servings_per_container) : null },
-                  { label: 'Supply', value: result.estimated_duration },
-                ].map(({ label, value }) => value ? (
-                  <div key={label} className="p-3 text-center">
-                    <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
-                    <p className="text-xs font-bold text-gray-800 mt-0.5">{value}</p>
-                  </div>
-                ) : <div key={label} />)}
-              </div>
-            )}
-          </div>
-
-          {/* How to take — bullet points */}
-          <div className="bg-white rounded-[20px] p-4 shadow-sm">
-            <p className="text-sm font-bold text-gray-800 mb-2">How to Take</p>
-            {[
-              { emoji: '⏰', label: 'Best Time', value: result.best_time_to_take },
-              { emoji: '🍽️', label: 'With Food', value: result.food_note },
-              { emoji: '💊', label: 'Absorption', value: result.absorption_tip },
-            ].map(({ emoji, label, value }) => value && (
-              <div key={label} className="flex items-start gap-2 mb-2 last:mb-0">
-                <span className="shrink-0 text-sm">{emoji}</span>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{label}: </span>
-                  <span className="text-xs text-gray-600">{value}</span>
-                </div>
-              </div>
-            ))}
-            {result.interactions && (
-              <div className="flex items-start gap-2 p-3 rounded-xl mt-2" style={{ background: '#fefce8' }}>
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-yellow-600" />
-                <p className="text-xs text-yellow-800">⚠️ {result.interactions}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Supplement facts — grouped by flag */}
-          {[
-            { key: 'correctly dosed', label: '✅ Correctly Dosed', bg: '#f0fdf4', textColor: '#16a34a' },
-            { key: 'underdosed',      label: '⚠️ Underdosed',       bg: '#fefce8', textColor: '#ca8a04' },
-            { key: 'poor form',       label: '❌ Poor Form',         bg: '#fef2f2', textColor: '#dc2626' },
-            { key: 'overdose risk',   label: '🚨 Overdose Risk',     bg: '#fef2f2', textColor: '#dc2626' },
-            { key: 'filler',          label: '🔘 Fillers',           bg: '#f3f4f6', textColor: '#6b7280' },
-            { key: 'none',            label: '📋 Other Ingredients', bg: '#f9fafb', textColor: '#374151' },
-          ].map(({ key, label, bg, textColor }) => {
-            const group = (result.ingredients || []).filter(ing => (ing.flag || 'none').toLowerCase() === key);
-            if (!group.length) return null;
-            return (
-              <div key={key} className="bg-white rounded-[20px] p-4 shadow-sm">
-                <p className="text-sm font-bold mb-2" style={{ color: textColor }}>{label} ({group.length})</p>
-                <div className="space-y-1.5">
-                  {group.map((ing, i) => (
-                    <div key={i} className="rounded-[12px] px-3 py-2.5" style={{ background: bg }}>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold text-gray-800">{ing.name}</p>
-                        {ing.amount && <p className="text-[11px] text-gray-500 shrink-0">{ing.amount}</p>}
-                      </div>
-                      {ing.form_quality && <p className="text-[11px] text-gray-400 mt-0.5">• {ing.form_quality}</p>}
-                      {ing.body_benefit && <p className="text-[11px] text-green-600 mt-0.5">• {ing.body_benefit}</p>}
-                      {ing.body_risk && <p className="text-[11px] text-red-500 mt-0.5">• {ing.body_risk}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          <button onClick={() => { reset(); navigate('/scanner'); }} className="w-full py-4 rounded-[20px] bg-white shadow-sm text-sm font-semibold text-gray-700 text-center">
-            Analyse Another Product
-          </button>
-        </div>
-      </div>
+      <SupplementVerdictPage
+        result={result}
+        onBack={() => { reset(); navigate('/scanner'); }}
+      />
     );
   }
 

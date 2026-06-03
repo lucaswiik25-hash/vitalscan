@@ -239,70 +239,75 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} onClick={() => setShowAdd(false)} />
-          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] px-5 pt-6 pb-10 space-y-4 max-h-[90vh] overflow-y-auto" initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
-            <div className="flex items-center justify-between mb-1">
+          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] flex flex-col" style={{ maxHeight: '90vh' }} initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
+            {/* Fixed header */}
+            <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
               <h3 className="text-lg font-bold text-foreground">Add Supplement</h3>
               <button onClick={() => setShowAdd(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
             </div>
 
-            {/* Quick add */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-2">Quick Add</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { name: 'Vitamin D3', dose: '2000 IU' },
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto px-5 space-y-4">
+              {/* Quick add */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Quick Add</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { name: 'Vitamin D3', dose: '2000 IU' },
+                    { name: 'Vitamin C', dose: '500mg' },
+                    { name: 'Zinc', dose: '25mg' },
+                    { name: 'Magnesium Glycinate', dose: '400mg' },
+                    { name: 'Omega-3 Fish Oil', dose: '1000mg' },
+                    { name: 'Vitamin B12', dose: '1000mcg' },
+                    { name: 'Iron', dose: '18mg' },
+                    { name: 'Folate', dose: '400mcg' },
+                    { name: 'Vitamin K2', dose: '100mcg' },
+                    { name: 'Ashwagandha', dose: '600mg' },
+                    { name: 'Creatine', dose: '5g' },
+                    { name: 'Collagen Peptides', dose: '10g' },
+                    { name: 'Probiotics', dose: '10B CFU' },
+                    { name: 'CoQ10', dose: '100mg' },
+                    { name: "Lion's Mane", dose: '500mg' },
+                  ].map((q, qi) => (
+                    <button key={q.name}
+                      onClick={() => { setNewName(q.name); setNewDose(q.dose); }}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                      style={{
+                        background: newName === q.name ? '#1a1a1a' : 'hsl(var(--secondary))',
+                        color: newName === q.name ? 'white' : 'hsl(var(--foreground))',
+                        borderColor: newName === q.name ? '#1a1a1a' : 'hsl(var(--border))',
+                      }}>
+                      {q.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                  { name: 'Vitamin C', dose: '500mg' },
-                  { name: 'Zinc', dose: '25mg' },
-                  { name: 'Magnesium Glycinate', dose: '400mg' },
-                  { name: 'Omega-3 Fish Oil', dose: '1000mg' },
-                  { name: 'Vitamin B12', dose: '1000mcg' },
-                  { name: 'Iron', dose: '18mg' },
-                  { name: 'Folate', dose: '400mcg' },
-                  { name: 'Vitamin K2', dose: '100mcg' },
-                  { name: 'Ashwagandha', dose: '600mg' },
-                  { name: 'Creatine', dose: '5g' },
-                  { name: 'Collagen Peptides', dose: '10g' },
-                  { name: 'Probiotics', dose: '10B CFU' },
-                  { name: 'CoQ10', dose: '100mg' },
-                  { name: 'Lion\'s Mane', dose: '500mg' },
-                ].map((q, qi) => (
-                  <motion.button key={q.name}
-                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.35 + qi * 0.03, duration: 0.25, ease: 'easeOut' }}
-                    onClick={() => { setNewName(q.name); setNewDose(q.dose); }}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
-                    style={{
-                      background: newName === q.name ? '#1a1a1a' : 'hsl(var(--secondary))',
-                      color: newName === q.name ? 'white' : 'hsl(var(--foreground))',
-                      borderColor: newName === q.name ? '#1a1a1a' : 'hsl(var(--border))',
-                    }}>
-                    {q.name}
-                  </motion.button>
+              <div className="border-t border-border pt-3 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground">Or enter custom</p>
+                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Supplement or medication name"
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground" />
+                <input value={newDose} onChange={e => setNewDose(e.target.value)} placeholder="Dose (e.g. 500mg, 1 capsule)"
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground" />
+              </div>
+              <div className="flex gap-2">
+                {Object.entries(timeLabel).map(([val, lbl]) => (
+                  <button key={val} onClick={() => setNewTime(val)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                    style={{ background: newTime === val ? '#1a1a1a' : 'hsl(var(--secondary))', color: newTime === val ? 'white' : 'hsl(var(--foreground))' }}>
+                    {lbl}
+                  </button>
                 ))}
               </div>
             </div>
 
-            <div className="border-t border-border pt-3 space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground">Or enter custom</p>
-              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Supplement or medication name"
-                className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground" />
-              <input value={newDose} onChange={e => setNewDose(e.target.value)} placeholder="Dose (e.g. 500mg, 1 capsule)"
-                className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground" />
+            {/* Fixed footer button */}
+            <div className="px-5 pt-3 pb-10 shrink-0">
+              <button onClick={addSupplement}
+                className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-sm active:scale-95 transition-transform">
+                Add Supplement
+              </button>
             </div>
-            <div className="flex gap-2">
-              {Object.entries(timeLabel).map(([val, lbl]) => (
-                <button key={val} onClick={() => setNewTime(val)}
-                  className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-                  style={{ background: newTime === val ? '#1a1a1a' : 'hsl(var(--secondary))', color: newTime === val ? 'white' : 'hsl(var(--foreground))' }}>
-                  {lbl}
-                </button>
-              ))}
-            </div>
-            <button onClick={addSupplement}
-              className="w-full h-12 rounded-2xl bg-foreground text-white font-semibold text-sm">
-              Add Supplement
-            </button>
           </motion.div>
         </div>
       )}

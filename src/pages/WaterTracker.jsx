@@ -6,6 +6,8 @@ import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Minus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb, BarChart2, Zap } from 'lucide-react';
 import WaterCalendarModal from '../components/water/WaterCalendarModal';
+import WaterStatsScreen from '../components/water/WaterStatsScreen';
+import WaterStreakScreen from '../components/water/WaterStreakScreen';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -103,6 +105,8 @@ export default function WaterTracker() {
   const { profile } = useUserProfile();
   const dailyTarget = profile.water_target_ml || 2000;
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showStreak, setShowStreak] = useState(false);
   const [aiInsights, setAiInsights] = useState(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showAiResults, setShowAiResults] = useState(false);
@@ -238,8 +242,8 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
           {[
             { icon: <CalendarDays className="w-6 h-6 text-white" />, label: 'Calendar', accent: true, action: () => setShowCalendar(true) },
             { icon: <Sparkles className="w-6 h-6" style={{ color: '#374151' }} />, label: 'Analyze', accent: false, action: getAiInsights },
-            { icon: <Zap className="w-6 h-6 text-white" />, label: 'Streak', accent: true, action: null },
-            { icon: <BarChart2 className="w-6 h-6" style={{ color: '#374151' }} />, label: 'Stats', accent: false, action: null },
+            { icon: <Zap className="w-6 h-6 text-white" />, label: 'Streak', accent: true, action: () => setShowStreak(true) },
+            { icon: <BarChart2 className="w-6 h-6" style={{ color: '#374151' }} />, label: 'Stats', accent: false, action: () => setShowStats(true) },
           ].map(({ icon, label, accent, action }) => (
             <div key={label} className="flex flex-col items-center gap-2">
               <button
@@ -488,6 +492,28 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
             allLogs={allLogs}
             dailyTarget={dailyTarget}
             onClose={() => setShowCalendar(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Stats screen */}
+      <AnimatePresence>
+        {showStats && (
+          <WaterStatsScreen
+            allLogs={allLogs}
+            dailyTarget={dailyTarget}
+            onClose={() => setShowStats(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Streak screen */}
+      <AnimatePresence>
+        {showStreak && (
+          <WaterStreakScreen
+            allLogs={allLogs}
+            dailyTarget={dailyTarget}
+            onClose={() => setShowStreak(false)}
           />
         )}
       </AnimatePresence>

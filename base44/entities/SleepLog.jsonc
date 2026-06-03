@@ -1,0 +1,54 @@
+{
+  "name": "SleepLog",
+  "type": "object",
+  "rls": {
+    "create": true,
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  },
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "sleep_time": {
+      "type": "string",
+      "description": "HH:MM 24h format"
+    },
+    "wake_time": {
+      "type": "string",
+      "description": "HH:MM 24h format"
+    },
+    "duration_minutes": {
+      "type": "number"
+    },
+    "sleep_score": {
+      "type": "number"
+    },
+    "duration_score": {
+      "type": "number"
+    },
+    "consistency_score": {
+      "type": "number"
+    },
+    "habits_score": {
+      "type": "number"
+    },
+    "mood": {
+      "type": "string"
+    },
+    "journal_note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}

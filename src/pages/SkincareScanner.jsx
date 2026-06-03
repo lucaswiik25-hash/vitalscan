@@ -92,24 +92,30 @@ export default function SkincareScanner() {
     setIsAnalyzing(true);
     setS1Preview(null);
     setAnalyzingMsg('Identifying product...');
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: s1File });
-    const rraw = await base44.functions.invoke('analyzeWithClaude', {
-      image_url: file_url,
-      prompt: `You are a cosmetic dermatologist. Look at this FRONT image of a skincare/cosmetic product. Read ALL visible text.
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: s1File });
+      const rraw = await base44.functions.invoke('analyzeWithClaude', {
+        image_url: file_url,
+        prompt: `You are a cosmetic dermatologist. Look at this FRONT image of a skincare/cosmetic product. Read ALL visible text.
 Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moisturiser", "serum", "cleanser", "sunscreen"), marketing_claims (array), confidence ("high"/"medium"/"low"). NEVER fail.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          brand: { type: 'string' }, product_name: { type: 'string' },
-          product_type: { type: 'string' }, marketing_claims: { type: 'array', items: { type: 'string' } },
-          confidence: { type: 'string' },
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            brand: { type: 'string' }, product_name: { type: 'string' },
+            product_type: { type: 'string' }, marketing_claims: { type: 'array', items: { type: 'string' } },
+            confidence: { type: 'string' },
+          },
         },
-      },
-    });
-    setStep1Data({ ...(rraw.data?.result || rraw.data || {}), image_url: file_url });
-    setIsAnalyzing(false);
-    setStep(2);
-    setS1File(null);
+      });
+      setStep1Data({ ...(rraw.data?.result || rraw.data || {}), image_url: file_url });
+      setStep(2);
+      setS1File(null);
+    } catch (err) {
+      alert('Analysis failed: ' + (err?.message || 'Unknown error'));
+      setS1Preview(URL.createObjectURL(s1File));
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const analyseStep2 = async () => {
@@ -117,6 +123,7 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
     setIsAnalyzing(true);
     setS2Preview(null);
     setAnalyzingMsg('Reading ingredients...');
+    try {
     const { file_url } = await base44.integrations.Core.UploadFile({ file: s2File });
 
     // ── Phase 1: ingredients only (fast, small payload) ──────────────────────
@@ -170,6 +177,11 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
     }).catch(() => {
       setResult(prev => ({ ...prev, _loadingDetails: false }));
     });
+    } catch (err) {
+      alert('Analysis failed: ' + (err?.message || 'Unknown error'));
+      setS2Preview(URL.createObjectURL(s2File));
+      setIsAnalyzing(false);
+    }
   };
 
   // Handle replay from scan history

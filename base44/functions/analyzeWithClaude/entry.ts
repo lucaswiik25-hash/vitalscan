@@ -5,6 +5,7 @@ const anthropic = new Anthropic({
   apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
 });
 
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me();
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
   content.push({ type: 'text', text: finalPrompt });
 
   const message = await anthropic.messages.create({
-    model: 'claude-opus-4-5',
+    model: 'claude-3-5-sonnet-20241022',
     max_tokens: 8192,
     messages: [{ role: 'user', content }],
   });

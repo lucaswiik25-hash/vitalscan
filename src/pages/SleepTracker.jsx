@@ -1,20 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Sparkles, Clock, TrendingUp, Zap, Plus, X, ChevronRight } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import SleepReadinessModule from '@/components/sleep/SleepReadinessModule';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 const TARGET_HOURS = 8;
+const NAVY = '#0F1219';
+const SERIF = 'var(--font-serif), "Playfair Display", Georgia, serif';
+const SANS = 'var(--font-inter), Inter, system-ui, sans-serif';
 
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 24 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
-});
+const DEFAULT_BED = 23; // 11:00 PM
+const DEFAULT_WAKE = 7; // 7:00 AM
 
 function readSleepStore() {
   try {
@@ -24,354 +24,467 @@ function readSleepStore() {
   }
 }
 
-function formatHours(h) {
-  if (h == null) return '—';
-  const hrs = Math.floor(h);
-  const mins = Math.round((h - hrs) * 60);
-  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+function readSchedule() {
+  try {
+    const s = JSON.parse(localStorage.getItem('scanly_sleep_schedule') || '{}');
+    return { bed: s.bed ?? DEFAULT_BED, wake: s.wake ?? DEFAULT_WAKE };
+  } catch {
+    return { bed: DEFAULT_BED, wake: DEFAULT_WAKE };
+  }
 }
 
-function scoreLabel(score) {
-  if (!score) return 'Log sleep to unlock';
-  if (score >= 90) return 'Excellent';
-  if (score >= 80) return 'Very Good';
-  if (score >= 70) return 'Good';
-  if (score >= 55) return 'Fair';
-  return 'Needs rest';
+function saveSchedule(bed, wake) {
+  localStorage.setItem('scanly_sleep_schedule', JSON.stringify({ bed, wake }));
 }
 
 function computeScore(hours) {
-  if (!hours) return 0;
+  if (!hours) return null;
   const duration = Math.min(100, Math.round((hours / TARGET_HOURS) * 100));
   const quality = Math.min(100, Math.round(duration * 0.95 + 5));
   const habits = Math.min(100, Math.round(duration * 0.9 + 10));
   return Math.min(100, Math.round(duration * 0.4 + quality * 0.35 + habits * 0.25));
 }
 
-const STARS = Array.from({ length: 48 }, (_, i) => ({
-  id: i,
-  x: `${(i * 37 + 11) % 100}%`,
-  y: `${(i * 53 + 7) % 100}%`,
-  size: 1 + (i % 3),
-  delay: (i % 7) * 0.4,
-  duration: 2 + (i % 4),
-}));
+function formatHour12(h) {
+  const hour = Math.floor(h) % 24;
+  const min = Math.round((h % 1) * 60);
+  const period = hour >= 12 ? 'pm' : 'am';
+  let h12 = hour % 12;
+  if (h12 === 0) h12 = 12;
+  const mm = min > 0 ? `:${String(min).padStart(2, '0')}` : '';
+  return `${h12}${mm}${period}`;
+}
 
-function Starfield() {
+function sleepDurationHours(bed, wake) {
+  if (wake >= bed) return wake - bed;
+  return 24 - bed + wake;
+}
+
+/** 0 at top (12AM), clockwise */
+function hourToRad(h) {
+  return ((h % 24) / 24) * Math.PI * 2 - Math.PI / 2;
+}
+
+function polar(cx, cy, r, rad) {
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function describeArc(cx, cy, r, startHour, endHour) {
+  const start = hourToRad(startHour);
+  let end = hourToRad(endHour);
+  if (end <= start) end += Math.PI * 2;
+  const large = end - start > Math.PI ? 1 : 0;
+  const p1 = polar(cx, cy, r, start);
+  const p2 = polar(cx, cy, r, end);
+  return `M ${p1.x} ${p1.y} A ${r} ${r} 0 ${large} 1 ${p2.x} ${p2.y}`;
+}
+
+const CLOCK_LABELS = [
+  { h: 0, text: '12AM', main: true },
+  { h: 2, text: '2', main: false },
+  { h: 4, text: '4', main: false },
+  { h: 6, text: '6AM', main: true },
+  { h: 8, text: '8', main: false },
+  { h: 10, text: '10', main: false },
+  { h: 12, text: '12PM', main: true },
+  { h: 14, text: '2', main: false },
+  { h: 16, text: '4', main: false },
+  { h: 18, text: '6PM', main: true },
+  { h: 20, text: '8', main: false },
+  { h: 22, text: '10', main: false },
+];
+
+function SleepScheduleDial({ bedHour, wakeHour, onBedChange, onWakeChange }) {
+  const size = 300;
+  const cx = size / 2;
+  const cy = size / 2;
+  const rTrack = 128;
+  const rArc = 128;
+  const rTicks = 128;
+  const rLabels = 88;
+  const dragging = useRef(null);
+  const svgRef = useRef(null);
+
+  const bedRad = hourToRad(bedHour);
+  const wakeRad = hourToRad(wakeHour);
+  const bedPos = polar(cx, cy, rArc, bedRad);
+  const wakePos = polar(cx, cy, rArc, wakeRad);
+
+  const arcSpan = wakeHour >= bedHour ? wakeHour - bedHour : 24 - bedHour + wakeHour;
+  const tickCount = Math.max(24, Math.round(arcSpan * 4));
+  const ticks = [];
+  for (let i = 0; i <= tickCount; i++) {
+    const hr = (bedHour + (arcSpan * i) / tickCount) % 24;
+    const rad = hourToRad(hr);
+    const inner = polar(cx, cy, rTicks - 5, rad);
+    const outer = polar(cx, cy, rTicks + 7, rad);
+    ticks.push(
+      <line key={i} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="rgba(255,255,255,0.9)" strokeWidth="1.15" />
+    );
+  }
+
+  const clientToHour = useCallback((clientX, clientY, svgRect) => {
+    const x = ((clientX - svgRect.left) / svgRect.width) * size - cx;
+    const y = ((clientY - svgRect.top) / svgRect.height) * size - cy;
+    let angle = Math.atan2(y, x) + Math.PI / 2;
+    if (angle < 0) angle += Math.PI * 2;
+    return (angle / (Math.PI * 2)) * 24;
+  }, [cx, cy, size]);
+
+  const onPointerDown = (which) => (e) => {
+    e.preventDefault();
+    dragging.current = which;
+    svgRef.current?.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (!dragging.current || !svgRef.current) return;
+    const svg = svgRef.current;
+    const rect = svg.getBoundingClientRect();
+    const h = Math.round(clientToHour(e.clientX, e.clientY, rect) * 2) / 2;
+    if (dragging.current === 'bed') onBedChange(h % 24);
+    else onWakeChange(h % 24);
+  };
+
+  const onPointerUp = () => {
+    dragging.current = null;
+  };
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {STARS.map((s) => (
-        <motion.span
-          key={s.id}
-          className="absolute rounded-full bg-white"
-          style={{ left: s.x, top: s.y, width: s.size, height: s.size }}
-          animate={{ opacity: [0.15, 0.9, 0.15], scale: [1, 1.4, 1] }}
-          transition={{ duration: s.duration, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
+    <div className="relative flex justify-center" style={{ width: size, height: size, margin: '0 auto' }}>
+      <svg
+        ref={svgRef}
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="touch-none"
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        {/* Outer track ring */}
+        <circle cx={cx} cy={cy} r={rTrack} fill="none" stroke="#2A2E38" strokeWidth="22" />
+
+        {/* Active sleep arc (lighter band) */}
+        <path
+          d={describeArc(cx, cy, rArc, bedHour, wakeHour)}
+          fill="none"
+          stroke="rgba(180,185,200,0.35)"
+          strokeWidth="22"
+          strokeLinecap="round"
         />
+
+        {/* Tick marks on arc */}
+        {ticks}
+
+        {/* Inner dial face */}
+        <circle cx={cx} cy={cy} r={rLabels - 4} fill="#1A1D26" />
+
+        {/* Hour tick marks on inner face */}
+        {Array.from({ length: 24 }, (_, i) => {
+          const rad = hourToRad(i);
+          const a = polar(cx, cy, rLabels - 2, rad);
+          const b = polar(cx, cy, rLabels + 4, rad);
+          return (
+            <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgba(255,255,255,0.25)" strokeWidth={i % 6 === 0 ? 1.5 : 0.8} />
+          );
+        })}
+
+        {/* Clock labels */}
+        {CLOCK_LABELS.map(({ h, text, main }) => {
+          const rad = hourToRad(h);
+          const p = polar(cx, cy, rLabels - (main ? 18 : 22), rad);
+          return (
+            <text
+              key={h}
+              x={p.x}
+              y={p.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#FFFFFF"
+              style={{
+                fontFamily: SANS,
+                fontSize: main ? 11 : 10,
+                fontWeight: main ? 600 : 400,
+                opacity: main ? 1 : 0.85,
+              }}
+            >
+              {text}
+            </text>
+          );
+        })}
+
+        {/* Sparkle near 12AM */}
+        <g transform={`translate(${polar(cx, cy, rLabels - 32, hourToRad(0)).x - 6}, ${polar(cx, cy, rLabels - 32, hourToRad(0)).y - 6})`}>
+          <path
+            d="M6 0 L7.2 4.8 L12 6 L7.2 7.2 L6 12 L4.8 7.2 L0 6 L4.8 4.8 Z"
+            fill="#5EEAD4"
+            opacity="0.95"
+          />
+        </g>
+
+        {/* Sun near 12PM */}
+        <g transform={`translate(${polar(cx, cy, rLabels - 32, hourToRad(12)).x - 7}, ${polar(cx, cy, rLabels - 32, hourToRad(12)).y - 7})`}>
+          <circle cx="7" cy="7" r="4.5" fill="#FBBF24" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
+            <line
+              key={deg}
+              x1="7"
+              y1="7"
+              x2={7 + 7 * Math.cos((deg * Math.PI) / 180)}
+              y2={7 + 7 * Math.sin((deg * Math.PI) / 180)}
+              stroke="#FBBF24"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+            />
+          ))}
+        </g>
+
+        {/* Bed handle — Zzz */}
+        <g
+          transform={`translate(${bedPos.x - 18}, ${bedPos.y - 18})`}
+          style={{ cursor: 'grab' }}
+          onPointerDown={onPointerDown('bed')}
+        >
+          <circle cx="18" cy="18" r="17" fill="#FFFFFF" />
+          <text x="18" y="22" textAnchor="middle" fill="#3D4250" style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700 }}>
+            Zzz
+          </text>
+        </g>
+
+        {/* Wake handle — bell */}
+        <g
+          transform={`translate(${wakePos.x - 18}, ${wakePos.y - 18})`}
+          style={{ cursor: 'grab' }}
+          onPointerDown={onPointerDown('wake')}
+        >
+          <circle cx="18" cy="18" r="17" fill="#FFFFFF" />
+          <text x="18" y="22" textAnchor="middle" fill="#3D4250" style={{ fontSize: 14 }} aria-hidden>
+            🔔
+          </text>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function WeeklySleepRow({ weekData }) {
+  return (
+    <div
+      className="flex justify-between items-center px-3 py-5"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}
+    >
+      {weekData.map((day) => (
+        <div key={day.date} className="flex flex-col items-center gap-2 flex-1 min-w-0">
+          <div
+            className="flex items-center justify-center rounded-full"
+            style={{
+              width: 44,
+              height: 44,
+              border: '1.5px solid rgba(255,255,255,0.95)',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: SERIF,
+                fontSize: 15,
+                fontWeight: 400,
+                color: '#FFFFFF',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {day.pct != null ? `${day.pct}%` : '0%'}
+            </span>
+          </div>
+          <span
+            style={{
+              fontFamily: SERIF,
+              fontSize: 14,
+              color: day.isToday ? '#FFFFFF' : 'rgba(255,255,255,0.75)',
+              fontWeight: day.isToday ? 600 : 400,
+            }}
+          >
+            {day.label}
+          </span>
+        </div>
       ))}
     </div>
   );
 }
 
-function AuroraBackground() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <motion.div
-        className="absolute -top-24 -left-20 w-72 h-72 rounded-full blur-3xl"
-        style={{ background: 'rgba(99,102,241,0.35)' }}
-        animate={{ x: [0, 40, 0], y: [0, 30, 0], scale: [1, 1.15, 1] }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute top-1/3 -right-16 w-64 h-64 rounded-full blur-3xl"
-        style={{ background: 'rgba(139,92,246,0.28)' }}
-        animate={{ x: [0, -30, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }}
-        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-      />
-      <motion.div
-        className="absolute bottom-32 left-1/4 w-80 h-80 rounded-full blur-3xl"
-        style={{ background: 'rgba(59,130,246,0.18)' }}
-        animate={{ x: [0, 25, 0], y: [0, -20, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-      />
-    </div>
-  );
-}
-
-function SleepRing({ score, hours }) {
-  const size = 240;
-  const stroke = 12;
+function SleepGoalCard({ bedHour, wakeHour, goalHours }) {
+  const size = 140;
+  const stroke = 10;
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
+  const progress = Math.min(1, goalHours / TARGET_HOURS);
+  const dash = progress * circ;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  const moonPos = { x: cx, y: cy - r };
+  const sunPos = { x: cx, y: cy + r * 0.72 };
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)' }}
-        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.85, 0.5] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-      />
+    <div
+      className="rounded-[20px] p-4 flex flex-col items-center justify-center"
+      style={{ background: '#FFFFFF', minHeight: 168 }}
+    >
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <defs>
+            <linearGradient id="goalRingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#1E3A8A" />
+              <stop offset="55%" stopColor="#6366F1" />
+              <stop offset="100%" stopColor="#E879F9" />
+            </linearGradient>
+          </defs>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#E8ECF4" strokeWidth={stroke} />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="url(#goalRingGrad)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${circ}`}
+            transform={`rotate(-90 ${cx} ${cy})`}
+          />
+        </svg>
 
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="relative z-10 -rotate-90">
-        <defs>
-          <linearGradient id="sleepRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#A78BFA" />
-            <stop offset="50%" stopColor="#818CF8" />
-            <stop offset="100%" stopColor="#6366F1" />
-          </linearGradient>
-        </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="url(#sleepRingGrad)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: circ - dash }}
-          transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </svg>
+        {/* Moon icon on ring */}
+        <div
+          className="absolute w-4 h-4 rounded-full flex items-center justify-center"
+          style={{
+            left: moonPos.x - 8,
+            top: moonPos.y - 8,
+            background: '#1E3A8A',
+          }}
+        >
+          <span className="text-[8px]">🌙</span>
+        </div>
+        <div
+          className="absolute w-4 h-4 rounded-full flex items-center justify-center"
+          style={{
+            left: sunPos.x - 8,
+            top: sunPos.y - 8,
+            background: '#F472B6',
+          }}
+        >
+          <span className="text-[8px]">☀️</span>
+        </div>
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-        <motion.div
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <Moon className="w-8 h-8 mb-2" style={{ color: '#FCD34D', filter: 'drop-shadow(0 0 12px rgba(252,211,77,0.6))' }} fill="#FCD34D" />
-        </motion.div>
-        <motion.span
-          key={score}
-          className="text-5xl font-black text-white tabular-nums leading-none"
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-        >
-          {hours ? score : '—'}
-        </motion.span>
-        <span className="text-xs font-semibold uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
-          Sleep Score
-        </span>
-        <span className="text-sm font-medium mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>
-          {scoreLabel(score)}
-        </span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
+          <p style={{ fontFamily: SANS, fontSize: 9, color: '#9CA3AF', marginBottom: 2 }}>
+            Fall asleep / {formatHour12(bedHour)}
+          </p>
+          <p
+            style={{
+              fontFamily: SERIF,
+              fontSize: 36,
+              fontWeight: 600,
+              color: '#1E3A8A',
+              lineHeight: 1,
+              letterSpacing: '-0.03em',
+            }}
+          >
+            {Math.round(goalHours)}hr
+          </p>
+          <p style={{ fontFamily: SANS, fontSize: 9, color: '#9CA3AF', marginTop: 2 }}>
+            Wake Up / {formatHour12(wakeHour)}
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, delay = 0, accent }) {
+function SleepInsightCard({ hoursLogged }) {
+  const underFour = hoursLogged != null && hoursLogged < 4;
+  const h = hoursLogged != null ? (hoursLogged % 1 === 0 ? `${hoursLogged}h` : formatHour12(hoursLogged)) : '4h';
+
   return (
-    <motion.div
-      {...fadeUp(delay)}
-      className="flex-1 rounded-2xl p-4 relative overflow-hidden"
+    <div
+      className="rounded-[20px] p-4 flex flex-col justify-between"
       style={{
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(20px)',
+        background: 'linear-gradient(145deg, #7C3AED 0%, #5B21B6 45%, #4338CA 100%)',
+        minHeight: 148,
       }}
-      whileHover={{ scale: 1.02, borderColor: 'rgba(255,255,255,0.2)' }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
-      <div
-        className="absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl opacity-40"
-        style={{ background: accent }}
-      />
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ background: `${accent}22` }}>
-        <Icon className="w-4 h-4" style={{ color: accent }} />
+      <span className="text-white text-lg leading-none">🌙</span>
+      <div>
+        <p style={{ fontFamily: SANS, fontSize: 15, color: '#FFFFFF', lineHeight: 1.35 }}>
+          {underFour || hoursLogged == null ? (
+            <>
+              Less than <strong>{hoursLogged != null ? h : '4h'}</strong> of <strong>sleep</strong> today.
+            </>
+          ) : (
+            <>
+              You logged <strong>{h}</strong> of <strong>sleep</strong> today.
+            </>
+          )}
+        </p>
+        <p style={{ fontFamily: SANS, fontSize: 15, color: '#FFFFFF', marginTop: 12 }}>
+          Get some <strong>rest!</strong>
+        </p>
       </div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
-        {label}
-      </p>
-      <p className="text-xl font-bold text-white">{value}</p>
-      {sub && <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{sub}</p>}
-    </motion.div>
+    </div>
   );
 }
 
-function WeekChart({ weekData }) {
-  const max = Math.max(TARGET_HOURS, ...weekData.map((d) => d.hours || 0), 1);
-
+function DetailPlaceholder() {
   return (
-    <motion.div
-      {...fadeUp(0.35)}
-      className="rounded-3xl p-5"
-      style={{
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(16px)',
-      }}
-    >
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-sm font-bold text-white">This Week</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>7-day sleep rhythm</p>
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(139,92,246,0.2)' }}>
-          <TrendingUp className="w-3.5 h-3.5 text-violet-300" />
-          <span className="text-xs font-semibold text-violet-200">
-            {weekData.filter((d) => d.hours).length}/7 logged
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-end justify-between gap-2 h-28">
-        {weekData.map((day, i) => {
-          const h = day.hours || 0;
-          const pct = h ? (h / max) * 100 : 8;
-          const hitTarget = h >= TARGET_HOURS;
-          return (
-            <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
-              <motion.div
-                className="w-full rounded-xl relative overflow-hidden"
-                style={{
-                  height: `${Math.max(pct, 8)}%`,
-                  minHeight: 8,
-                  background: h
-                    ? hitTarget
-                      ? 'linear-gradient(180deg, #A78BFA 0%, #6366F1 100%)'
-                      : 'linear-gradient(180deg, rgba(167,139,250,0.7) 0%, rgba(99,102,241,0.5) 100%)'
-                    : 'rgba(255,255,255,0.06)',
-                  boxShadow: h ? '0 4px 20px rgba(99,102,241,0.35)' : 'none',
-                }}
-                initial={{ scaleY: 0, originY: 1 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.6, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
-              />
-              <span
-                className="text-[10px] font-semibold"
-                style={{ color: day.isToday ? '#C4B5FD' : 'rgba(255,255,255,0.35)' }}
-              >
-                {day.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div
-        className="mt-4 pt-3 flex items-center justify-between"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Target: {TARGET_HOURS}h / night</span>
-        <span className="text-xs font-semibold text-violet-300">
-          Avg: {(() => {
-            const logged = weekData.filter((d) => d.hours);
-            if (!logged.length) return '—';
-            const avg = logged.reduce((s, d) => s + d.hours, 0) / logged.length;
-            return formatHours(avg);
-          })()}
-        </span>
-      </div>
-    </motion.div>
+    <div
+      className="rounded-[20px] w-full h-full"
+      style={{ background: '#B8C4D4', minHeight: 332 }}
+      aria-hidden
+    />
   );
 }
 
-function LogSleepSheet({ open, onClose, currentHours, onSave, saving }) {
-  const [picked, setPicked] = useState(currentHours ?? 7.5);
-  const options = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11];
-
-  React.useEffect(() => {
-    if (open) setPicked(currentHours ?? 7.5);
-  }, [open, currentHours]);
+function LogHoursSheet({ open, onClose, onSave, saving }) {
+  const [picked, setPicked] = useState(8);
+  const options = [4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 11, 12];
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50 max-w-lg mx-auto">
+          <motion.div className="absolute inset-0 bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div
-            className="absolute inset-0"
-            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          <motion.div
-            className="absolute left-0 right-0 bottom-0 rounded-t-[32px] px-6 pt-3 pb-10 max-w-lg mx-auto"
-            style={{
-              background: 'linear-gradient(180deg, #1E1B4B 0%, #0F0D24 100%)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderBottom: 'none',
-            }}
+            className="absolute bottom-0 left-0 right-0 rounded-t-[24px] p-6 pb-10"
+            style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.15)' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
           >
-            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: 'rgba(255,255,255,0.15)' }} />
-
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-white">Log last night</h2>
-                <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>How many hours did you sleep?</p>
-              </div>
-              <button
-                onClick={onClose}
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.08)' }}
-              >
-                <X className="w-4 h-4 text-white/60" />
-              </button>
+            <p className="text-white font-semibold mb-4" style={{ fontFamily: SANS }}>Log hours slept</p>
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              {options.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setPicked(h)}
+                  className="h-11 rounded-xl text-sm font-semibold"
+                  style={{
+                    background: picked === h ? '#FFFFFF' : 'rgba(255,255,255,0.08)',
+                    color: picked === h ? NAVY : 'rgba(255,255,255,0.7)',
+                  }}
+                >
+                  {h}h
+                </button>
+              ))}
             </div>
-
-            <motion.div
-              key={picked}
-              className="text-center py-6 mb-4 rounded-2xl"
-              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)' }}
-              initial={{ scale: 0.95, opacity: 0.5 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            >
-              <span className="text-5xl font-black text-white">{formatHours(picked)}</span>
-              <p className="text-xs mt-2 font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                {computeScore(picked)} sleep score
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-4 gap-2.5 mb-6">
-              {options.map((h) => {
-                const active = picked === h;
-                return (
-                  <motion.button
-                    key={h}
-                    onClick={() => setPicked(h)}
-                    className="h-12 rounded-2xl text-sm font-bold"
-                    style={{
-                      background: active ? 'linear-gradient(135deg, #A78BFA, #6366F1)' : 'rgba(255,255,255,0.06)',
-                      color: active ? '#fff' : 'rgba(255,255,255,0.5)',
-                      border: active ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                      boxShadow: active ? '0 8px 24px rgba(99,102,241,0.4)' : 'none',
-                    }}
-                    whileTap={{ scale: 0.92 }}
-                    animate={active ? { scale: [1, 1.05, 1] } : { scale: 1 }}
-                    transition={{ duration: 0.25 }}
-                  >
-                    {h % 1 === 0 ? `${h}h` : `${Math.floor(h)}:30`}
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            <motion.button
+            <button
+              type="button"
               onClick={() => onSave(picked)}
               disabled={saving}
-              className="w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2"
-              style={{
-                background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)',
-                boxShadow: '0 12px 32px rgba(99,102,241,0.45)',
-              }}
-              whileTap={{ scale: 0.97 }}
-              whileHover={{ scale: 1.01 }}
+              className="w-full py-3 rounded-xl bg-white font-bold"
+              style={{ color: NAVY, fontFamily: SANS }}
             >
-              {saving ? 'Saving…' : 'Save Sleep'}
-              {!saving && <ChevronRight className="w-5 h-5" />}
-            </motion.button>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
           </motion.div>
         </div>
       )}
@@ -383,13 +496,23 @@ export default function SleepTracker() {
   const queryClient = useQueryClient();
   const { profile } = useUserProfile();
   const [showLog, setShowLog] = useState(false);
-  const [optimisticHours, setOptimisticHours] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [optimisticHours, setOptimisticHours] = useState(null);
+  const scheduleInit = readSchedule();
+  const [bedHour, setBedHour] = useState(scheduleInit.bed);
+  const [wakeHour, setWakeHour] = useState(scheduleInit.wake);
 
+  const goalHours = sleepDurationHours(bedHour, wakeHour);
   const sleepHours = optimisticHours ?? profile.last_sleep_hours ?? readSleepStore()[TODAY] ?? null;
-  const sleepScore = computeScore(sleepHours);
-  const sleepDebt = sleepHours != null ? Math.max(0, TARGET_HOURS - sleepHours) : null;
-  const timeInBed = sleepHours != null ? sleepHours + 0.75 : null;
+
+  const handleBed = (h) => {
+    setBedHour(h);
+    saveSchedule(h, wakeHour);
+  };
+  const handleWake = (h) => {
+    setWakeHour(h);
+    saveSchedule(bedHour, h);
+  };
 
   const weekData = useMemo(() => {
     const store = readSleepStore();
@@ -403,25 +526,19 @@ export default function SleepTracker() {
       const d = subDays(today, mondayOffset - i);
       const dateStr = format(d, 'yyyy-MM-dd');
       const hours = store[dateStr] ?? (dateStr === TODAY && profileHours ? profileHours : null);
-      return {
-        date: dateStr,
-        label: labels[i],
-        hours,
-        isToday: dateStr === TODAY,
-      };
+      const pct = hours != null ? computeScore(hours) : null;
+      return { date: dateStr, label: labels[i], hours, pct, isToday: dateStr === TODAY };
     });
   }, [optimisticHours, profile.last_sleep_hours]);
 
   const saveSleep = async (hours) => {
     setOptimisticHours(hours);
     setSaving(true);
-
     try {
       const stored = readSleepStore();
       stored[TODAY] = hours;
       localStorage.setItem('scanly_sleep', JSON.stringify(stored));
     } catch (_) {}
-
     if (profile.id) {
       await base44.entities.UserProfile.update(profile.id, {
         last_sleep_hours: hours,
@@ -429,146 +546,55 @@ export default function SleepTracker() {
       });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     }
-
     setSaving(false);
     setShowLog(false);
   };
 
   return (
     <div
-      className="min-h-screen pb-28 relative overflow-hidden select-none"
-      style={{ background: 'linear-gradient(180deg, #0B0D1A 0%, #12132A 40%, #0F0D24 100%)' }}
+      className="min-h-screen pb-28 select-none"
+      style={{ background: NAVY, fontFamily: SANS }}
     >
-      <AuroraBackground />
-      <Starfield />
+      <div className="px-5 pt-12 max-w-lg mx-auto">
+        {/* Home */}
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full mb-6"
+          style={{ border: '1.5px solid rgba(255,255,255,0.9)' }}
+        >
+          <Home className="w-4 h-4 text-white" strokeWidth={2} />
+        </Link>
 
-      <div className="relative z-10 px-5 pt-14">
-        {/* Header */}
-        <motion.div {...fadeUp(0)} className="flex items-center justify-between mb-8">
-          <div>
-            <motion.div
-              className="flex items-center gap-2 mb-1"
-              animate={{ opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              <Sparkles className="w-4 h-4 text-violet-300" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-violet-300/80">Rest & Recovery</span>
-            </motion.div>
-            <h1 className="text-3xl font-black text-white tracking-tight">Sleep</h1>
-            <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {format(new Date(), 'EEEE, MMMM d')}
-            </p>
+        {/* Clock dial */}
+        <SleepScheduleDial
+          bedHour={bedHour}
+          wakeHour={wakeHour}
+          onBedChange={handleBed}
+          onWakeChange={handleWake}
+        />
+
+        {/* White-outlined module container (weekly + cards) — no orange bezel */}
+        <div
+          className="mt-6 rounded-[28px] overflow-hidden"
+          style={{ border: '1.5px solid rgba(255,255,255,0.92)' }}
+        >
+          <WeeklySleepRow weekData={weekData} />
+
+          <div className="p-3 grid grid-cols-[1fr_1fr] gap-3" style={{ background: NAVY }}>
+            <div className="flex flex-col gap-3">
+              <button type="button" onClick={() => setShowLog(true)} className="text-left w-full">
+                <SleepGoalCard bedHour={bedHour} wakeHour={wakeHour} goalHours={goalHours} />
+              </button>
+              <button type="button" onClick={() => setShowLog(true)} className="text-left w-full">
+                <SleepInsightCard hoursLogged={sleepHours} />
+              </button>
+            </div>
+            <DetailPlaceholder />
           </div>
-
-          <motion.button
-            onClick={() => setShowLog(true)}
-            className="w-12 h-12 rounded-2xl flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, rgba(167,139,250,0.3), rgba(99,102,241,0.2))',
-              border: '1px solid rgba(167,139,250,0.35)',
-              boxShadow: '0 8px 24px rgba(99,102,241,0.25)',
-            }}
-            whileTap={{ scale: 0.9 }}
-            whileHover={{ scale: 1.05 }}
-            animate={{ boxShadow: ['0 8px 24px rgba(99,102,241,0.25)', '0 8px 32px rgba(99,102,241,0.45)', '0 8px 24px rgba(99,102,241,0.25)'] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-          >
-            <Plus className="w-5 h-5 text-violet-200" strokeWidth={2.5} />
-          </motion.button>
-        </motion.div>
-
-        {/* Hero ring */}
-        <motion.div {...fadeUp(0.1)} className="flex justify-center mb-8">
-          <SleepRing score={sleepScore} hours={sleepHours} />
-        </motion.div>
-
-        {/* Primary CTA when empty */}
-        {!sleepHours && (
-          <motion.button
-            {...fadeUp(0.15)}
-            onClick={() => setShowLog(true)}
-            className="w-full py-4 rounded-2xl mb-6 flex items-center justify-center gap-2 font-bold text-white"
-            style={{
-              background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)',
-              boxShadow: '0 12px 40px rgba(99,102,241,0.4)',
-            }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <Moon className="w-5 h-5" fill="white" />
-            Log Last Night&apos;s Sleep
-          </motion.button>
-        )}
-
-        {sleepHours && (
-          <motion.div {...fadeUp(0.15)} className="text-center mb-6">
-            <p className="text-2xl font-black text-white">{formatHours(sleepHours)}</p>
-            <button
-              onClick={() => setShowLog(true)}
-              className="text-xs font-medium mt-1 underline underline-offset-2"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
-            >
-              Edit sleep log
-            </button>
-          </motion.div>
-        )}
-
-        {/* Stats row */}
-        <div className="flex gap-3 mb-5">
-          <StatCard
-            icon={Clock}
-            label="Duration"
-            value={sleepHours ? formatHours(sleepHours) : '—'}
-            sub={sleepHours ? `${Math.round((sleepHours / TARGET_HOURS) * 100)}% of goal` : 'Not logged'}
-            delay={0.2}
-            accent="#A78BFA"
-          />
-          <StatCard
-            icon={Zap}
-            label="Sleep Debt"
-            value={sleepDebt === 0 ? 'None' : sleepDebt != null ? formatHours(sleepDebt) : '—'}
-            sub={sleepDebt === 0 ? 'Well rested!' : sleepDebt ? 'Catch up tonight' : 'Log to calculate'}
-            delay={0.28}
-            accent="#818CF8"
-          />
         </div>
-
-        <div className="flex gap-3 mb-6">
-          <StatCard
-            icon={Moon}
-            label="Time in Bed"
-            value={timeInBed ? formatHours(timeInBed) : '—'}
-            sub="Estimated"
-            delay={0.32}
-            accent="#6366F1"
-          />
-          <StatCard
-            icon={TrendingUp}
-            label="Quality"
-            value={sleepHours ? scoreLabel(sleepScore) : '—'}
-            sub={sleepHours ? `${sleepScore}/100 score` : 'Pending'}
-            delay={0.36}
-            accent="#C4B5FD"
-          />
-        </div>
-
-        {/* Week chart */}
-        <div className="mb-6">
-          <WeekChart weekData={weekData} />
-        </div>
-
-        {/* Readiness module */}
-        <motion.div {...fadeUp(0.45)} className="mb-8">
-          <SleepReadinessModule variant="dark" />
-        </motion.div>
       </div>
 
-      <LogSleepSheet
-        open={showLog}
-        onClose={() => setShowLog(false)}
-        currentHours={sleepHours}
-        onSave={saveSleep}
-        saving={saving}
-      />
+      <LogHoursSheet open={showLog} onClose={() => setShowLog(false)} onSave={saveSleep} saving={saving} />
     </div>
   );
 }

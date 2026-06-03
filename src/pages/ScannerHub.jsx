@@ -108,7 +108,7 @@ function FoodSearch() {
       {results && results.length > 0 && (
         <div className="mt-3 space-y-2">
           {results.map((item, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-3 fade-in-up" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-3 fade-in-up glow-card">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{query}</p>
                 <p className="text-xs text-muted-foreground">{item.serving_label} · {item.calories} kcal · {item.protein}g prot · {item.carbs}g carbs</p>
@@ -255,8 +255,6 @@ function RecentScans() {
     background: 'rgba(255,255,255,0.65)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(0,0,0,0.12)',
-    boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
   };
 
   return (
@@ -286,7 +284,7 @@ function RecentScans() {
       </div>
       <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {filtered.length === 0 ? (
-          <div className="rounded-[20px] p-6 text-center" style={cardStyle}>
+          <div className="rounded-[20px] p-6 text-center glow-card" style={cardStyle}>
             <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">No {typeLabels[tabs[activeTab]].toLowerCase()} scans yet</p>
           </div>
@@ -301,7 +299,7 @@ function RecentScans() {
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.36, delay: idx * 0.07, ease: [0.22, 1, 0.36, 1] }}
-                  className="w-full rounded-[20px] p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+                  className="w-full rounded-[20px] p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform glow-card"
                   style={cardStyle}
                   onClick={() => handleScanClick(scan)}
                 >

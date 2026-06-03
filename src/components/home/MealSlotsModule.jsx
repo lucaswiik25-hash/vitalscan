@@ -96,7 +96,7 @@ export default function MealSlotsModule({ todayMeals = [], profile = {} }) {
           <button onClick={() => navigate('/scanner')} className="text-sm font-semibold text-green-600">More</button>
         </div>
 
-        <div className="bg-white rounded-[20px] overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="bg-white rounded-[20px] overflow-hidden glow-card">
           {MEALS.map((meal, idx) => {
             const items = todayMeals.filter(m => (m.meal_type || 'snack') === meal.key);
             const eaten = items.reduce((s, m) => s + Math.round(m.calories || 0), 0);

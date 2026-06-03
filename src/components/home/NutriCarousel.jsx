@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 
 const glassStyle = {
   background: 'rgba(255,255,255,0.82)',
-  border: '1px solid rgba(0,0,0,0.12)',
-  boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {
@@ -37,7 +35,7 @@ function GlassCalorieCard({ caloriesLeft, caloriesTarget, caloriesConsumed }) {
   const pct = caloriesTarget > 0 ? Math.min(100, (caloriesConsumed / caloriesTarget) * 100) : 0;
   const color = pct >= 100 ? '#F47C7C' : pct >= 70 ? '#F5C842' : '#6CC5A0';
   return (
-    <div className="rounded-[22px] p-5" style={glassStyle}>
+    <div className="rounded-[22px] p-5 glow-card" style={glassStyle}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold text-foreground/50">Calories left</p>
@@ -68,7 +66,7 @@ function GlassCaffeineCard({ waterLogs = [] }) {
   const color = pct >= 100 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0';
   const hasData = caffeinated.length > 0;
   return (
-    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3" style={glassStyle}>
+    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3 glow-card" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">Caffeine</p>
       <p className="text-3xl font-light text-foreground leading-none">
         {hasData ? mgEstimate : '—'}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{hasData ? 'mg' : ''}</span>
@@ -93,7 +91,7 @@ function GlassSleepCard({ profile }) {
   const hasData = hours != null;
   const color = !hasData ? '#aaa' : hours >= 7 ? '#6CC5A0' : hours >= 5 ? '#F5C842' : '#F47C7C';
   return (
-    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3" style={glassStyle}>
+    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3 glow-card" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">Sleep</p>
       <p className="text-3xl font-light text-foreground leading-none" style={{ color: hasData ? color : undefined }}>
         {hasData ? hours : '—'}<span className="text-sm font-semibold text-foreground/50 ml-0.5">h</span>
@@ -117,7 +115,7 @@ function GlassHealthScore({ consumed, profile }) {
   const healthScore = hasMeals ? Math.round(calScore * 0.6 + protScore * 0.4) : null;
   const scoreColor = healthScore === null ? '#aaa' : healthScore >= 75 ? '#6CC5A0' : healthScore >= 45 ? '#F5C842' : '#F47C7C';
   return (
-    <div className="rounded-[18px] p-5" style={glassStyle}>
+    <div className="rounded-[18px] p-5 glow-card" style={glassStyle}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-bold text-foreground">Health Score</span>
         <span className="text-base font-extrabold" style={{ color: scoreColor }}>
@@ -195,7 +193,7 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
         <GlassMacroCard value={potassiumConsumed} unit="mg" label="Potassium" progress={(potassiumConsumed / 3500) * 100} />
         <GlassSleepCard profile={profile} />
       </div>
-      <div className="rounded-[22px] p-5" style={glassStyle}>
+      <div className="rounded-[22px] p-5 glow-card" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50">Bloat Risk Today</p>
         <p className="text-5xl font-light text-foreground leading-none mt-1" style={{ color: bloatColor }}>{bloatLabel}</p>
         <p className="text-xs text-foreground/40 mt-2">Based on {bloatRiskRaw.length} meals logged</p>
@@ -211,7 +209,7 @@ function AppearanceCarousel({ consumed, profile, waterLogs = [], todayMeals = []
         <GlassMacroCard value={Math.round((waterConsumed / waterTarget) * 100)} unit="%" label="Water %" progress={(waterConsumed / waterTarget) * 100} />
         <GlassCaffeineCard waterLogs={waterLogs} />
       </div>
-      <div className="rounded-[22px] p-5" style={glassStyle}>
+      <div className="rounded-[22px] p-5 glow-card" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50">Tomorrow Face Prediction</p>
         <p className="text-5xl font-light text-foreground leading-none mt-1" style={{ color: facePrediction ? predColor : undefined }}>{facePrediction || '—'}</p>
         {faceReason
@@ -251,7 +249,7 @@ function CarnivoreCarousel({ consumed, profile, todayMeals = [] }) {
         <GlassMacroCard value={proteinConsumed} unit="g" label="Protein today" progress={(proteinConsumed / proteinTarget) * 100} />
         <GlassMacroCard value={fatConsumed} unit="g" label="Fat today" progress={(fatConsumed / fatTarget) * 100} />
       </div>
-      <div className="rounded-[22px] p-5" style={glassStyle}>
+      <div className="rounded-[22px] p-5 glow-card" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50 mb-1">Meals Logged</p>
         <p className="text-3xl font-light text-foreground">{todayMeals.length}</p>
         <div className="flex items-center gap-2 mt-2">
@@ -276,7 +274,7 @@ function KetoCarousel({ consumed, profile }) {
 
   return [
     <div key="k1" className="min-w-full px-5 space-y-3">
-      <div className="rounded-[22px] p-5" style={glassStyle}>
+      <div className="rounded-[22px] p-5 glow-card" style={glassStyle}>
         <p className="text-xs font-semibold text-foreground/50 mb-1">Net Carbs Today</p>
         <div className="flex items-end gap-2">
           <p className="text-5xl font-light leading-none" style={{ color: ketosisRisk ? '#dc2626' : nearLimit ? '#ca8a04' : '#16a34a' }}>
@@ -314,7 +312,7 @@ function HighProteinCarousel({ consumed, profile, todayMeals = [] }) {
 
   return [
     <div key="hp1" className="min-w-full px-5 space-y-3">
-      <div className="rounded-[22px] p-5" style={glassStyle}>
+      <div className="rounded-[22px] p-5 glow-card" style={glassStyle}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-foreground/50">Protein today</p>
@@ -332,11 +330,11 @@ function HighProteinCarousel({ consumed, profile, todayMeals = [] }) {
         </div>
       </div>
       <div className="flex gap-2">
-        <div className="flex-1 rounded-[20px] p-5" style={glassStyle}>
+        <div className="flex-1 rounded-[20px] p-5 glow-card" style={glassStyle}>
           <p className="text-xs text-foreground/50 mb-1">Avg per meal</p>
           <p className="text-2xl font-light text-foreground">{avgProteinPerMeal}<span className="text-sm text-foreground/40"> g</span></p>
         </div>
-        <div className="flex-1 rounded-[20px] p-5" style={glassStyle}>
+        <div className="flex-1 rounded-[20px] p-5 glow-card" style={glassStyle}>
           <p className="text-xs text-foreground/50 mb-1">Meals logged</p>
           <p className="text-2xl font-light text-foreground">{todayMeals.length}</p>
         </div>

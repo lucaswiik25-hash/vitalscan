@@ -103,7 +103,7 @@ export default function Settings() {
       {/* Delete Account confirmation dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6">
-          <div className="bg-white rounded-[24px] p-6 w-full max-w-sm" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div className="bg-white rounded-[24px] p-6 w-full max-w-sm glow-card">
             <h2 className="text-lg font-bold text-foreground mb-2">Delete Account</h2>
             <p className="text-sm text-muted-foreground mb-6">Are you sure you want to permanently delete your account? All your data will be lost and this action cannot be undone.</p>
             <div className="flex gap-3">
@@ -122,7 +122,7 @@ export default function Settings() {
 
       <div className="px-5 space-y-4">
         {/* Profile summary */}
-        <motion.div {...fadeUp(0)} className="bg-white rounded-[24px] p-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+        <motion.div {...fadeUp(0)} className="bg-white rounded-[24px] p-5 glow-card">
           {!editingProfile ? (
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-xl font-bold text-foreground shrink-0">
@@ -170,7 +170,7 @@ export default function Settings() {
         </motion.div>
 
         {/* Diet & Goals */}
-        <motion.div {...fadeUp(0.12)} className="bg-white rounded-[24px] px-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+        <motion.div {...fadeUp(0.12)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Diet & Goals</p>
           <SettingRow icon={User} label="Goal">
             <Select value={profile.goal || 'maintain'} onValueChange={v => updateField('goal', v)}>
@@ -212,7 +212,7 @@ export default function Settings() {
         </motion.div>
 
         {/* Appearance */}
-        <motion.div {...fadeUp(0.24)} className="bg-white rounded-[24px] px-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+        <motion.div {...fadeUp(0.24)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Preferences</p>
           <SettingRow icon={Shield} label="Appearance Mode">
             <button
@@ -226,7 +226,7 @@ export default function Settings() {
         </motion.div>
 
         {/* Daily targets */}
-        <motion.div {...fadeUp(0.36)} className="bg-white rounded-[24px] p-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+        <motion.div {...fadeUp(0.36)} className="bg-white rounded-[24px] p-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Daily Targets</p>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -246,7 +246,7 @@ export default function Settings() {
         </motion.div>
 
         {/* About */}
-        <motion.div {...fadeUp(0.48)} className="bg-white rounded-[24px] px-5" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+        <motion.div {...fadeUp(0.48)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">About</p>
           <SettingRow icon={Info} label="Version">
             <span className="text-xs text-muted-foreground">Scanly v1.0</span>
@@ -257,7 +257,7 @@ export default function Settings() {
         {/* Redo Onboarding */}
         <motion.button {...fadeUp(0.56)}
           onClick={() => navigate('/onboarding')}
-          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform glow-card">
           <RefreshCw className="w-4 h-4 text-foreground" />
           <span className="text-sm font-semibold text-foreground">Redo Onboarding</span>
         </motion.button>
@@ -265,7 +265,7 @@ export default function Settings() {
         {/* Logout */}
         <motion.button {...fadeUp(0.64)}
           onClick={() => base44.auth.logout()}
-          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform glow-card">
           <LogOut className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Log Out</span>
         </motion.button>
@@ -273,7 +273,7 @@ export default function Settings() {
         {/* Delete Account */}
         <motion.button {...fadeUp(0.72)}
           onClick={() => setShowDeleteConfirm(true)}
-          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform" style={{ border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)' }}>
+          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform glow-card">
           <Trash2 className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Delete Account</span>
         </motion.button>

@@ -11,8 +11,6 @@ const glassStyle = {
   background: 'rgba(255,255,255,0.60)',
   backdropFilter: 'blur(24px) saturate(200%)',
   WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-  border: '1px solid rgba(0,0,0,0.12)',
-  boxShadow: '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)',
 };
 
 export default function DailyModules({ todayMeals = [], profile = {} }) {
@@ -53,7 +51,7 @@ export default function DailyModules({ todayMeals = [], profile = {} }) {
       {/* Row: supplements + meals */}
       <div className="flex gap-3">
         {/* Supplements */}
-        <div className="flex-1 rounded-[20px] p-4" style={glassStyle}>
+        <div className="flex-1 rounded-[20px] p-4 glow-card" style={glassStyle}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(167,139,250,0.2)' }}>
               <Pill className="w-3.5 h-3.5 text-purple-500" />
@@ -75,7 +73,7 @@ export default function DailyModules({ todayMeals = [], profile = {} }) {
         </div>
 
         {/* Meals */}
-        <div className="flex-1 rounded-[20px] p-4" style={glassStyle}>
+        <div className="flex-1 rounded-[20px] p-4 glow-card" style={glassStyle}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,146,60,0.2)' }}>
               <UtensilsCrossed className="w-3.5 h-3.5 text-orange-500" />
@@ -96,7 +94,7 @@ export default function DailyModules({ todayMeals = [], profile = {} }) {
       </div>
 
       {/* Sleep — tap to open sleep tracker */}
-      <button onClick={() => navigate('/sleep')} className="w-full rounded-[20px] p-4 text-left" style={glassStyle}>
+      <button onClick={() => navigate('/sleep')} className="w-full rounded-[20px] p-4 text-left glow-card" style={glassStyle}>
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.15)' }}>
             <Moon className="w-3.5 h-3.5 text-blue-500" />

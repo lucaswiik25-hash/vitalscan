@@ -29,7 +29,7 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="bg-white border-t border-border px-4 pt-2 pb-6 flex items-center justify-between max-w-lg mx-auto bottom-nav-inner opacity-0">
+      <div className="bg-white border-t border-border px-4 pt-2 pb-6 flex items-center justify-between max-w-lg mx-auto bottom-nav-inner">
         <div className="flex items-center gap-1 flex-1 justify-around">
           {tabs.map((tab) => {
             const isActive = tab.path === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.path);
@@ -37,7 +37,8 @@ export default function BottomNav() {
             return (
               <div
                 key={tab.path}
-                className="flex flex-col items-center gap-0.5 min-w-[56px]">
+                onClick={() => navigate(tab.path)}
+                className="flex flex-col items-center gap-0.5 min-w-[48px] cursor-pointer">
                 
                 <div className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${
                 isActive ? 'bg-secondary' : ''}`

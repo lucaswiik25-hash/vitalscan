@@ -41,19 +41,67 @@ export default function WaterStatsScreen({ allLogs, dailyTarget, onClose }) {
   const typeEmoji = { water: '💧', coffee: '☕', tea: '🍵', soda: '🥤', alcohol: '🍷', energy_drink: '⚡' };
 
   // Area chart calculation
-  const maxMl = Math.max(...last14.map(d => d.ml), dailyTarget * 1.2, 1);
-  const chartH = 180;
-  const chartW = 100; // percentage-based
+  const maxMl = Math.max(...last14.map(d => d.ml).filter(v => v > 0), dailyTarget * 1.2, 1);
+  const chartH = 200;
+  const PAD = 4; // horizontal padding %
+
   const pts = last14.map((d, i) => ({
-    x: (i / (last14.length - 1)) * 100,
-    y: chartH - (d.ml / maxMl) * chartH,
+    x: PAD + (i / (last14.length - 1)) * (100 - PAD * 2),
+    y: d.ml > 0 ? chartH - (d.ml / maxMl) * (chartH - 10) - 4 : null,
     ml: d.ml,
     short: d.short,
   }));
-  const goalY = chartH - (dailyTarget / maxMl) * chartH;
+  const goalY = chartH - (dailyTarget / maxMl) * (chartH - 10) - 4;
 
-  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${chartH} L ${pts[0].x} ${chartH} Z`;
+  // Build smooth bezier path, skipping null (zero) points — creates gaps
+  const buildSmoothPath = (points) => {
+    const segments = [];
+    let current = [];
+    for (const p of points) {
+      if (p.y !== null) { current.push(p); }
+      else { if (current.length > 0) { segments.push(current); current = []; } }
+    }
+    if (current.length > 0) segments.push(current);
+
+    return segments.map(seg => {
+      if (seg.length === 1) return `M ${seg[0].x} ${seg[0].y}`;
+      let d = `M ${seg[0].x} ${seg[0].y}`;
+      for (let i = 1; i < seg.length; i++) {
+        const prev = seg[i - 1];
+        const curr = seg[i];
+        const cpx = (prev.x + curr.x) / 2;
+        d += ` C ${cpx} ${prev.y} ${cpx} ${curr.y} ${curr.x} ${curr.y}`;
+      }
+      return d;
+    }).join(' ');
+  };
+
+  const buildAreaPath = (points) => {
+    const segments = [];
+    let current = [];
+    for (const p of points) {
+      if (p.y !== null) { current.push(p); }
+      else { if (current.length > 0) { segments.push(current); current = []; } }
+    }
+    if (current.length > 0) segments.push(current);
+
+    return segments.map(seg => {
+      if (seg.length === 0) return '';
+      let d = `M ${seg[0].x} ${chartH}`;
+      d += ` L ${seg[0].x} ${seg[0].y}`;
+      for (let i = 1; i < seg.length; i++) {
+        const prev = seg[i - 1];
+        const curr = seg[i];
+        const cpx = (prev.x + curr.x) / 2;
+        d += ` C ${cpx} ${prev.y} ${cpx} ${curr.y} ${curr.x} ${curr.y}`;
+      }
+      d += ` L ${seg[seg.length - 1].x} ${chartH} Z`;
+      return d;
+    }).join(' ');
+  };
+
+  const linePath = buildSmoothPath(pts);
+  const areaPath = buildAreaPath(pts);
 
   const statCards = [
     { label: '14-DAY AVG', value: avgMl >= 1000 ? `${(avgMl / 1000).toFixed(1)}L` : `${avgMl}ml`, sub: 'daily average', dot: '#3B82F6' },
@@ -98,52 +146,59 @@ export default function WaterStatsScreen({ allLogs, dailyTarget, onClose }) {
         {/* Area chart */}
         <div style={CARD}>
           <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Last 14 Days</p>
-          <div style={{ position: 'relative', height: chartH + 24 }}>
+          <div style={{ position: 'relative' }}>
             <svg
               width="100%"
               height={chartH}
-              viewBox={`-1 0 102 ${chartH}`}
+              viewBox={`0 0 100 ${chartH}`}
               preserveAspectRatio="none"
-              style={{ display: 'block' }}
+              style={{ display: 'block', overflow: 'visible' }}
             >
               <defs>
-                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(59,130,246,0.18)" />
+                <linearGradient id="areaGrad2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(59,130,246,0.15)" />
                   <stop offset="100%" stopColor="rgba(59,130,246,0)" />
                 </linearGradient>
               </defs>
               {/* Goal dashed line */}
-              <line x1="0" y1={goalY} x2="100" y2={goalY}
-                stroke="#10B981" strokeDasharray="4 3" strokeWidth="1" />
+              {goalY > 0 && goalY < chartH && (
+                <line x1="0" y1={goalY} x2="94" y2={goalY}
+                  stroke="#10B981" strokeDasharray="4 4" strokeWidth="1" />
+              )}
               {/* Area fill */}
-              <path d={areaPath} fill="url(#areaGrad)" />
+              {areaPath && <path d={areaPath} fill="url(#areaGrad2)" />}
               {/* Line */}
-              <path d={linePath} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              {/* Dots */}
-              {pts.map((p, i) => (
-                <circle key={i} cx={p.x} cy={p.y} r="3" fill="white" stroke="#3B82F6" strokeWidth="2" />
+              {linePath && <path d={linePath} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+              {/* Dots — only on days with data */}
+              {pts.filter(p => p.y !== null).map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r="4" fill="#3B82F6" stroke="white" strokeWidth="2" />
               ))}
             </svg>
-            {/* Goal pill */}
-            <div style={{
-              position: 'absolute',
-              right: 0,
-              top: goalY - 10,
-              background: '#10B981',
-              color: 'white',
-              borderRadius: 20,
-              padding: '2px 7px',
-              fontSize: 10,
-              fontWeight: 700,
-            }}>Goal</div>
-            {/* X-axis labels */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingRight: 32 }}>
-              {last14.map((d, i) => (
-                i % 2 === 0 ? <span key={i} style={{ fontSize: 11, color: '#9BA3AF', textAlign: 'center' }}>{d.short}</span> : <span key={i} />
-              ))}
-            </div>
+            {/* Goal pill — positioned absolutely */}
+            {goalY > 0 && goalY < chartH && (
+              <div style={{
+                position: 'absolute',
+                right: 0,
+                top: goalY - 11,
+                background: '#10B981',
+                color: 'white',
+                borderRadius: 20,
+                padding: '2px 8px',
+                fontSize: 11,
+                fontWeight: 700,
+                lineHeight: 1.4,
+              }}>Goal</div>
+            )}
           </div>
-          <p style={{ fontSize: 12, color: '#9BA3AF', marginTop: 8 }}>
+          {/* X-axis labels */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, paddingLeft: `${PAD}%`, paddingRight: `${PAD + 4}%` }}>
+            {last14.map((d, i) => (
+              i % 2 === 0
+                ? <span key={i} style={{ fontSize: 11, color: '#9BA3AF' }}>{d.short}</span>
+                : <span key={i} />
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: '#9BA3AF', marginTop: 10 }}>
             Goal reached on {goalDays} of the last 14 days
           </p>
         </div>

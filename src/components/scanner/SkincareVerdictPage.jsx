@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, X, Loader2 } from 'lucide-react';
 
-const TABS = ['Details', 'Ingredients'];
+const TABS = ['Results', 'How To Use', 'Ingredients'];
 
 function safetyColor(rating) {
   const r = (rating || '').toLowerCase();
@@ -101,7 +101,7 @@ function IngredientModal({ ingredient, onClose }) {
 }
 
 export default function SkincareVerdictPage({ result, onBack }) {
-  const [activeTab, setActiveTab] = useState('Ingredients');
+  const [activeTab, setActiveTab] = useState('Results');
   const isLoadingDetails = result._loadingDetails === true;
   const [selectedIngredient, setSelectedIngredient] = useState(null);
   const [visible, setVisible] = React.useState(false);
@@ -206,8 +206,8 @@ export default function SkincareVerdictPage({ result, onBack }) {
               ))}
             </div>
 
-            {/* Details tab */}
-            {activeTab === 'Details' && (
+            {/* Results tab */}
+            {activeTab === 'Results' && (
               <div className="space-y-0">
                 {isLoadingDetails && (
                   <div className="flex items-center gap-2 py-3 mb-2 px-3 rounded-xl" style={{ background: '#f5f5f5' }}>
@@ -258,6 +258,74 @@ export default function SkincareVerdictPage({ result, onBack }) {
                   <div className="py-4 border-b border-gray-50">
                     <p className="text-sm text-gray-500 mb-1">Long-Term Effects</p>
                     <p className="text-sm text-gray-700 leading-relaxed">{result.long_term_summary}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* How To Use tab */}
+            {activeTab === 'How To Use' && (
+              <div className="space-y-4 pb-4">
+                {/* Step in routine */}
+                {result.routine_step && (
+                  <div className="rounded-2xl p-4" style={{ background: '#f8f8f8' }}>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Step in Routine</p>
+                    <p className="text-sm font-semibold text-gray-800">{result.routine_step}</p>
+                  </div>
+                )}
+                {/* Application */}
+                {result.application_method && (
+                  <div className="rounded-2xl p-4" style={{ background: '#f8f8f8' }}>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">How To Apply</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{result.application_method}</p>
+                  </div>
+                )}
+                {/* Frequency */}
+                {result.frequency && (
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-3.5" style={{ background: '#f8f8f8' }}>
+                    <span className="text-sm text-gray-500">Frequency</span>
+                    <span className="text-sm font-semibold text-gray-800">{result.frequency}</span>
+                  </div>
+                )}
+                {/* What to apply before */}
+                {result.apply_after && (
+                  <div className="rounded-2xl p-4" style={{ background: '#e8f5e9' }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#2e7d32' }}>Apply After</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{result.apply_after}</p>
+                  </div>
+                )}
+                {/* Do not combine with */}
+                {result.do_not_combine && (
+                  <div className="rounded-2xl p-4" style={{ background: '#fdecea' }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#c62828' }}>⚠️ Do Not Use With</p>
+                    <p className="text-sm leading-relaxed" style={{ color: '#c62828' }}>{result.do_not_combine}</p>
+                  </div>
+                )}
+                {/* Results timeline */}
+                {result.results_timeline && (
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-3.5" style={{ background: '#f8f8f8' }}>
+                    <span className="text-sm text-gray-500">Results Timeline</span>
+                    <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%]">{result.results_timeline}</span>
+                  </div>
+                )}
+                {/* Step-by-step routine */}
+                {result.routine_steps && result.routine_steps.length > 0 && (
+                  <div className="rounded-2xl p-4" style={{ background: '#f8f8f8' }}>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Your Routine</p>
+                    <div className="space-y-2">
+                      {result.routine_steps.map((step, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-white" style={{ background: '#7b9bd1' }}>{i + 1}</div>
+                          <p className="text-sm text-gray-700 leading-snug pt-0.5">{step}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Fallback if no data loaded yet */}
+                {!result.routine_step && !result.application_method && !result.frequency && !result.apply_after && !result.do_not_combine && !result.results_timeline && (
+                  <div className="rounded-2xl p-6 text-center" style={{ background: '#f8f8f8' }}>
+                    <p className="text-sm text-gray-400">Usage instructions will appear after the product is fully analysed.</p>
                   </div>
                 )}
               </div>

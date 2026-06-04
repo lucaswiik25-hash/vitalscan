@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, X } from 'lucide-react';
 
-const TABS = ['Details', 'Ingredients'];
+const TABS = ['Results', 'How To Take', 'Ingredients'];
 
 const flagColor = (flag) => {
   const f = (flag || '').toLowerCase();
@@ -89,7 +89,7 @@ function IngredientModal({ ingredient, onClose }) {
 }
 
 export default function SupplementVerdictPage({ result, onBack }) {
-  const [activeTab, setActiveTab] = useState('Ingredients');
+  const [activeTab, setActiveTab] = useState('Results');
   const [selectedIngredient, setSelectedIngredient] = useState(null);
   const [visible, setVisible] = React.useState(false);
   React.useEffect(() => { const t = setTimeout(() => setVisible(true), 30); return () => clearTimeout(t); }, []);
@@ -191,8 +191,8 @@ export default function SupplementVerdictPage({ result, onBack }) {
               ))}
             </div>
 
-            {/* Details tab */}
-            {activeTab === 'Details' && (
+            {/* Results tab */}
+            {activeTab === 'Results' && (
               <div className="space-y-0">
                 <div className="flex items-center justify-between py-3.5 border-b border-gray-50">
                   <span className="text-sm text-gray-500">Quality Score</span>
@@ -239,6 +239,67 @@ export default function SupplementVerdictPage({ result, onBack }) {
                 {result.interactions && (
                   <div className="py-4 rounded-xl mt-2" style={{ background: '#fff3e0' }}>
                     <p className="text-sm text-orange-800 leading-relaxed px-1">⚠️ {result.interactions}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* How To Take tab */}
+            {activeTab === 'How To Take' && (
+              <div className="space-y-4 pb-4">
+                {/* When to take */}
+                {result.best_time_to_take && (
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-3.5" style={{ background: '#f8f8f8' }}>
+                    <span className="text-sm text-gray-500">When to Take</span>
+                    <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%]">{result.best_time_to_take}</span>
+                  </div>
+                )}
+                {/* How to take */}
+                {result.food_note && (
+                  <div className="rounded-2xl p-4" style={{ background: '#f8f8f8' }}>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">How To Take</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{result.food_note}</p>
+                  </div>
+                )}
+                {/* Cycle */}
+                {result.cycle_recommendation && (
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-3.5" style={{ background: '#f8f8f8' }}>
+                    <span className="text-sm text-gray-500">Cycling</span>
+                    <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%]">{result.cycle_recommendation}</span>
+                  </div>
+                )}
+                {/* Stack with */}
+                {result.stack_with && (
+                  <div className="rounded-2xl p-4" style={{ background: '#e8f5e9' }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#2e7d32' }}>✓ Stack With</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{result.stack_with}</p>
+                  </div>
+                )}
+                {/* Do not combine */}
+                {result.interactions && (
+                  <div className="rounded-2xl p-4" style={{ background: '#fff3e0' }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#e65100' }}>⚠️ Avoid Combining With</p>
+                    <p className="text-sm leading-relaxed" style={{ color: '#e65100' }}>{result.interactions}</p>
+                  </div>
+                )}
+                {/* Absorption tip */}
+                {result.absorption_tip && (
+                  <div className="rounded-2xl p-4" style={{ background: '#f8f8f8' }}>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Absorption Tip</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{result.absorption_tip}</p>
+                  </div>
+                )}
+                {/* Results timeline */}
+                {result.results_timeline && (
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-3.5" style={{ background: '#f8f8f8' }}>
+                    <span className="text-sm text-gray-500">When to Expect Results</span>
+                    <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%]">{result.results_timeline}</span>
+                  </div>
+                )}
+                {/* Fallback */}
+                {!result.best_time_to_take && !result.food_note && !result.cycle_recommendation && !result.stack_with && !result.interactions && !result.absorption_tip && !result.results_timeline && (
+                  <div className="rounded-2xl p-6 text-center" style={{ background: '#f8f8f8' }}>
+                    <p className="text-sm text-gray-400">Usage instructions will appear after the product is fully analysed.</p>
                   </div>
                 )}
               </div>

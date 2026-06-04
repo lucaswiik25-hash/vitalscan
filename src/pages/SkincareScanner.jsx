@@ -147,7 +147,10 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
     base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
       prompt: `You are a cosmetic dermatologist. This is the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type}).
-  Based on the full ingredient list, return: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason (2 sentences), skin_type_suitability (e.g. "All skin types" / "Oily skin"), eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary (2-3 sentences), top_beneficial (array of 3 ingredient name strings), top_concerning (array of 3 strings). NEVER fail.`,
+  Based on the full ingredient list, return:
+  safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason (2 sentences), skin_type_suitability (e.g. "All skin types" / "Oily skin"), eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary (2-3 sentences), top_beneficial (array of 3 ingredient name strings), top_concerning (array of 3 strings).
+  Also return usage instructions: routine_step (e.g. "Evening only" / "Morning and evening" / "Both AM & PM"), application_method (1-2 sentences on how much and how to apply), frequency (e.g. "Daily" / "2-3x per week"), apply_after (e.g. "Apply after toner, before moisturiser"), do_not_combine (e.g. "Do not layer with Retinol or AHAs on same night"), results_timeline (e.g. "4-8 weeks for visible improvement"), routine_steps (array of 4-5 numbered step strings for a complete routine card).
+  NEVER fail.`,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -156,6 +159,10 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
           pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' },
           top_beneficial: { type: 'array', items: { type: 'string' } },
           top_concerning: { type: 'array', items: { type: 'string' } },
+          routine_step: { type: 'string' }, application_method: { type: 'string' },
+          frequency: { type: 'string' }, apply_after: { type: 'string' },
+          do_not_combine: { type: 'string' }, results_timeline: { type: 'string' },
+          routine_steps: { type: 'array', items: { type: 'string' } },
         },
       },
     }).then(r2 => {

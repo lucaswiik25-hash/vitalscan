@@ -122,7 +122,8 @@ Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule
       image_url: file_url,
       prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel of: "${step1Data?.brand} ${step1Data?.product_name}" — primary ingredient: ${step1Data?.primary_ingredient}.
 
-Read EVERY line of the supplement facts. Return JSON with: serving_size, servings_per_container, estimated_duration, quality_score (1-100), verdict ("YES"/"MAYBE"/"NO"), verdict_reason, best_time_to_take, food_note, absorption_tip, interactions, ingredients (array: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_quality, flag ("None"/"Underdosed"/"Correctly Dosed"/"Overdose Risk"/"Poor Form"/"Filler"), body_benefit (brief positive string), body_risk (brief risk or empty)), other_ingredients_flags (array of strings). NEVER fail.`,
+Read EVERY line of the supplement facts. Return JSON with: serving_size, servings_per_container, estimated_duration, quality_score (1-100), verdict ("YES"/"MAYBE"/"NO"), verdict_reason, best_time_to_take, food_note, absorption_tip, interactions, ingredients (array: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_quality, flag ("None"/"Underdosed"/"Correctly Dosed"/"Overdose Risk"/"Poor Form"/"Filler"), body_benefit (brief positive string), body_risk (brief risk or empty)), other_ingredients_flags (array of strings).
+Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 weeks off"), stack_with (e.g. "Stack with Vitamin D3 and Magnesium for best effect"), results_timeline (e.g. "2-4 weeks for initial effects, 8-12 weeks for full benefit"). NEVER fail.`,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -133,6 +134,8 @@ Read EVERY line of the supplement facts. Return JSON with: serving_size, serving
           absorption_tip: { type: 'string' }, interactions: { type: 'string' },
           ingredients: { type: 'array', items: { type: 'object' } },
           other_ingredients_flags: { type: 'array', items: { type: 'string' } },
+          cycle_recommendation: { type: 'string' }, stack_with: { type: 'string' },
+          results_timeline: { type: 'string' },
         },
       },
     });

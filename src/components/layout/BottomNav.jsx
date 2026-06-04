@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Droplets, Dumbbell, Settings, Plus } from 'lucide-react';
+import { Home, Droplets, Dumbbell, Settings, Plus, Lightbulb } from 'lucide-react';
 
 const tabs = [
 { path: '/', icon: Home, label: 'Home' },
 { path: '/water', icon: Droplets, label: 'Hydration' },
+{ path: '/tips', icon: Lightbulb, label: 'Tips' },
 { path: '/exercise', icon: Dumbbell, label: 'Exercise' },
 { path: '/settings', icon: Settings, label: 'Settings' }];
 

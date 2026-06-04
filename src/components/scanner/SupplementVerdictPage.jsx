@@ -91,6 +91,8 @@ function IngredientModal({ ingredient, onClose }) {
 export default function SupplementVerdictPage({ result, onBack }) {
   const [activeTab, setActiveTab] = useState('Ingredients');
   const [selectedIngredient, setSelectedIngredient] = useState(null);
+  const [visible, setVisible] = React.useState(false);
+  React.useEffect(() => { const t = setTimeout(() => setVisible(true), 30); return () => clearTimeout(t); }, []);
 
   const scoreNum = result.quality_score || 0;
   const scoreColor = scoreNum >= 70 ? '#2e7d32' : scoreNum >= 40 ? '#e65100' : '#c62828';
@@ -107,7 +109,7 @@ export default function SupplementVerdictPage({ result, onBack }) {
   const bgGrad = 'linear-gradient(135deg, #dde8d8 0%, #c8d8c2 50%, #bccfb5 100%)';
 
   return (
-    <div className="fixed inset-0 overflow-hidden" style={{ maxWidth: 480, margin: '0 auto' }}>
+    <div className="fixed inset-0 overflow-hidden" style={{ maxWidth: 480, margin: '0 auto', opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(24px)', transition: 'opacity 0.55s ease, transform 0.55s cubic-bezier(0.22,1,0.36,1)' }}>
       {/* Gradient background */}
       <div className="absolute inset-0" style={{ background: bgGrad }} />
       <div className="absolute inset-0" style={{

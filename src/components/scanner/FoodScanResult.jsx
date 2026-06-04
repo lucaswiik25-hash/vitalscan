@@ -536,10 +536,16 @@ Apply the user's corrections and return updated values. Return ALL fields even i
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden" style={{ maxWidth: 480, margin: '0 auto' }}>
+    <motion.div
+      className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden"
+      style={{ maxWidth: 480, margin: '0 auto' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+    >
 
       {/* ── 1. Product image — white card, image covers full area ── */}
-      <motion.div initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
+      <motion.div initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: 'easeOut', delay: 0.05 }} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
         style={{ height: 170, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
         {result.image_url ? (
         <img src={result.image_url} alt={result.name}
@@ -557,7 +563,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         </motion.div>
 
         {/* ── 2. Name + verdict badge ── */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.2 }} className="shrink-0 px-5 pt-4 pb-2">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: 'easeOut', delay: 0.15 }} className="shrink-0 px-5 pt-4 pb-2">
         <div className="flex items-start gap-2">
           <h1 className="text-[22px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
             {currentResult.name?.length > 40 ? currentResult.name.slice(0, 40).trim() + '…' : currentResult.name}
@@ -619,6 +625,6 @@ Apply the user's corrections and return updated values. Return ALL fields even i
           </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

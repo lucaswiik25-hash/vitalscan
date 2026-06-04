@@ -31,6 +31,8 @@ export default function SupplementTracker() {
 
   const addSupplement = async () => {
     if (!newName.trim()) return;
+    setShowAdd(false);
+    setNewName(''); setNewDose(''); setNewTime('morning');
     await base44.entities.Supplement.create({
       name: newName.trim(),
       dose: newDose,
@@ -38,8 +40,6 @@ export default function SupplementTracker() {
       taken_today: false,
     });
     queryClient.invalidateQueries({ queryKey: ['supplements'] });
-    setNewName(''); setNewDose(''); setNewTime('morning');
-    setShowAdd(false);
   };
 
   const toggleTaken = async (sup) => {

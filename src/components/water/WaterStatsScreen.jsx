@@ -2,28 +2,24 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { format, subDays } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 
-const BG = '#e8e8ec';
-const SURFACE = '#f0f0f4';
-const BLACK = '#1a1a1a';
-const CARD_STYLE = {}; // replaced by glow-card CSS class
-const NM = '0 0 0 1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06)';
-const NM_SM = '0 0 0 1px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.85), 0 2px 8px rgba(0,0,0,0.05)';
-const BLK_SM = '4px 4px 8px rgba(0,0,0,0.25), -2px -2px 6px rgba(255,255,255,0.4)';
+const CARD = {
+  background: '#FFFFFF',
+  borderRadius: 28,
+  padding: 20,
+  boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+};
 
 export default function WaterStatsScreen({ allLogs, dailyTarget, onClose }) {
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  // Build last 14 days
   const last14 = Array.from({ length: 14 }, (_, i) => {
     const d = subDays(new Date(), 13 - i);
     const dateStr = format(d, 'yyyy-MM-dd');
     const total = allLogs.filter(l => l.date === dateStr && l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
-    return { date: format(d, 'MMM d'), dateStr, ml: total, short: format(d, 'dd') };
+    return { date: format(d, 'MMM d'), dateStr, ml: total, short: format(d, 'd') };
   });
 
-  // Stats
   const loggedDays = last14.filter(d => d.ml > 0);
   const avgMl = loggedDays.length > 0 ? Math.round(loggedDays.reduce((s, d) => s + d.ml, 0) / loggedDays.length) : 0;
   const bestDay = last14.reduce((best, d) => d.ml > best.ml ? d : best, { ml: 0, date: '—' });
@@ -37,95 +33,138 @@ export default function WaterStatsScreen({ allLogs, dailyTarget, onClose }) {
     return s;
   })();
 
-  // Type breakdown for today
   const todayLogs = allLogs.filter(l => l.date === today);
   const typeBreakdown = ['water', 'coffee', 'tea', 'soda', 'alcohol', 'energy_drink'].map(type => ({
     type,
     ml: todayLogs.filter(l => l.type === type).reduce((s, l) => s + Math.abs(l.amount_ml), 0),
   })).filter(t => t.ml > 0);
-
   const typeEmoji = { water: '💧', coffee: '☕', tea: '🍵', soda: '🥤', alcohol: '🍷', energy_drink: '⚡' };
+
+  // Area chart calculation
+  const maxMl = Math.max(...last14.map(d => d.ml), dailyTarget * 1.2, 1);
+  const chartH = 180;
+  const chartW = 100; // percentage-based
+  const pts = last14.map((d, i) => ({
+    x: (i / (last14.length - 1)) * 100,
+    y: chartH - (d.ml / maxMl) * chartH,
+    ml: d.ml,
+    short: d.short,
+  }));
+  const goalY = chartH - (dailyTarget / maxMl) * chartH;
+
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${chartH} L ${pts[0].x} ${chartH} Z`;
+
+  const statCards = [
+    { label: '14-DAY AVG', value: avgMl >= 1000 ? `${(avgMl / 1000).toFixed(1)}L` : `${avgMl}ml`, sub: 'daily average', dot: '#3B82F6' },
+    { label: 'BEST DAY', value: bestDay.ml >= 1000 ? `${(bestDay.ml / 1000).toFixed(1)}L` : `${bestDay.ml}ml`, sub: bestDay.date, dot: '#10B981' },
+    { label: 'GOAL DAYS', value: `${goalDays}/14`, sub: 'last two weeks', dot: '#F59E0B' },
+    { label: 'CURRENT STREAK', value: `${streak}d`, sub: streak === 1 ? 'day in a row' : 'days in a row', dot: '#EF4444' },
+  ];
 
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
-      style={{ background: BG }}
+      style={{ background: '#F2F4F8' }}
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-12 pb-4">
-        <h2 className="text-2xl font-bold" style={{ color: '#1f2937' }}>Statistics</h2>
+        <h2 style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>Statistics</h2>
         <button onClick={onClose}
           className="w-10 h-10 rounded-[14px] flex items-center justify-center"
-          className="glow-card" style={{ background: SURFACE }}>
+          style={{ background: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
           <X className="w-5 h-5" style={{ color: '#6b7280' }} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-16 space-y-4">
+      <div className="flex-1 overflow-y-auto px-5 pb-16" style={{ gap: 16, display: 'flex', flexDirection: 'column' }}>
         {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: '14-Day Avg', value: avgMl >= 1000 ? `${(avgMl / 1000).toFixed(1)}L` : `${avgMl}ml`, sub: 'daily average' },
-            { label: 'Best Day', value: bestDay.ml >= 1000 ? `${(bestDay.ml / 1000).toFixed(1)}L` : `${bestDay.ml}ml`, sub: bestDay.date },
-            { label: 'Goal Days', value: `${goalDays}/14`, sub: 'last two weeks' },
-            { label: 'Current Streak', value: `${streak}d`, sub: streak === 1 ? 'day in a row' : 'days in a row' },
-          ].map(card => (
-            <div key={card.label} className="rounded-[20px] p-4" className="glow-card" style={{ background: SURFACE }}>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#9ca3af' }}>{card.label}</p>
-              <p className="text-2xl font-extrabold" style={{ color: BLACK }}>{card.value}</p>
-              <p className="text-[10px] mt-1" style={{ color: '#9ca3af' }}>{card.sub}</p>
+        <div className="grid grid-cols-2" style={{ gap: 16, alignItems: 'stretch' }}>
+          {statCards.map(card => (
+            <div key={card.label} className="relative flex flex-col" style={{ ...CARD, minHeight: 110 }}>
+              {/* Accent dot */}
+              <div className="absolute top-4 right-4 rounded-full" style={{ width: 6, height: 6, background: card.dot }} />
+              <p style={{ fontSize: 11, fontWeight: 600, color: '#9BA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                {card.label}
+              </p>
+              <p style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>{card.value}</p>
+              <p style={{ fontSize: 13, color: '#9BA3AF', marginTop: 4 }}>{card.sub}</p>
             </div>
           ))}
         </div>
 
-        {/* Bar chart */}
-        <div className="rounded-[24px] p-5" className="glow-card" style={{ background: SURFACE }}>
-          <p className="text-sm font-bold mb-4" style={{ color: '#374151' }}>Last 14 Days</p>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={last14} margin={{ top: 4, right: 0, left: -24, bottom: 0 }} barSize={12}>
-              <XAxis dataKey="short" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={1} />
-              <YAxis tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false}
-                tickFormatter={v => v >= 1000 ? `${v / 1000}L` : `${v}`} />
-              <ReferenceLine y={dailyTarget} stroke={BLACK} strokeDasharray="4 3" strokeWidth={1} />
-              <Bar dataKey="ml" radius={[6, 6, 0, 0]}>
-                {last14.map((entry, i) => (
-                  <Cell key={i} fill={entry.ml >= dailyTarget ? BLACK : entry.ml > 0 ? '#888' : '#d4d4d4'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="flex items-center gap-4 mt-2">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full" style={{ background: BLACK }} />
-              <span className="text-[10px]" style={{ color: '#9ca3af' }}>Goal reached</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full" style={{ background: '#888' }} />
-              <span className="text-[10px]" style={{ color: '#9ca3af' }}>Partial</span>
+        {/* Area chart */}
+        <div style={CARD}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Last 14 Days</p>
+          <div style={{ position: 'relative', height: chartH + 24 }}>
+            <svg
+              width="100%"
+              height={chartH}
+              viewBox={`-1 0 102 ${chartH}`}
+              preserveAspectRatio="none"
+              style={{ display: 'block' }}
+            >
+              <defs>
+                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(59,130,246,0.18)" />
+                  <stop offset="100%" stopColor="rgba(59,130,246,0)" />
+                </linearGradient>
+              </defs>
+              {/* Goal dashed line */}
+              <line x1="0" y1={goalY} x2="100" y2={goalY}
+                stroke="#10B981" strokeDasharray="4 3" strokeWidth="1" />
+              {/* Area fill */}
+              <path d={areaPath} fill="url(#areaGrad)" />
+              {/* Line */}
+              <path d={linePath} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              {/* Dots */}
+              {pts.map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r="3" fill="white" stroke="#3B82F6" strokeWidth="2" />
+              ))}
+            </svg>
+            {/* Goal pill */}
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: goalY - 10,
+              background: '#10B981',
+              color: 'white',
+              borderRadius: 20,
+              padding: '2px 7px',
+              fontSize: 10,
+              fontWeight: 700,
+            }}>Goal</div>
+            {/* X-axis labels */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingRight: 32 }}>
+              {last14.map((d, i) => (
+                i % 2 === 0 ? <span key={i} style={{ fontSize: 11, color: '#9BA3AF', textAlign: 'center' }}>{d.short}</span> : <span key={i} />
+              ))}
             </div>
           </div>
+          <p style={{ fontSize: 12, color: '#9BA3AF', marginTop: 8 }}>
+            Goal reached on {goalDays} of the last 14 days
+          </p>
         </div>
 
-        {/* Today breakdown by type */}
+        {/* Today breakdown */}
         {typeBreakdown.length > 0 && (
-          <div className="rounded-[24px] p-5" className="glow-card" style={{ background: SURFACE }}>
-            <p className="text-sm font-bold mb-3" style={{ color: '#374151' }}>Today's Breakdown</p>
-            <div className="space-y-3">
+          <div style={CARD}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Today's Breakdown</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {typeBreakdown.map(t => {
                 const pct = Math.min(100, (t.ml / dailyTarget) * 100);
                 return (
                   <div key={t.type}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium capitalize" style={{ color: '#374151' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#374151', textTransform: 'capitalize' }}>
                         {typeEmoji[t.type]} {t.type.replace('_', ' ')}
                       </span>
-                      <span className="text-xs" style={{ color: '#9ca3af' }}>{t.ml}ml</span>
+                      <span style={{ fontSize: 12, color: '#9BA3AF' }}>{t.ml}ml</span>
                     </div>
-                    <div className="h-2 rounded-full" style={{ background: '#d4d4d4' }}>
-                      <div className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: BLACK }} />
+                    <div style={{ height: 6, borderRadius: 999, background: '#F2F4F8', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 999, width: `${pct}%`, background: '#3B82F6', transition: 'width 0.5s ease' }} />
                     </div>
                   </div>
                 );
@@ -134,13 +173,20 @@ export default function WaterStatsScreen({ allLogs, dailyTarget, onClose }) {
           </div>
         )}
 
-        {/* Daily target info */}
-        <div className="rounded-[24px] p-5" style={{ background: `linear-gradient(135deg, #2d2d2d 0%, #111 100%)`, boxShadow: BLK_SM }}>
-          <p className="text-sm font-semibold text-white mb-1">Daily Target</p>
-          <p className="text-3xl font-extrabold text-white">
+        {/* Daily target */}
+        <div style={{
+          borderRadius: 28,
+          padding: 24,
+          background: `radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.15) 0%, transparent 70%), #0F172A`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <span style={{ fontSize: 18 }}>💧</span>
+            <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)' }}>Daily Target</p>
+          </div>
+          <p style={{ fontSize: 40, fontWeight: 800, color: 'white', lineHeight: 1 }}>
             {dailyTarget >= 1000 ? `${(dailyTarget / 1000).toFixed(1)}L` : `${dailyTarget}ml`}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
             Set in your profile settings
           </p>
         </div>

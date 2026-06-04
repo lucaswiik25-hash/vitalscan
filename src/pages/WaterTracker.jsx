@@ -204,23 +204,16 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
   const ringDash = (pct / 100) * RING_CIRC;
 
   return (
-    <div className="min-h-screen pb-28">
+    <motion.div
+      className="min-h-screen pb-28"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-10 pb-4">
         <h1 className="text-xl font-semibold" style={{ color: '#1f2937' }}>Hydro</h1>
         <div className="flex items-center gap-3">
-          <button onClick={getAiInsights}
-            className="w-10 h-10 rounded-[14px] flex items-center justify-center"
-            style={{ background: SURFACE, boxShadow: NM_SM }}>
-            {loadingAI
-              ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: BLACK }} />
-              : <Sparkles className="w-5 h-5" style={{ color: '#6b7280' }} />}
-          </button>
-          <button onClick={() => setShowCalendar(true)}
-            className="w-10 h-10 rounded-[14px] flex items-center justify-center"
-            style={{ background: BLACK, boxShadow: BLK_SM }}>
-            <CalendarDays className="w-5 h-5 text-white" />
-          </button>
         </div>
       </div>
 
@@ -517,6 +510,6 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
           />
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }

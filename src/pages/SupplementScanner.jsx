@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
-import SupplementVerdictPage from '../components/scanner/SupplementVerdictPage';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen.jsx';
+import SupplementVerdictPage from '../components/scanner/SupplementVerdictPage.jsx';
 import { useUserProfile } from '../hooks/useUserProfile';
 
 function useTypingEffect(lines, speed = 28) {

@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen.jsx';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);

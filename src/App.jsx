@@ -23,7 +23,7 @@ import BodyScanner from './pages/BodyScanner';
 import Exercise from './pages/Exercise';
 import ExerciseFormScanner from './pages/ExerciseFormScanner';
 import SleepTracker from './pages/SleepTracker';
-import Tips from './pages/Tips';
+import Tips from './pages/Tips.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();

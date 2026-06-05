@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen.jsx';
-import SkincareVerdictPage from '../components/scanner/SkincareVerdictPage.jsx';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import SkincareVerdictPage from '../components/scanner/SkincareVerdictPage';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Sparkles, Plus, ArrowLeft, Camera, Barcode, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen.jsx';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import BarcodeInput from '../components/scanner/BarcodeInput';
 import { buildCall2Prompt, call2Schema, dietPreamble } from '../lib/dietPrompts';
 import { useUserProfile } from '../hooks/useUserProfile';

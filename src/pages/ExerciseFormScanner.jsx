@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft, CheckCircle, AlertTriangle, XCircle, Zap, Search, Camera, ImageIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen.jsx';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ALL_EXERCISES = [

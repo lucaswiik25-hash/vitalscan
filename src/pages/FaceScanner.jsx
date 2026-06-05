@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen.jsx';
+import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import { useUserProfile } from '../hooks/useUserProfile';
 
 function useTypingEffect(lines, speed = 28) {

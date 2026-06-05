@@ -1,12 +1,11 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.24.3';
 
-const anthropic = new Anthropic({
-  apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
-});
-
-
 Deno.serve(async (req) => {
+  const anthropic = new Anthropic({
+    apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
+  });
+
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me();
   if (!user) {
@@ -48,7 +47,7 @@ Deno.serve(async (req) => {
   content.push({ type: 'text', text: finalPrompt });
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5',
     max_tokens: 8192,
     messages: [{ role: 'user', content }],
   });

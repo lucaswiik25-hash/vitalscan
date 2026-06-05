@@ -18,13 +18,17 @@ export default function FoodScanner() {
   const uploadInputRef = useRef(null);
   const [capturedImage, setCapturedImage] = useState(null);
   const [capturedFile, setCapturedFile] = useState(null);
-  const [scanMode, setScanMode] = useState('food'); // 'food' | 'label'
+  const [scanMode, setScanMode] = useState('food'); // 'food' | 'label' | 'full_back'
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [extraNotes, setExtraNotes] = useState('');
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
   const barcodeInputRef = useRef(null);
+  const fullBackRef = useRef(null);
+  // Step 2: after front scan, optionally scan full back
+  const [frontScanData, setFrontScanData] = useState(null);
+  const [showFullBackPrompt, setShowFullBackPrompt] = useState(false);
 
   const { profile } = useUserProfile();
   const userName = profile.name || 'there';
@@ -75,6 +79,44 @@ export default function FoodScanner() {
       waterMl: waterLogs.filter(l => l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0),
       caloriesBurned: exercises.reduce((s, e) => s + (e.calories_burned || 0), 0),
     };
+  };
+
+  const analyseFullBack = async (backFile, frontData) => {
+    setIsAnalyzing(true);
+    setShowFullBackPrompt(false);
+    setCapturedImage(null);
+    const { file_url: back_url } = await base44.integrations.Core.UploadFile({ file: backFile });
+
+    const r1raw = await base44.functions.invoke('analyzeWithClaude', {
+      image_url: back_url,
+      prompt: `You are a professional nutritionist. This is the FULL BACK of a food product package for: "${frontData.name || 'food product'}".
+Read EVERY visible item on this label: full ingredient list, all nutrition facts, allergens, serving info, additionals.
+Combine with and enhance this front-scan data: ${JSON.stringify(frontData)}.
+Return the same schema but with the most accurate, complete values extracted from both images.
+Return JSON with: name, confidence ("high"), serving_size, calories, protein, carbs, fat, saturated_fat, sugar, fiber, sodium, potassium, cholesterol, allergens (array), has_barcode (false), barcode_number (""), ingredients_text (full visible list).
+NEVER fail.`,
+      response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
+    });
+    const enriched = { ...frontData, ...(r1raw.data?.result || r1raw.data || {}), confidence: 'high' };
+
+    const userProfile = profile;
+    const dietMode = userProfile.diet_mode || 'standard';
+    const isAppearance = dietMode === 'appearance_mode';
+    const pre = dietPreamble(dietMode);
+    const todayContext = await getTodayContext(dietMode);
+    const call2Prompt = buildCall2Prompt(dietMode, enriched, userProfile, todayContext);
+    const r2raw = await base44.functions.invoke('analyzeWithClaude', { prompt: call2Prompt, response_json_schema: call2Schema });
+    const r2result = r2raw.data?.result || r2raw.data || {};
+    let vitamins = [];
+    try {
+      const vitRes = await base44.integrations.Core.InvokeLLM({ prompt: `List key vitamins in: "${enriched.name}". Up to 8. Return JSON with vitamins array, each: name, amount, dv_percent.`, response_json_schema: { type: 'object', properties: { vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } } } } });
+      vitamins = vitRes?.vitamins || [];
+    } catch {}
+    const finalResult = { ...enriched, ...r2result, vitamins, image_url: back_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode, scanned_full_back: true };
+    setResult(finalResult);
+    base44.entities.ScanResult.create({ type: 'food', date: format(new Date(), 'yyyy-MM-dd'), image_url: back_url, product_name: enriched.name, brand: enriched.brand || null, safety_score: finalResult.health_score ? Math.round(finalResult.health_score * 10) : null, result_data: finalResult, verdict: finalResult.diet_compatibility || null }).catch(() => {});
+    setIsAnalyzing(false);
+    setFrontScanData(null);
   };
 
   const analyse = async () => {
@@ -174,6 +216,11 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null,
     }).catch(() => {});
     setIsAnalyzing(false);
+    // Offer full-back scan for packaged products
+    if (enriched.has_barcode || enriched.ingredients_text) {
+      setFrontScanData(finalResult);
+      setShowFullBackPrompt(true);
+    }
   };
 
   const analyseBarcodeManual = async (barcode) => {
@@ -373,6 +420,38 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     return <BarcodeInput onSubmit={analyseBarcodeManual} onClose={() => setShowBarcodeInput(false)} />;
   }
 
+  // Full-back prompt overlay
+  if (showFullBackPrompt && result) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <input ref={fullBackRef} type="file" accept="image/*" capture="environment" className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            e.target.value = '';
+            await analyseFullBack(file, frontScanData);
+          }} />
+        <div className="w-full bg-white" style={{ borderRadius: '28px 28px 0 0', padding: '24px 24px 40px' }}>
+          <div style={{ width: 40, height: 4, background: '#e0e0e0', borderRadius: 2, margin: '0 auto 20px' }} />
+          <p style={{ fontSize: 20, fontWeight: 800, color: '#111', marginBottom: 8 }}>Want 100% accuracy?</p>
+          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, marginBottom: 20 }}>
+            Scan the full back of the packaging and the AI will extract all visible ingredients, macros, and allergens for the most complete analysis.
+          </p>
+          <button
+            onClick={() => fullBackRef.current?.click()}
+            className="w-full h-14 rounded-2xl bg-gray-900 text-white font-semibold text-base flex items-center justify-center gap-2 mb-3">
+            📷 Scan Full Back
+          </button>
+          <button
+            onClick={() => { setShowFullBackPrompt(false); setFrontScanData(null); }}
+            className="w-full h-12 rounded-2xl text-gray-500 font-medium text-sm">
+            Skip — results are good enough
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Hidden file inputs
   const foodInput = <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileChange(e, 'food')} />;
   const labelInput = <input ref={labelInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileChange(e, 'label')} />;
@@ -461,7 +540,7 @@ function FoodScannerLanding({ userName, foodInput, labelInput, uploadInput, barc
     `Hi ${userName}.`,
     `Here you can [Photo Scan] your foods by just taking a picture.`,
     `Also you can [Barcode Scan] scan a barcode for the most accurate verdict.`,
-    `Lastly you can [Nutrition Label] scan a nutrition label.`,
+    `Lastly you can [Nutrition Label] scan a nutrition label for detailed macros.`,
   ];
   const displayed = useTypingEffect(lines, 26);
 

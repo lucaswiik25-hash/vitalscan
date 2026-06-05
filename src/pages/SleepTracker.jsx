@@ -33,12 +33,13 @@ import {
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 const YESTERDAY = format(subDays(new Date(), 1), 'yyyy-MM-dd');
 
-const PAGE_BG = '#F2F4F8';
+const PAGE_BG = 'transparent';
 const CARD_STYLE = {
   background: '#FFFFFF',
   borderRadius: 28,
   padding: 20,
-  boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+  border: '1px solid rgba(0,0,0,0.1)',
+  boxShadow: '0 2px 16px rgba(0,0,0,0.04)',
 };
 
 function TimeDrumPicker({ value, onChange }) {
@@ -317,7 +318,7 @@ export default function SleepTracker() {
   const chartHeight = 120;
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: PAGE_BG }}>
+    <div className="min-h-screen pb-28">
       <div className="px-5 pt-12 max-w-lg mx-auto space-y-4">
         <h1 className="text-2xl font-bold text-[#111827] mb-2">Sleep</h1>
 

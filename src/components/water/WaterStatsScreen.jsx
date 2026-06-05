@@ -7,7 +7,8 @@ const CARD = {
   background: '#FFFFFF',
   borderRadius: 28,
   padding: 20,
-  boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+  border: '1px solid rgba(0,0,0,0.09)',
+  boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
 };
 
 export default function WaterStatsScreen({ allLogs, dailyTarget, onClose }) {

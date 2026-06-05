@@ -18,7 +18,6 @@ Deno.serve(async (req) => {
 
   // Add image if provided
   if (image_url) {
-    // Fetch the image and convert to base64
     const imgRes = await fetch(image_url);
     const imgBuffer = await imgRes.arrayBuffer();
     const uint8 = new Uint8Array(imgBuffer);
@@ -47,8 +46,8 @@ Deno.serve(async (req) => {
   content.push({ type: 'text', text: finalPrompt });
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 8192,
+    model: 'claude-haiku-4-5',
+    max_tokens: 4096,
     messages: [{ role: 'user', content }],
   });
 
@@ -57,14 +56,11 @@ Deno.serve(async (req) => {
   if (response_json_schema) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     let jsonStr = jsonMatch ? jsonMatch[0] : text;
-    // Attempt to fix truncated JSON by closing open arrays/objects
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
     } catch (_) {
-      // Try to salvage truncated JSON by trimming to last complete element
       jsonStr = jsonStr.replace(/,\s*$/, '').replace(/,\s*\]/, ']').replace(/,\s*\}/, '}');
-      // Close any unclosed arrays/objects
       const opens = (jsonStr.match(/\[/g) || []).length - (jsonStr.match(/\]/g) || []).length;
       const openBraces = (jsonStr.match(/\{/g) || []).length - (jsonStr.match(/\}/g) || []).length;
       jsonStr += ']'.repeat(Math.max(0, opens)) + '}'.repeat(Math.max(0, openBraces));

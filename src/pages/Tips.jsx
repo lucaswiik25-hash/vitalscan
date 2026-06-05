@@ -21,7 +21,7 @@ export default function Tips() {
   const profile = profiles[0] || null;
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#F2F4F8' }}>
+    <div className="min-h-screen pb-24">
       {/* Header */}
       <div className="px-5 pt-14 pb-4">
         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>Tips</h1>

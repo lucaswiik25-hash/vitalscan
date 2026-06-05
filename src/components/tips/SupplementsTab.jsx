@@ -266,7 +266,7 @@ brand, product_name, supplement_type (${cat === 'All' ? 'Protein/Creatine/Vitami
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                 onClick={() => setSelected(p)}
                 className="cursor-pointer active:scale-[0.97] transition-transform"
-                style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+                style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.09)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
                 <UnsplashImage query={`${p.supplement_type || 'supplement'} bottle`} fallbackEmoji="💊" height={140} />
                 <div style={{ padding: '10px 12px 12px' }}>
                   <p style={{ fontSize: 11, color: '#7b9bd1', fontWeight: 600, marginBottom: 2 }}>{p.brand}</p>

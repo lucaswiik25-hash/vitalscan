@@ -212,7 +212,7 @@ Return JSON with recipes array, each with: name, desc, emoji, cat (breakfast/lun
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 onClick={() => setSelected(r)}
                 className="cursor-pointer active:scale-[0.97] transition-transform"
-                style={{ background: '#FFF', borderRadius: 20, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+                style={{ background: '#FFF', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.09)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
                 <UnsplashImage query={r.name} fallbackEmoji={r.emoji || '🍽️'} height={140} />
                 <div style={{ padding: '10px 12px 12px' }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, lineHeight: 1.3 }}>{r.name}</p>

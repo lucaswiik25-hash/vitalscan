@@ -201,7 +201,7 @@ export default function BottomNav() {
                   <Icon
                     style={{
                       width: 22, height: 22,
-                      color: isActive ? '#111827' : 'rgba(255,255,255,0.75)',
+                      color: '#111827',
                       strokeWidth: isActive ? 2.2 : 1.8,
                       transform: isActive ? 'translateY(-2px) scale(1.1)' : 'translateY(0) scale(1)',
                       transition: 'all 0.4s cubic-bezier(0.34,1.56,0.64,1)',
@@ -212,7 +212,7 @@ export default function BottomNav() {
                       fontSize: 11,
                       fontWeight: isActive ? 700 : 600,
                       whiteSpace: 'nowrap',
-                      color: isActive ? '#111827' : 'rgba(255,255,255,0.75)',
+                      color: '#111827',
                       transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
                       transition: 'all 0.4s cubic-bezier(0.34,1.56,0.64,1)',
                       lineHeight: 1,

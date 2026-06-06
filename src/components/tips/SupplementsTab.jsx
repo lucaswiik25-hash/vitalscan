@@ -49,28 +49,30 @@ function SupplementSheet({ product, userAllergens, onClose }) {
   const evidenceColor = (level) => level === 'Strong' ? '#2e7d32' : level === 'Moderate' ? '#e65100' : '#9BA3AF';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end">
-      <motion.div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <motion.div className="relative w-full max-w-lg mx-auto bg-white overflow-y-auto"
-        style={{ borderRadius: '32px 32px 0 0', maxHeight: '92vh' }}
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 0' }}>
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e0e0e0' }} />
-        </div>
-
-        <div style={{ position: 'relative', height: 180, margin: '8px 0 0' }}>
-          <UnsplashImage query={`${product.brand} ${product.supplement_type} supplement`} fallbackEmoji="💊" height={180} />
-          <button onClick={onClose} className="absolute top-3 right-4 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.8)' }}>
-            <X className="w-4 h-4 text-gray-700" />
+    <motion.div
+      className="fixed inset-0 z-50 overflow-y-auto"
+      style={{ background: '#F2F4F8' }}
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+    >
+        {/* Hero image */}
+        <div style={{ position: 'relative', height: 260 }}>
+          <UnsplashImage query={`${product.brand} ${product.supplement_type} supplement`} fallbackEmoji="💊" height={260} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)' }} />
+          <button onClick={onClose} className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)' }}>
+            <X className="w-5 h-5 text-white" />
           </button>
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginBottom: 2 }}>{product.brand}</p>
+            <p style={{ fontSize: 24, fontWeight: 800, color: 'white', lineHeight: 1.2 }}>{product.product_name}</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>{product.supplement_type} · {product.price_range}</p>
+          </div>
         </div>
 
-        <div style={{ padding: '16px 20px 0' }}>
-          <p style={{ fontSize: 13, color: '#7b9bd1', fontWeight: 600 }}>{product.brand}</p>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111', marginBottom: 4 }}>{product.product_name}</h2>
-          <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>{product.supplement_type} · {product.price_range}</p>
+        <div style={{ padding: '16px 20px 0', background: '#F2F4F8' }}>
           <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>{product.description}</p>
 
           {/* Tabs */}
@@ -85,7 +87,7 @@ function SupplementSheet({ product, userAllergens, onClose }) {
           </div>
 
           {activeTab === 'Results' && (
-            <div style={{ paddingBottom: 100 }}>
+            <div style={{ paddingBottom: 100, background: '#F2F4F8' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f5f5f5' }}>
                 <span style={{ fontSize: 14, color: '#6B7280' }}>Goal Match Score</span>
                 <span style={{ fontSize: 16, fontWeight: 700, color: scoreColor }}>{score}/100</span>
@@ -158,8 +160,7 @@ function SupplementSheet({ product, userAllergens, onClose }) {
             <ExternalLink className="w-4 h-4" /> Buy Now on iHerb
           </a>
         </div>
-      </motion.div>
-    </div>
+    </motion.div>
   );
 }
 

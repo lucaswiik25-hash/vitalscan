@@ -183,8 +183,9 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         required: ['name', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'],
       },
     });
-    if (res && typeof res === 'object') {
-      setEditedResult(prev => ({ ...(prev || currentResult), ...res }));
+    const parsed = res?.result || res;
+    if (parsed && typeof parsed === 'object') {
+      setEditedResult(prev => ({ ...(prev || currentResult), ...parsed }));
     }
     setEditNote('');
     setShowEditSheet(false);
@@ -226,7 +227,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
   // ─── Slide 0: Calories ───────────────────────────────────────────────────────
   const slide0 = (
     <div className="pb-4 space-y-3 fade-in-up">
-      <div className="bg-white rounded-[22px] p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}>
+      <div className="bg-white rounded-[22px] p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid rgba(0,0,0,0.08)' }}>
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Per Serving</p>
         <div className="flex items-center justify-between">
           <div>

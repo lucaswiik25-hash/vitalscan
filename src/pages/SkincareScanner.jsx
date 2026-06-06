@@ -58,9 +58,7 @@ export default function SkincareScanner() {
   const [step, setStep] = useState(1);
   const [step1Data, setStep1Data] = useState(null);
   const [s1File, setS1File] = useState(null);
-  const [s1Preview, setS1Preview] = useState(null);
   const [s2File, setS2File] = useState(null);
-  const [s2Preview, setS2Preview] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingMsg, setAnalyzingMsg] = useState('');
   const [result, setResult] = useState(null);
@@ -71,29 +69,16 @@ export default function SkincareScanner() {
   });
   const userName = profiles[0]?.name || 'there';
 
-  const handleS1File = (e) => {
+  const handleS1File = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    e.target.value = '';
     setS1File(file);
-    setS1Preview(URL.createObjectURL(file));
-    e.target.value = '';
-  };
-
-  const handleS2File = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setS2File(file);
-    setS2Preview(URL.createObjectURL(file));
-    e.target.value = '';
-  };
-
-  const analyseStep1 = async () => {
-    if (!s1File) return;
+    // Directly analyse without showing preview
     setIsAnalyzing(true);
-    setS1Preview(null);
     setAnalyzingMsg('Identifying product...');
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: s1File });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const rraw = await base44.functions.invoke('analyzeWithClaude', {
         image_url: file_url,
         prompt: `You are a cosmetic dermatologist. Look at this FRONT image of a skincare/cosmetic product. Read ALL visible text.
@@ -109,22 +94,28 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
       });
       setStep1Data({ ...(rraw.data?.result || rraw.data || {}), image_url: file_url });
       setStep(2);
-      setS1File(null);
     } catch (err) {
       alert('Analysis failed: ' + (err?.message || 'Unknown error'));
-      setS1Preview(URL.createObjectURL(s1File));
     } finally {
       setIsAnalyzing(false);
+      setS1File(null);
     }
   };
 
-  const analyseStep2 = async () => {
-    if (!s2File) return;
+  const handleS2File = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+    setS2File(file);
+    // Directly analyse without showing preview
+    await analyseStep2WithFile(file);
+  };
+
+  const analyseStep2WithFile = async (file) => {
     setIsAnalyzing(true);
-    setS2Preview(null);
     setAnalyzingMsg('Reading ingredients...');
     try {
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: s2File });
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
     // ── Phase 1: ingredients only (fast, small payload) ──────────────────────
     const r1 = await base44.functions.invoke('analyzeWithClaude', {
@@ -186,7 +177,6 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
     });
     } catch (err) {
       alert('Analysis failed: ' + (err?.message || 'Unknown error'));
-      setS2Preview(URL.createObjectURL(s2File));
       setIsAnalyzing(false);
     }
   };
@@ -209,10 +199,10 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
 
   const reset = () => {
     setResult(null); setStep1Data(null); setStep(1);
-    setS1File(null); setS1Preview(null); setS2File(null); setS2Preview(null);
+    setS1File(null); setS2File(null);
   };
 
-  if (isAnalyzing) return <AnalyzingScreen type="skincare" message={analyzingMsg} />;
+  if (isAnalyzing) return <AnalyzingScreen type="skincare" message={analyzingMsg} onCancel={() => { setIsAnalyzing(false); setS1File(null); setS2File(null); navigate('/scanner'); }} />;
 
   // ─── Results page ───────────────────────────────────────────────────────────
   if (result) {
@@ -224,30 +214,9 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
     );
   }
 
-  // ─── Photo preview (step 1 or 2) ───────────────────────────────────────────
-  const activePreview = step === 1 ? s1Preview : s2Preview;
-  const activeAnalyse = step === 1 ? analyseStep1 : analyseStep2;
-  const activeRetake = step === 1 ? () => { setS1File(null); setS1Preview(null); } : () => { setS2File(null); setS2Preview(null); };
+  // Auto-trigger analysis when file is picked (no preview page)
+  // analyseStep1 / analyseStep2 are called directly from handleS1File / handleS2File via useEffect
 
-  if (activePreview) {
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col">
-        <img src={activePreview} className="flex-1 w-full object-cover" alt="Captured" />
-        <div className="absolute top-0 left-0 right-0 flex items-center px-5 pt-12">
-          <button onClick={activeRetake} className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <X className="w-5 h-5 text-white" />
-          </button>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
-          <button onClick={activeAnalyse}
-            className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
-            <Sparkles className="w-5 h-5" /> Analyse
-          </button>
-          <button onClick={activeRetake} className="text-white/70 text-sm font-medium">Retake photo</button>
-        </div>
-      </div>
-    );
-  }
 
   // ─── Step 2: photograph ingredient label ───────────────────────────────────
   if (step === 2 && step1Data) {

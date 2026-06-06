@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Sparkles, Plus, ArrowLeft, Camera, Barcode, FileText } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
@@ -60,8 +61,10 @@ export default function FoodScanner() {
     const file = e.target.files[0];
     if (!file) return;
     setScanMode(mode || 'food');
-    setCapturedImage(URL.createObjectURL(file));
+    // Skip preview — go straight to "anything to add" popup
     setCapturedFile(file);
+    setCapturedImage(URL.createObjectURL(file)); // keep for reference but don't show preview
+    setShowAddSheet(true);
     e.target.value = '';
   };
 
@@ -338,9 +341,46 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     return created;
   };
 
+  // "Anything to add" popup — shown right after photo is taken, before analyzing
+  if (showAddSheet && capturedFile && !isAnalyzing) {
+    return (
+      <div className="fixed inset-0 bg-black/60 flex flex-col justify-end z-50">
+        <motion.div
+          className="bg-white rounded-t-[28px] px-5 pt-5 pb-10 space-y-4"
+          initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }}
+        >
+          <div className="w-10 h-1 rounded-full bg-gray-300 mx-auto mb-2" />
+          {capturedImage && (
+            <div className="w-full h-36 rounded-2xl overflow-hidden mb-2">
+              <img src={capturedImage} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <p className="text-base font-bold text-gray-900">Anything to add?</p>
+          <p className="text-xs text-gray-400">Describe hidden ingredients, sauces, or extras the AI might miss.</p>
+          <textarea
+            value={extraNotes}
+            onChange={e => setExtraNotes(e.target.value)}
+            placeholder="e.g. also had ketchup, hidden vegetables, olive oil drizzle..."
+            className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400"
+            rows={3}
+            autoFocus
+          />
+          <button onClick={() => { setShowAddSheet(false); analyse(); }}
+            className="w-full h-14 rounded-full bg-gray-900 text-white font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
+            Analyse
+          </button>
+          <button onClick={() => { setShowAddSheet(false); setCapturedFile(null); setCapturedImage(null); setExtraNotes(''); }}
+            className="w-full text-center text-sm text-gray-400 font-medium">
+            Cancel
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   // Analyzing screen
   if (isAnalyzing) {
-    return <AnalyzingScreen type="food" message="Analysing your food..." />;
+    return <AnalyzingScreen type="food" message="Analysing your food..." onCancel={() => { setIsAnalyzing(false); setCapturedFile(null); setCapturedImage(null); navigate('/scanner'); }} />;
   }
 
   // Result screen
@@ -356,65 +396,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     );
   }
 
-  // Photo preview screen
-  if (capturedImage) {
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col">
-        <img src={capturedImage} className="flex-1 w-full object-cover" alt="Captured" />
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12">
-          <button onClick={() => { setCapturedImage(null); setCapturedFile(null); }}
-            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <X className="w-5 h-5 text-white" />
-          </button>
-        </div>
-        {showAddSheet && (
-          <div className="absolute inset-0 flex flex-col justify-end">
-            <div className="absolute inset-0 bg-black/20" onClick={() => setShowAddSheet(false)} />
-            <div className="relative bg-white rounded-t-[28px] px-5 pt-5 pb-10" style={{ maxHeight: '35vh' }}>
-              <div className="w-10 h-1 rounded-full bg-gray-300 mx-auto mb-4" />
-              <p className="text-sm font-bold text-gray-900 mb-1">Anything to add?</p>
-              <p className="text-xs text-gray-400 mb-3">Describe hidden ingredients, sauces, or extras the AI might miss.</p>
-              <textarea
-                value={extraNotes}
-                onChange={e => setExtraNotes(e.target.value)}
-                placeholder="e.g. also had ketchup, hidden vegetables, olive oil drizzle..."
-                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400"
-                rows={3}
-                autoFocus
-              />
-            </div>
-          </div>
-        )}
-        {!showAddSheet && (
-          <div className="absolute bottom-0 left-0 right-0 pb-10 px-6 flex flex-col items-center gap-3">
-            <button onClick={() => setShowAddSheet(true)}
-              className="flex items-center gap-1.5 text-white/70 text-sm font-medium bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-              <Plus className="w-4 h-4" />
-              Anything to add?
-              {extraNotes.trim() && <span className="w-2 h-2 rounded-full bg-green-400 ml-1" />}
-            </button>
-            <button onClick={analyse}
-              className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
-              <Sparkles className="w-5 h-5" />
-              Analyse
-            </button>
-            <button onClick={() => { setCapturedImage(null); setCapturedFile(null); }} className="text-white/70 text-sm font-medium">
-              Retake photo
-            </button>
-          </div>
-        )}
-        {showAddSheet && (
-          <div className="absolute bottom-[35vh] left-0 right-0 pb-4 px-6">
-            <button onClick={() => { setShowAddSheet(false); analyse(); }}
-              className="w-full h-14 rounded-full bg-white text-gray-900 font-semibold text-base flex items-center justify-center gap-2 shadow-lg">
-              <Sparkles className="w-5 h-5" />
-              Analyse
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
+
 
   if (showBarcodeInput) {
     return <BarcodeInput onSubmit={analyseBarcodeManual} onClose={() => setShowBarcodeInput(false)} />;
@@ -427,7 +409,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
         <input ref={fullBackRef} type="file" accept="image/*" capture="environment" className="hidden"
           onChange={async (e) => {
             const file = e.target.files[0];
-            if (!file) return;
+            if (!file) { e.target.value = ''; return; }
             e.target.value = '';
             await analyseFullBack(file, frontScanData);
           }} />

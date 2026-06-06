@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import SideNav from './SideNav';
 import BottomNav from './BottomNav';
 
 const HIDE_NAV_PATHS = ['/onboarding', '/food-scanner', '/skincare-scanner', '/supplement-scanner', '/face-scanner', '/body-scanner', '/exercise-form-scanner'];
@@ -31,13 +30,12 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen max-w-lg mx-auto relative" style={{ background: 'transparent' }}>
-      {!hideNav && <SideNav />}
       <div
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0px)' : 'translateY(18px)',
           transition: 'opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1)',
-          paddingBottom: hideNav ? 0 : '80px',
+          paddingBottom: hideNav ? 0 : '100px',
         }}
       >
         <Outlet />

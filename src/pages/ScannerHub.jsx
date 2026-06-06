@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check } from 'lucide-react';
+import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useUserProfile } from '../hooks/useUserProfile';
 
@@ -92,6 +92,7 @@ function FoodSearch() {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
             placeholder="e.g. hamburger, oats, salmon..."
+            inputMode="search"
             className="flex-1 text-sm focus:outline-none bg-transparent text-foreground placeholder:text-muted-foreground/60"
           />
           {query && <button onClick={() => { setQuery(''); setResults(null); }} className="text-muted-foreground/40 text-xs">✕</button>}
@@ -224,13 +225,41 @@ const SCAN_PATHS = { food: '/food-scanner', skincare: '/skincare-scanner', suppl
 
 function RecentScans() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(0);
   const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullDelta, setPullDelta] = useState(0);
 
   const { data: scans = [] } = useQuery({
     queryKey: ['scanResults'],
     queryFn: () => base44.entities.ScanResult.list('-created_date', 50),
   });
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStartY.current === null) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+    if (dy > 0 && dy > dx && window.scrollY === 0) {
+      setPullDelta(Math.min(60, dy * 0.4));
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (pullDelta >= 50) {
+      setRefreshing(true);
+      await queryClient.invalidateQueries({ queryKey: ['scanResults'] });
+      setTimeout(() => setRefreshing(false), 600);
+    }
+    setPullDelta(0);
+    touchStartY.current = null;
+  };
 
   const tabs = ['food', 'skincare', 'supplement'];
   const filtered = scans.filter(s => s.type === tabs[activeTab]);
@@ -243,6 +272,7 @@ function RecentScans() {
     if (diff < -50 && activeTab > 0) setActiveTab(t => t - 1);
     touchStartX.current = null;
   };
+
 
   const handleScanClick = (scan) => {
     const path = SCAN_PATHS[scan.type] || '/food-scanner';
@@ -258,7 +288,19 @@ function RecentScans() {
   };
 
   return (
-    <div className="mt-6 px-5 fade-in-up-4">
+    <div className="mt-6 px-5 fade-in-up-4"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {(pullDelta > 0 || refreshing) && (
+        <div className="flex justify-center items-center mb-2 transition-all"
+          style={{ height: refreshing ? 32 : pullDelta * 0.6 }}>
+          <Loader2 className={`w-5 h-5 text-muted-foreground ${refreshing ? 'animate-spin' : ''}`}
+            style={{ opacity: refreshing ? 1 : pullDelta / 60 }} />
+        </div>
+      )}
       <h2 className="text-sm font-bold text-foreground mb-3">Recent Scans</h2>
       <div className="flex gap-1 mb-3 rounded-2xl p-1"
         style={{
@@ -282,7 +324,7 @@ function RecentScans() {
           </button>
         ))}
       </div>
-      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div onTouchStart={e => { onTouchStart(e); }} onTouchEnd={e => { onTouchEnd(e); }}>
         {filtered.length === 0 ? (
           <div className="rounded-[20px] p-6 text-center glow-card" style={cardStyle}>
             <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />

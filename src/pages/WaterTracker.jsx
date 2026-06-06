@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -76,7 +76,7 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Custom</p>
             <div className="flex gap-2">
-              <input type="number" value={customVal} onChange={e => setCustomVal(e.target.value)}
+              <input type="number" inputMode="numeric" value={customVal} onChange={e => setCustomVal(e.target.value)}
                 placeholder="Enter ml..." autoFocus
                 className="flex-1 rounded-2xl px-4 py-3 text-sm focus:outline-none"
                 style={{ background: SURFACE, boxShadow: NM_INSET, border: 'none', color: '#1f2937' }} />
@@ -131,19 +131,48 @@ export default function WaterTracker() {
   const totalGlasses = Math.round(dailyTarget / glassSize);
   const filledGlasses = Math.min(totalGlasses, Math.round(effective / glassSize));
 
-  const logSlot = async (ml, slot) => {
-    await base44.entities.WaterLog.create({ date: TODAY, amount_ml: ml, type: 'water', slot });
-    queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
-    queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
-  };
+  const logMutation = useMutation({
+    mutationFn: ({ ml, slot }) => base44.entities.WaterLog.create({ date: TODAY, amount_ml: ml, type: 'water', slot }),
+    onMutate: async ({ ml, slot }) => {
+      await queryClient.cancelQueries({ queryKey: ['waterLogs', TODAY] });
+      const prev = queryClient.getQueryData(['waterLogs', TODAY]);
+      const optimistic = { id: `opt-${Date.now()}`, date: TODAY, amount_ml: ml, type: 'water', slot, created_date: new Date().toISOString() };
+      queryClient.setQueryData(['waterLogs', TODAY], (old = []) => [...old, optimistic]);
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['waterLogs', TODAY], ctx.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
+      queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
+    },
+  });
+
+  const logSlot = (ml, slot) => logMutation.mutate({ ml, slot });
+
+  const removeMutation = useMutation({
+    mutationFn: (id) => base44.entities.WaterLog.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['waterLogs', TODAY] });
+      const prev = queryClient.getQueryData(['waterLogs', TODAY]);
+      queryClient.setQueryData(['waterLogs', TODAY], (old = []) => old.filter(l => l.id !== id));
+      return { prev };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['waterLogs', TODAY], ctx.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
+      queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
+    },
+  });
 
   // Remove last log entry (undo)
-  const removeLastLog = async () => {
+  const removeLastLog = () => {
     if (todayLogs.length === 0) return;
     const sorted = [...todayLogs].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-    await base44.entities.WaterLog.delete(sorted[0].id);
-    queryClient.invalidateQueries({ queryKey: ['waterLogs', TODAY] });
-    queryClient.invalidateQueries({ queryKey: ['allWaterLogs'] });
+    removeMutation.mutate(sorted[0].id);
   };
 
   const getAiInsights = async () => {

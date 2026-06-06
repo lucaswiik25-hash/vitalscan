@@ -88,8 +88,8 @@ export default function BottomNav() {
       `}</style>
 
       <div
-        className="fixed bottom-6 left-0 right-0 z-50 flex items-center justify-center px-5"
-        style={{ gap: 12 }}
+        className="fixed left-0 right-0 z-50 flex items-center justify-center px-5"
+        style={{ gap: 12, bottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
         {/* Glass nav bar */}
         <div

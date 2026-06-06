@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -42,13 +42,26 @@ export default function SupplementTracker() {
     queryClient.invalidateQueries({ queryKey: ['supplements'] });
   };
 
-  const toggleTaken = async (sup) => {
-    await base44.entities.Supplement.update(sup.id, {
+  const toggleMutation = useMutation({
+    mutationFn: (sup) => base44.entities.Supplement.update(sup.id, {
       taken_today: !sup.taken_today,
       last_taken_date: !sup.taken_today ? TODAY : sup.last_taken_date,
-    });
-    queryClient.invalidateQueries({ queryKey: ['supplements'] });
-  };
+    }),
+    onMutate: async (sup) => {
+      await queryClient.cancelQueries({ queryKey: ['supplements'] });
+      const prev = queryClient.getQueryData(['supplements']);
+      queryClient.setQueryData(['supplements'], (old = []) =>
+        old.map(s => s.id === sup.id ? { ...s, taken_today: !s.taken_today } : s)
+      );
+      return { prev };
+    },
+    onError: (_err, _sup, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['supplements'], ctx.prev);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['supplements'] }),
+  });
+
+  const toggleTaken = (sup) => toggleMutation.mutate(sup);
 
   const deleteSup = async (id) => {
     await base44.entities.Supplement.delete(id);

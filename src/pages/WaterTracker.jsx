@@ -6,6 +6,7 @@ import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Minus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb, BarChart2, Zap } from 'lucide-react';
 import WaterCalendarModal from '../components/water/WaterCalendarModal';
+import { MODULE_BORDER } from '@/lib/cardStyles';
 import WaterStatsScreen from '../components/water/WaterStatsScreen';
 import WaterStreakScreen from '../components/water/WaterStreakScreen';
 
@@ -28,6 +29,7 @@ const BG = '#e8e8ec';
 const SURFACE = '#f0f0f4';
 const BLACK = '#1a1a1a';
 const BLACK_MED = '#374151';
+const SURFACE_CARD = { background: SURFACE, boxShadow: NM, border: MODULE_BORDER };
 
 // Log Water panel (full-screen slide-up)
 function LogWaterPanel({ onClose, slotLabel, onAdd }) {
@@ -284,7 +286,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
         {/* Main row: tracker card + vertical bar */}
         <div className="flex gap-3">
           {/* Tracker card */}
-          <div className="flex-1 rounded-[28px] p-5" style={{ background: SURFACE, boxShadow: NM }}>
+          <div className="flex-1 rounded-[28px] p-5" style={SURFACE_CARD}>
             <p className="text-base font-semibold mb-0.5" style={{ color: '#374151' }}>Drink water!</p>
             <p className="text-sm mb-5" style={{ color: '#9ca3af' }}>Check off a glass</p>
             <div className="flex items-center gap-5">
@@ -331,7 +333,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
 
           {/* Vertical add/minus bar */}
           <div className="w-[72px] rounded-[28px] relative overflow-hidden flex flex-col items-center"
-            style={{ background: SURFACE, boxShadow: NM, minHeight: 180 }}>
+            style={{ ...SURFACE_CARD, minHeight: 180 }}>
             {/* Top: Minus button */}
             <div className="flex flex-col items-center pt-3 pb-2 z-10">
               <button
@@ -367,7 +369,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
         {/* Meal-time slots */}
         <div>
           <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Log by time</p>
-          <div className="rounded-[24px] overflow-hidden" style={{ background: SURFACE, boxShadow: NM }}>
+          <div className="rounded-[24px] overflow-hidden" style={SURFACE_CARD}>
             {slotsWithTargets.map((slot, i) => (
               <div key={slot.key}>
                 {i > 0 && <div className="mx-4 h-px" style={{ background: 'rgba(174,174,192,0.2)' }} />}
@@ -450,7 +452,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
             <div className="flex-1 overflow-y-auto px-5 space-y-4 pb-16">
               {/* Score card */}
               <div className="rounded-[24px] p-5 flex gap-5 items-center"
-                style={{ background: SURFACE, boxShadow: NM }}>
+                style={SURFACE_CARD}>
                 <div className="relative shrink-0" style={{ width: 100, height: 100 }}>
                   <svg width={100} height={100} style={{ transform: 'rotate(-90deg)' }}>
                     <circle cx={50} cy={50} r={42} fill="none" stroke="#d4d4d4" strokeWidth={10} />

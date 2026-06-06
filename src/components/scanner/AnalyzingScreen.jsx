@@ -147,7 +147,7 @@ export default function AnalyzingScreen({ type = 'food', message, onCancel }) {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="rounded-2xl p-4"
-            style={{ background: '#F7F8FA', border: '1px solid rgba(0,0,0,0.08)' }}
+            style={{ background: '#F7F8FA', border: '1px solid rgba(0, 0, 0, 0.13)' }}
           >
             <div className="flex items-start gap-3">
               <span style={{ fontSize: 28, flexShrink: 0 }}>{tip.emoji}</span>

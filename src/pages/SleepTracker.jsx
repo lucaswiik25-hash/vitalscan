@@ -29,6 +29,7 @@ import {
   generateInsights,
   buildWeekDays,
 } from '@/lib/sleepCalculations';
+import { MODULE_BORDER, moduleCardShadow } from '@/lib/cardStyles';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 const YESTERDAY = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -38,8 +39,8 @@ const CARD_STYLE = {
   background: '#FFFFFF',
   borderRadius: 28,
   padding: 20,
-  border: '1px solid rgba(0,0,0,0.1)',
-  boxShadow: '0 2px 16px rgba(0,0,0,0.04)',
+  border: MODULE_BORDER,
+  boxShadow: moduleCardShadow,
 };
 
 function TimeDrumPicker({ value, onChange }) {

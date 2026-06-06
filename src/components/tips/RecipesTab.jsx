@@ -57,7 +57,7 @@ function RecipeFullPage({ item, onClose }) {
 
         {/* Macros */}
         {item.macros && (
-          <div style={{ background: '#fff', borderRadius: 20, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Macros</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
               {[['Kcal', item.macros.calories], ['Protein', `${item.macros.protein}g`], ['Carbs', `${item.macros.carbs}g`], ['Fat', `${item.macros.fat}g`]].map(([l, v]) => (
@@ -72,7 +72,7 @@ function RecipeFullPage({ item, onClose }) {
 
         {/* Ingredients */}
         {item.ingredients?.length > 0 && (
-          <div style={{ background: '#fff', borderRadius: 20, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Ingredients</p>
             {item.ingredients.map((ing, i) => (
               <div key={i} style={{ padding: '8px 0', borderBottom: i < item.ingredients.length - 1 ? '1px solid #f5f5f5' : 'none', fontSize: 14, color: '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -84,7 +84,7 @@ function RecipeFullPage({ item, onClose }) {
 
         {/* Instructions */}
         {item.instructions?.length > 0 && (
-          <div style={{ background: '#fff', borderRadius: 20, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Instructions</p>
             {item.instructions.map((step, i) => (
               <div key={i} style={{ padding: '10px 0', borderBottom: i < item.instructions.length - 1 ? '1px solid #f5f5f5' : 'none', fontSize: 14, color: '#374151', display: 'flex', gap: 12 }}>
@@ -182,7 +182,8 @@ Return JSON with recipes array, each with: name, desc, emoji, cat (breakfast/lun
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
             background: cat === c.key ? '#1a2e1a' : '#FFFFFF',
             borderRadius: 14, padding: '10px 16px', minWidth: 64,
-            border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+            border: cat === c.key ? '1px solid #1a2e1a' : '1px solid rgba(0, 0, 0, 0.13)',
+            cursor: 'pointer', transition: 'all 0.2s',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)', flexShrink: 0,
           }}>
             <span style={{ fontSize: 20 }}>{c.emoji}</span>
@@ -212,7 +213,7 @@ Return JSON with recipes array, each with: name, desc, emoji, cat (breakfast/lun
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 onClick={() => setSelected(r)}
                 className="cursor-pointer active:scale-[0.97] transition-transform"
-                style={{ background: '#FFF', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.09)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+                style={{ background: '#FFF', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0, 0, 0, 0.13)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
                 <UnsplashImage query={r.name} fallbackEmoji={r.emoji || '🍽️'} height={140} />
                 <div style={{ padding: '10px 12px 12px' }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, lineHeight: 1.3 }}>{r.name}</p>

@@ -35,7 +35,7 @@ export default function WeekCalendar({ meals = [], profile = {}, waterLogs = [],
           background: 'rgba(220,232,248,0.55)',
           backdropFilter: 'blur(28px) saturate(180%) brightness(1.06)',
           WebkitBackdropFilter: 'blur(28px) saturate(180%) brightness(1.06)',
-          border: '1px solid rgba(255,255,255,0.7)',
+          border: '1px solid rgba(0, 0, 0, 0.13)',
           boxShadow: '0 4px 20px rgba(160,190,230,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
         }}
       >
@@ -45,7 +45,7 @@ export default function WeekCalendar({ meals = [], profile = {}, waterLogs = [],
           <div className="flex gap-2">
             <button
               onClick={() => setWeekOffset(w => w - 1)}
-              className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm active:scale-90 transition-transform"
+              className="w-8 h-8 rounded-full bg-white border border-border flex items-center justify-center shadow-sm active:scale-90 transition-transform"
             >
               <ChevronLeft className="w-4 h-4 text-gray-600" />
             </button>

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { MODULE_BORDER } from '@/lib/cardStyles';
 
 const glassStyle = {
   background: 'rgba(255,255,255,0.82)',
+  border: MODULE_BORDER,
 };
 
 function GlassMacroCard({ value, unit = 'g', label, progress }) {
   const pct = Math.min(100, Math.max(0, progress));
   return (
-    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3" style={glassStyle}>
+    <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3 glow-card" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">{label}</p>
       <p className="text-3xl font-light text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
       <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>

@@ -101,7 +101,7 @@ export default function SupplementVerdictPage({ result, onBack }) {
 
       <div className="flex-1 px-5 py-5" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Verdict + Scores */}
-        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
           <div className="flex items-start justify-between">
             <div className="flex-1 mr-4">
               <div className="flex items-center gap-2 mb-2">
@@ -120,7 +120,7 @@ export default function SupplementVerdictPage({ result, onBack }) {
 
         {/* Usage info */}
         {(result?.best_time_to_take || result?.food_note || result?.absorption_tip) && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 10 }}>Usage</p>
             {result.serving_size && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>💊 Serving: {result.serving_size}</p>}
             {result.best_time_to_take && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>⏰ {result.best_time_to_take}</p>}
@@ -135,7 +135,7 @@ export default function SupplementVerdictPage({ result, onBack }) {
 
         {/* Ingredients */}
         {ingredients.length > 0 && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>
               Ingredients ({ingredients.length})
             </p>
@@ -147,7 +147,7 @@ export default function SupplementVerdictPage({ result, onBack }) {
 
         {/* Other ingredients flags */}
         {result?.other_ingredients_flags?.length > 0 && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 10 }}>Other Ingredients</p>
             <div className="flex flex-wrap gap-2">
               {result.other_ingredients_flags.map((f, i) => (

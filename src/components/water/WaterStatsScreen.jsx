@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
+import { MODULE_BORDER } from '@/lib/cardStyles';
+
 const CARD = {
   background: '#FFFFFF',
   borderRadius: 28,
   padding: 20,
-  border: '1px solid rgba(0,0,0,0.09)',
+  border: MODULE_BORDER,
   boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
 };
 
@@ -123,7 +125,7 @@ export default function WaterStatsScreen({ allLogs, dailyTarget, onClose }) {
         <h2 style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>Statistics</h2>
         <button onClick={onClose}
           className="w-10 h-10 rounded-[14px] flex items-center justify-center"
-          style={{ background: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          style={{ background: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: MODULE_BORDER }}>
           <X className="w-5 h-5" style={{ color: '#6b7280' }} />
         </button>
       </div>

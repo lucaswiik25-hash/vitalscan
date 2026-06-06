@@ -98,7 +98,7 @@ export default function SkincareVerdictPage({ result, onBack }) {
       </div>
 
       <div className="flex-1 px-5 py-5" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -120,7 +120,7 @@ export default function SkincareVerdictPage({ result, onBack }) {
         </div>
 
         {!result?._loadingDetails && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>Key Details</p>
             <div className="grid grid-cols-2 gap-3">
               {result?.skin_type_suitability && (
@@ -156,7 +156,7 @@ export default function SkincareVerdictPage({ result, onBack }) {
         )}
 
         {!result?._loadingDetails && (result?.top_beneficial?.length > 0 || result?.top_concerning?.length > 0) && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>Highlights</p>
             {result?.top_beneficial?.length > 0 && (
               <div className="mb-3">
@@ -182,7 +182,7 @@ export default function SkincareVerdictPage({ result, onBack }) {
         )}
 
         {!result?._loadingDetails && (result?.routine_step || result?.application_method) && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>How to Use</p>
             {result.routine_step && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>⏰ {result.routine_step}</p>}
             {result.application_method && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>🤲 {result.application_method}</p>}
@@ -193,7 +193,7 @@ export default function SkincareVerdictPage({ result, onBack }) {
         )}
 
         {ingredients.length > 0 && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>
               Ingredients ({ingredients.length})
             </p>
@@ -204,7 +204,7 @@ export default function SkincareVerdictPage({ result, onBack }) {
         )}
 
         {result?.long_term_summary && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 8 }}>Long-Term Use</p>
             <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{result.long_term_summary}</p>
           </div>

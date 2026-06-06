@@ -110,7 +110,7 @@ export default function Exercise() {
 
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
-        <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1" style={{ background: '#F7F7F7' }}>
+        <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1 border border-border glow-card" style={{ background: '#F7F7F7' }}>
           <div className="px-5 pt-5 pb-8">
 
             {/* Weekly day strip — interactive */}

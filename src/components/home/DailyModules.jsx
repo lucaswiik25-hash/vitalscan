@@ -4,15 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Pill, UtensilsCrossed, Moon, ChevronRight } from 'lucide-react';
+import { glassModuleStyle as glassStyle } from '@/lib/cardStyles';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
-
-const glassStyle = {
-  background: 'rgba(255,255,255,0.60)',
-  backdropFilter: 'blur(24px) saturate(200%)',
-  WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-  border: '1px solid rgba(0,0,0,0.09)',
-};
 
 export default function DailyModules({ todayMeals = [], profile = {} }) {
   const queryClient = useQueryClient();

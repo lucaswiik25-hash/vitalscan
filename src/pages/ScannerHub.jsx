@@ -285,6 +285,7 @@ function RecentScans() {
     background: 'rgba(255,255,255,0.65)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(0, 0, 0, 0.13)',
   };
 
   return (
@@ -307,7 +308,7 @@ function RecentScans() {
           background: 'rgba(255,255,255,0.35)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.6)',
+          border: '1px solid rgba(0, 0, 0, 0.13)',
           boxShadow: '0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
         }}>
         {tabs.map((t, i) => (

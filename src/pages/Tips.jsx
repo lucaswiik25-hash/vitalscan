@@ -40,6 +40,7 @@ export default function Tips() {
               background: activeTab === t.key ? '#1a2e1a' : '#fff',
               color: activeTab === t.key ? '#fff' : '#4a5568',
               fontSize: 13, fontWeight: 600,
+              border: activeTab === t.key ? '1px solid #1a2e1a' : '1px solid rgba(0, 0, 0, 0.13)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
               transition: 'all 0.2s',
             }}

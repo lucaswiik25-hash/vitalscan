@@ -230,7 +230,8 @@ Do not include products containing the user's allergens.`,
       <div className="px-5 mb-4 flex gap-2 overflow-x-auto no-scrollbar">
         {CATS.map(c => (
           <button key={c} onClick={() => setCat(c)} style={{
-            padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+            padding: '8px 16px', borderRadius: 20, cursor: 'pointer',
+            border: cat === c ? '1px solid #1a2e1a' : '1px solid rgba(0, 0, 0, 0.13)',
             background: cat === c ? '#1a2e1a' : '#fff',
             color: cat === c ? '#fff' : '#4a5568',
             fontSize: 13, fontWeight: 600, flexShrink: 0,
@@ -255,7 +256,7 @@ Do not include products containing the user's allergens.`,
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                 onClick={() => setSelected(p)}
                 className="cursor-pointer active:scale-[0.97] transition-transform"
-                style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.09)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+                style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0, 0, 0, 0.13)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
                 <UnsplashImage query={`${p.brand} ${p.product_type} skincare`} fallbackEmoji="✨" height={140} />
                 <div style={{ padding: '10px 12px 12px' }}>
                   <p style={{ fontSize: 11, color: '#7b9bd1', fontWeight: 600, marginBottom: 2 }}>{p.brand}</p>

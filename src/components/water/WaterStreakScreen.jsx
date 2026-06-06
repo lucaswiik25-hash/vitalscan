@@ -3,11 +3,14 @@ import { motion } from 'framer-motion';
 import { X, Flame, Trophy, Target, Zap } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
+import { MODULE_BORDER, moduleCardShadow } from '@/lib/cardStyles';
+
 const CARD = {
   background: '#FFFFFF',
   borderRadius: 28,
   padding: 20,
-  boxShadow: '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+  border: MODULE_BORDER,
+  boxShadow: moduleCardShadow,
 };
 
 const MILESTONE_TINTS = {
@@ -79,7 +82,7 @@ export default function WaterStreakScreen({ allLogs, dailyTarget, onClose }) {
         <h2 style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>Streak</h2>
         <button onClick={onClose}
           className="w-10 h-10 rounded-[14px] flex items-center justify-center"
-          style={{ background: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          style={{ background: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: MODULE_BORDER }}>
           <X className="w-5 h-5" style={{ color: '#6b7280' }} />
         </button>
       </div>

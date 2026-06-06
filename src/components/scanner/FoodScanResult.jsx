@@ -246,7 +246,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
           { label: 'Sodium', val: `${sodium}mg`, icon: Zap, bg: '#f5f3ff', color: '#8b5cf6' },
           { label: 'Fiber', val: `${fiber}g`, icon: Leaf, bg: '#f0fdf4', color: '#16a34a' },
         ].map(({ label, val, icon: Icon, bg, color }) => (
-          <div key={label} className="bg-white rounded-[18px] p-3 flex flex-col gap-2" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div key={label} className="bg-white rounded-[18px] p-3 flex flex-col gap-2" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
             <IconModule icon={Icon} bg={bg} color={color} size={36} />
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
@@ -256,7 +256,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         ))}
       </div>
       {result.diet_reason || result.appearance_reason ? (
-        <div className="bg-white rounded-[18px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="bg-white rounded-[18px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <p className="text-xs text-gray-500 leading-relaxed">{result.diet_reason || result.appearance_reason}</p>
         </div>
       ) : null}
@@ -267,7 +267,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
   const vitamins = currentResult.vitamins || [];
   const slide1 = (
     <div className="pb-4 space-y-3 fade-in-up">
-      <div className="bg-white rounded-[22px] p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}>
+      <div className="bg-white rounded-[22px] p-5" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid rgba(0,0,0,0.08)' }}>
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Macronutrients</p>
         <div className="flex justify-around">
           <MacroRing icon={Bean} iconBg="#eff6ff" iconColor="#3b82f6" label="Protein" value={prot} max={Math.max(prot * 2, 50)} color="#3b82f6" />
@@ -275,7 +275,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
           <MacroRing icon={Droplets} iconBg="#fffbeb" iconColor="#f59e0b" label="Fat" value={fat} max={Math.max(fat * 2, 40)} color="#f59e0b" />
         </div>
       </div>
-      <div className="bg-white rounded-[22px] p-4 space-y-2" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div className="bg-white rounded-[22px] p-4 space-y-2" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
         {[['Calories', `${cal} kcal`], ['Protein', `${prot}g`], ['Carbs', `${carbs}g`], ['Fat', `${fat}g`], ['Sugar', `${sugar}g`], ['Fiber', `${fiber}g`], ['Sodium', `${sodium}mg`]].map(([l, v]) => (
           <div key={l} className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
             <span className="text-xs text-gray-500">{l}</span>
@@ -289,7 +289,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
   // ─── Slide 1b: Vitamins ───────────────────────────────────────────────────────
   const slideVitamins = (
     <div className="pb-4 space-y-3 fade-in-up">
-      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Vitamins & Minerals</p>
         {vitamins.length > 0 ? (
           <div className="grid grid-cols-2 gap-2">
@@ -336,7 +336,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         );
       })()}
       {/* Metrics list — single shared card */}
-      <div className="bg-white rounded-[22px] overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div className="bg-white rounded-[22px] overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
         {[
           { label: 'Bloat Risk', value: result.bloat_risk, note: result.bloat_reason },
           { label: 'Glycemic Impact', value: result.glycemic_impact, note: result.glycemic_reason },
@@ -359,7 +359,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         ))}
       </div>
       {result.tomorrow_face && (
-        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <IconModule icon={Activity} bg="#f5f3ff" color="#8b5cf6" size={36} />
@@ -379,7 +379,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
     </div>
   ) : (
     <div className="pb-4 space-y-3 fade-in-up">
-      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Body & Diet</p>
         <Row label="Diet Compatibility" value={result.diet_compatibility} note={result.diet_reason} />
         <Row label="Bloat Risk" value={result.bloat_risk} note={result.bloat_reason} />
@@ -389,7 +389,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         <Row label="Processing" value={result.processing_level} />
       </div>
       {result.allergens?.length > 0 && (
-        <div className="bg-red-50 rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+        <div className="bg-red-50 rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: '1px solid rgba(220,38,38,0.12)' }}>
           <div className="flex items-center gap-2 mb-2">
             <IconModule icon={Wind} bg="#fee2e2" color="#dc2626" size={32} />
             <p className="text-xs font-bold text-red-700">Allergens Detected</p>
@@ -403,7 +403,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
   // ─── Slide 3: Appearance / Skin ──────────────────────────────────────────────
   const slide3 = result.is_appearance_mode ? (
     <div className="pb-4 space-y-3 fade-in-up">
-      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Macros Detail</p>
         {[['Calories', `${cal} kcal`], ['Protein', `${prot}g`], ['Carbs', `${carbs}g`], ['Fat', `${fat}g`], ['Sugar', `${sugar}g`], ['Sodium', `${sodium}mg`]].map(([l, v]) => (
           <div key={l} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
@@ -413,7 +413,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         ))}
       </div>
       {result.processing_level && (
-        <div className="flex items-center justify-between bg-white rounded-[18px] px-4 py-3" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="flex items-center justify-between bg-white rounded-[18px] px-4 py-3" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <span className="text-xs text-gray-500">Processing Level</span><PillBadge value={result.processing_level} />
         </div>
       )}
@@ -421,7 +421,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
   ) : (
     <div className="pb-4 space-y-3 fade-in-up">
       {result.appearance_tip && (
-        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div className="flex items-center gap-3 mb-2">
             <IconModule icon={Dna} bg="#fdf4ff" color="#c026d3" size={36} />
             <p className="text-xs font-bold text-gray-700">Appearance Tip</p>
@@ -430,7 +430,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         </div>
       )}
       {result.tomorrow_face && (
-        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <IconModule icon={Activity} bg="#f5f3ff" color="#8b5cf6" size={36} />
@@ -448,7 +448,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
         </div>
       )}
       {result.hormone_impact && (
-        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="bg-white rounded-[22px] p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div className="flex items-center gap-3 mb-2">
             <IconModule icon={Zap} bg="#fffbeb" color="#f59e0b" size={36} />
             <p className="text-xs font-bold text-gray-700">Hormone Impact</p>
@@ -476,7 +476,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
       {parsedIngredients.length > 0 && !ingredientResult && (
         <div className="space-y-1.5 mb-3">
           {parsedIngredients.map((name, i) => (
-            <div key={i} className="bg-white rounded-[14px] px-4 py-2.5" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+            <div key={i} className="bg-white rounded-[14px] px-4 py-2.5" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
               <span className="text-sm font-medium text-gray-800">{name}</span>
             </div>
           ))}
@@ -503,7 +503,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
               ing.is_artificial_color && 'Artificial Color', ing.is_whole_food && 'Whole Food',
             ].filter(Boolean);
             return (
-              <div key={i} className="bg-white rounded-[18px] p-3" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+              <div key={i} className="bg-white rounded-[18px] p-3" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}>
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-xs font-semibold text-gray-800">{ing.name}</p>
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: sc.bg, color: sc.text }}>{ing.safety_rating}</span>

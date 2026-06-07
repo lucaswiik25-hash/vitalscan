@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { calculateTargets } from '../lib/calculateTargets';
 
 const DIET_OPTIONS = [
   { id: 'none', label: 'No restrictions' },
@@ -63,16 +64,22 @@ export default function Settings() {
     setEditingProfile(true);
   };
 
+  const recalculateAndSave = async (updates) => {
+    const merged = { ...profile, ...updates };
+    const targets = calculateTargets(merged);
+    await base44.entities.UserProfile.update(profile.id, { ...updates, ...targets });
+    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+  };
+
   const saveEdit = async () => {
     if (!profile.id) return;
     setSaving(true);
-    await base44.entities.UserProfile.update(profile.id, {
+    await recalculateAndSave({
       name: editForm.name,
       age: Number(editForm.age),
       weight: Number(editForm.weight),
       height: Number(editForm.height),
     });
-    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     setSaving(false);
     setEditingProfile(false);
   };
@@ -80,8 +87,13 @@ export default function Settings() {
   const updateField = async (field, value) => {
     if (!profile.id) return;
     setSaving(true);
-    await base44.entities.UserProfile.update(profile.id, { [field]: value });
-    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    const needsRecalc = ['goal', 'weight', 'activity_level', 'age', 'height', 'sex'].includes(field);
+    if (needsRecalc) {
+      await recalculateAndSave({ [field]: value });
+    } else {
+      await base44.entities.UserProfile.update(profile.id, { [field]: value });
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
     setSaving(false);
   };
 

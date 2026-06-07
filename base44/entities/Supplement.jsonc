@@ -40,6 +40,18 @@
     "last_taken_date": {
       "type": "string",
       "format": "date"
+    },
+    "times_per_day": {
+      "type": "number",
+      "default": 1
+    },
+    "doses_taken_today": {
+      "type": "number",
+      "default": 0
+    },
+    "is_medication": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

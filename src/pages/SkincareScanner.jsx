@@ -5,6 +5,7 @@ import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import SkincareVerdictPage from '../components/scanner/SkincareVerdictPage';
+import { parseApiResponse } from '../lib/parseApiResponse';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -92,7 +93,7 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
           },
         },
       });
-      setStep1Data({ ...(rraw.data?.result || rraw.data || {}), image_url: file_url });
+      setStep1Data({ ...parseApiResponse(rraw), image_url: file_url });
       setStep(2);
     } catch (err) {
       alert('Analysis failed: ' + (err?.message || 'Unknown error'));
@@ -113,68 +114,52 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
 
   const analyseStep2WithFile = async (file) => {
     setIsAnalyzing(true);
-    setAnalyzingMsg('Reading ingredients...');
+    setAnalyzingMsg('Analyzing ingredients & safety...');
     try {
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const rraw = await base44.functions.invoke('analyzeWithClaude', {
+        image_url: file_url,
+        prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type || 'skincare product'}).
 
-    // ── Phase 1: ingredients only (fast, small payload) ──────────────────────
-    const r1 = await base44.functions.invoke('analyzeWithClaude', {
-      image_url: file_url,
-      prompt: `You are a cosmetic ingredient toxicologist. This is the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}".
-  Read EVERY ingredient visible. For each ingredient return: name, inci_name, skin_effect (one sentence), body_benefit (brief positive or empty), body_risk (brief risk or empty), safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant (boolean), is_allergen (boolean), is_comedogenic (boolean), comedogenic_rating (0-5), is_hormone_disruptor (boolean), has_fragrance (boolean), is_active_beneficial (boolean). NEVER fail.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          ingredients: { type: 'array', items: { type: 'object' } },
-        },
-      },
-    });
-    const phase1 = r1.data?.result || r1.data || {};
-    const partialResult = { ...step1Data, ingredients: phase1.ingredients || [], label_image_url: file_url, _loadingDetails: true };
-    setResult(partialResult);
-    setIsAnalyzing(false);
+Read EVERY ingredient visible on the label. Return a COMPLETE analysis:
 
-    // ── Phase 2: full safety analysis (runs in background) ───────────────────
-    base44.functions.invoke('analyzeWithClaude', {
-      image_url: file_url,
-      prompt: `You are a cosmetic dermatologist. This is the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type}).
-  Based on the full ingredient list, return:
-  safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason (2 sentences), skin_type_suitability (e.g. "All skin types" / "Oily skin"), eye_area_safe (boolean), pregnancy_safe (boolean), pregnancy_note, long_term_summary (2-3 sentences), top_beneficial (array of 3 ingredient name strings), top_concerning (array of 3 strings).
-  Also return usage instructions: routine_step (e.g. "Evening only" / "Morning and evening" / "Both AM & PM"), application_method (1-2 sentences on how much and how to apply), frequency (e.g. "Daily" / "2-3x per week"), apply_after (e.g. "Apply after toner, before moisturiser"), do_not_combine (e.g. "Do not layer with Retinol or AHAs on same night"), results_timeline (e.g. "4-8 weeks for visible improvement"), routine_steps (array of 4-5 numbered step strings for a complete routine card).
-  NEVER fail.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' },
-          skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' },
-          pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' },
-          top_beneficial: { type: 'array', items: { type: 'string' } },
-          top_concerning: { type: 'array', items: { type: 'string' } },
-          routine_step: { type: 'string' }, application_method: { type: 'string' },
-          frequency: { type: 'string' }, apply_after: { type: 'string' },
-          do_not_combine: { type: 'string' }, results_timeline: { type: 'string' },
-          routine_steps: { type: 'array', items: { type: 'string' } },
+INGREDIENTS: array of every ingredient with: name, inci_name, skin_effect (one sentence), body_benefit, body_risk, safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating (0-5), is_hormone_disruptor, has_fragrance, is_active_beneficial.
+
+SAFETY: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason (2 sentences), skin_type_suitability, eye_area_safe, pregnancy_safe, pregnancy_note, long_term_summary, top_beneficial (3 ingredient names), top_concerning (3 strings).
+
+USAGE: routine_step, application_method (how much and how to apply), frequency, apply_after, do_not_combine, results_timeline, routine_steps (4-5 numbered steps like "1. Cleanse: Start with a clean face").
+
+NEVER fail. Always return at least 3 ingredients if any are visible.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            ingredients: { type: 'array', items: { type: 'object' } },
+            safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' },
+            skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' },
+            pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' },
+            top_beneficial: { type: 'array', items: { type: 'string' } },
+            top_concerning: { type: 'array', items: { type: 'string' } },
+            routine_step: { type: 'string' }, application_method: { type: 'string' },
+            frequency: { type: 'string' }, apply_after: { type: 'string' },
+            do_not_combine: { type: 'string' }, results_timeline: { type: 'string' },
+            routine_steps: { type: 'array', items: { type: 'string' } },
+          },
         },
-      },
-    }).then(r2 => {
-      const phase2 = r2.data?.result || r2.data || {};
-      setResult(prev => {
-        const combined = { ...prev, ...phase2, _loadingDetails: false };
-        base44.entities.ScanResult.create({
-          type: 'skincare',
-          date: new Date().toISOString().split('T')[0],
-          image_url: step1Data?.image_url || null,
-          product_name: combined.product_name,
-          brand: combined.brand || null,
-          safety_score: combined.safety_score || null,
-          verdict: combined.verdict || null,
-          result_data: combined,
-        }).catch(() => {});
-        return combined;
       });
-    }).catch(() => {
-      setResult(prev => ({ ...prev, _loadingDetails: false }));
-    });
+      const analysis = parseApiResponse(rraw);
+      const combined = { ...step1Data, ...analysis, ingredients: analysis.ingredients || [], label_image_url: file_url, _loadingDetails: false };
+      setResult(combined);
+      setIsAnalyzing(false);
+      base44.entities.ScanResult.create({
+        type: 'skincare',
+        date: new Date().toISOString().split('T')[0],
+        image_url: step1Data?.image_url || null,
+        product_name: combined.product_name,
+        brand: combined.brand || null,
+        safety_score: combined.safety_score || null,
+        verdict: combined.verdict || null,
+        result_data: combined,
+      }).catch(() => {});
     } catch (err) {
       alert('Analysis failed: ' + (err?.message || 'Unknown error'));
       setIsAnalyzing(false);

@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple, Pencil } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple, Pencil, Share2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { parseApiResponse } from '@/lib/parseApiResponse';
 
 // ─── Icon Module (replaces all emojis) ───────────────────────────────────────
 function IconModule({ icon: Icon, bg, color, size = 44 }) {
@@ -64,7 +66,7 @@ function VerdictBadge({ result }) {
 }
 
 // ─── Sticky FAB with expandable actions ──────────────────────────────────────
-function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother, onEdit }) {
+function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother, onEdit, onShare }) {
   const [open, setOpen] = useState(false);
 
   const actions = [
@@ -72,6 +74,7 @@ function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother, onEdit }) {
     { label: 'Analysis Only', icon: BarChart2, color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', onClick: onLogAnalysisOnly },
     { label: 'Rescan', icon: FlaskConical, color: '#9333ea', bg: '#faf5ff', border: '#e9d5ff', onClick: onScanAnother },
     { label: 'Edit', icon: Pencil, color: '#374151', bg: '#f3f4f6', border: '#e5e7eb', onClick: onEdit },
+    { label: 'Share', icon: Share2, color: '#0ea5e9', bg: '#f0f9ff', border: '#bae6fd', onClick: onShare },
   ];
 
   return (
@@ -146,7 +149,7 @@ function MacroRing({ icon: Icon, iconBg, iconColor, label, value, max, color }) 
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onScanAnother, onBack }) {
+export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onScanAnother, onBack, onResultChange }) {
   const [slide, setSlide] = useState(0);
   const [ingredientResult, setIngredientResult] = useState(null);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
@@ -154,42 +157,115 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   const [editNote, setEditNote] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editedResult, setEditedResult] = useState(null);
+  const [sharing, setSharing] = useState(false);
   const touchStartX = useRef(null);
+  const shareRef = useRef(null);
 
   const currentResult = editedResult || result;
+
+  const applyUpdatedResult = (updated) => {
+    const merged = { ...(editedResult || result), ...updated };
+    setEditedResult(merged);
+    onResultChange?.(merged);
+    setIngredientResult(null);
+    setSlide(0);
+  };
 
   const handleEdit = async () => {
     if (!editNote.trim()) return;
     setEditLoading(true);
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a nutritionist. A food was scanned with these values: name="${currentResult.name}", calories=${currentResult.calories}, protein=${currentResult.protein}, carbs=${currentResult.carbs}, fat=${currentResult.fat}, fiber=${currentResult.fiber}, sugar=${currentResult.sugar}, sodium=${currentResult.sodium}, serving_size="${currentResult.serving_size}".
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a nutritionist re-analyzing a scanned meal after user corrections.
 
-The user wants to correct this: "${editNote}"
+CURRENT SCAN DATA:
+${JSON.stringify({
+  name: currentResult.name,
+  serving_size: currentResult.serving_size,
+  calories: currentResult.calories,
+  protein: currentResult.protein,
+  carbs: currentResult.carbs,
+  fat: currentResult.fat,
+  fiber: currentResult.fiber,
+  sugar: currentResult.sugar,
+  sodium: currentResult.sodium,
+  ingredients_text: currentResult.ingredients_text,
+  diet_compatibility: currentResult.diet_compatibility,
+  diet_reason: currentResult.diet_reason,
+  appearance_impact: currentResult.appearance_impact,
+  appearance_reason: currentResult.appearance_reason,
+  bloat_risk: currentResult.bloat_risk,
+  bloat_reason: currentResult.bloat_reason,
+  glycemic_impact: currentResult.glycemic_impact,
+  glycemic_reason: currentResult.glycemic_reason,
+  health_score: currentResult.health_score,
+  vitamins: currentResult.vitamins,
+})}
 
-Apply the user's corrections and return updated values. Return ALL fields even if unchanged. Be precise with the numbers.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          calories: { type: 'number' },
-          protein: { type: 'number' },
-          carbs: { type: 'number' },
-          fat: { type: 'number' },
-          fiber: { type: 'number' },
-          sugar: { type: 'number' },
-          sodium: { type: 'number' },
-          serving_size: { type: 'string' },
+USER CORRECTION: "${editNote}"
+
+Re-analyze the ENTIRE meal based on the correction. If user says an ingredient is NOT present (e.g. "no blueberries"), remove it from ingredients_text and recalculate ALL macros, vitamins, and health analysis accordingly. Update name only if needed. Return complete updated analysis.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            serving_size: { type: 'string' },
+            calories: { type: 'number' },
+            protein: { type: 'number' },
+            carbs: { type: 'number' },
+            fat: { type: 'number' },
+            fiber: { type: 'number' },
+            sugar: { type: 'number' },
+            sodium: { type: 'number' },
+            ingredients_text: { type: 'string' },
+            diet_compatibility: { type: 'string' },
+            diet_reason: { type: 'string' },
+            appearance_impact: { type: 'string' },
+            appearance_reason: { type: 'string' },
+            bloat_risk: { type: 'string' },
+            bloat_reason: { type: 'string' },
+            glycemic_impact: { type: 'string' },
+            glycemic_reason: { type: 'string' },
+            health_score: { type: 'number' },
+            vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } },
+          },
+          required: ['name', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'],
         },
-        required: ['name', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'],
-      },
-    });
-    const parsed = res?.result || res;
-    if (parsed && typeof parsed === 'object') {
-      setEditedResult(prev => ({ ...(prev || currentResult), ...parsed }));
+      });
+      const parsed = parseApiResponse(res);
+      if (parsed && typeof parsed === 'object') {
+        applyUpdatedResult(parsed);
+      }
+      setEditNote('');
+      setShowEditSheet(false);
+    } finally {
+      setEditLoading(false);
     }
-    setEditNote('');
-    setShowEditSheet(false);
-    setEditLoading(false);
+  };
+
+  const handleShare = async () => {
+    if (!shareRef.current || sharing) return;
+    setSharing(true);
+    try {
+      const canvas = await html2canvas(shareRef.current, { scale: 2, useCORS: true, backgroundColor: '#f9fafb' });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `${(currentResult.name || 'scan').replace(/\s+/g, '-')}-scan.png`, { type: 'image/png' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ title: currentResult.name, text: `Food scan: ${currentResult.name}`, files: [file] });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = file.name;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        setSharing(false);
+      }, 'image/png');
+    } catch {
+      setSharing(false);
+    }
   };
 
   const verdictColor = { Clean: '#16a34a', 'Mostly Clean': '#22c55e', Mixed: '#ca8a04', 'Mostly Processed': '#ea580c', Avoid: '#dc2626' };
@@ -235,7 +311,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
               <span className="text-5xl font-black text-gray-900">{cal.toLocaleString()}</span>
               <span className="text-base font-semibold text-gray-400 ml-1">kcal</span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">{result.serving_size || 'per serving'}</p>
+            <p className="text-xs text-gray-400 mt-1">{currentResult.serving_size || 'per serving'}</p>
           </div>
           <IconModule icon={Flame} bg="#fef3ed" color="#ea580c" size={56} />
         </div>
@@ -538,6 +614,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
 
   return (
     <motion.div
+      ref={shareRef}
       className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden"
       style={{ maxWidth: 480, margin: '0 auto' }}
       initial={{ opacity: 0 }}
@@ -595,7 +672,7 @@ Apply the user's corrections and return updated values. Return ALL fields even i
       </div>
 
       {/* ── FAB ── */}
-      <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} onEdit={() => setShowEditSheet(true)} />
+      <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} onEdit={() => setShowEditSheet(true)} onShare={handleShare} />
 
       {/* ── Edit bottom sheet ── */}
       {showEditSheet && (

@@ -79,8 +79,9 @@ export default function Exercise() {
     setSaving(true);
     const met = QUICK_EXERCISES.find(e => e.name === form.name)?.met || 5;
     const cal = form.calories_burned || calcCalories(met, weight, form.duration_minutes || 30);
-    await base44.entities.Exercise.create({ ...form, date: today, calories_burned: cal });
+    await base44.entities.Exercise.create({ ...form, date: selectedDate, calories_burned: cal });
     queryClient.invalidateQueries({ queryKey: ['exercises', selectedDate] });
+    queryClient.invalidateQueries({ queryKey: ['exercises', today] });
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
     setShowAdd(false);
     setForm({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
@@ -153,7 +154,7 @@ export default function Exercise() {
               const ringColor = ACCENT;
               return (
                 <div className="relative flex justify-center mb-4">
-                  <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: 'rotate(-90deg)' }}>
+                  <svg key={selectedDate} width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: 'rotate(-90deg)' }}>
                     {/* Track */}
                     <circle cx={CX} cy={CY} r={R} fill="none" stroke={TRACK_COLOR} strokeWidth={STROKE} strokeLinecap="round" />
                     {/* Progress arc */}
@@ -263,7 +264,9 @@ export default function Exercise() {
         {exercises.length === 0 && (
           <div className="rounded-[14px] p-8 text-center glow-card">
             <Dumbbell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">No exercises logged today</p>
+            <p className="text-sm text-gray-400">
+              {selectedDate === today ? 'No exercises logged today' : `No exercises on ${format(new Date(selectedDate), 'MMM d')}`}
+            </p>
           </div>
         )}
       </div>

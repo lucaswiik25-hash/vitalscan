@@ -8,8 +8,12 @@ import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import BarcodeInput from '../components/scanner/BarcodeInput';
+import MealSlotPicker from '../components/shared/MealSlotPicker';
+import SuccessModal from '../components/shared/SuccessModal';
 import { buildCall2Prompt, call2Schema, dietPreamble } from '../lib/dietPrompts';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { parseApiResponse } from '../lib/parseApiResponse';
+import { inferMealTypeFromTime, inferMealTypeFromFood, shouldAskMealSlot } from '../lib/mealClassification';
 
 export default function FoodScanner() {
   const navigate = useNavigate();
@@ -30,6 +34,10 @@ export default function FoodScanner() {
   // Step 2: after front scan, optionally scan full back
   const [frontScanData, setFrontScanData] = useState(null);
   const [showFullBackPrompt, setShowFullBackPrompt] = useState(false);
+  const [showMealSlotPicker, setShowMealSlotPicker] = useState(false);
+  const [pendingLogIt, setPendingLogIt] = useState(true);
+  const [showLogSuccess, setShowLogSuccess] = useState(false);
+  const [loggedMealName, setLoggedMealName] = useState('');
 
   const { profile } = useUserProfile();
   const userName = profile.name || 'there';
@@ -272,7 +280,13 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       });
       vitaminsB = vitResB?.vitamins || [];
     } catch (_) {}
-    const finalResult = { ...enriched, ...(r2braw.data?.result || r2braw.data || {}), vitamins: vitaminsB, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
+    const analysis = parseApiResponse(r2braw);
+    if (!analysis.diet_compatibility && !analysis.appearance_impact && enriched.name?.startsWith('Product ')) {
+      setIsAnalyzing(false);
+      alert('Product not found in barcode database. Try scanning the nutrition label instead.');
+      return;
+    }
+    const finalResult = { ...enriched, ...analysis, vitamins: vitaminsB, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
     setResult(finalResult);
     base44.entities.ScanResult.create({
       type: 'food',
@@ -286,25 +300,40 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
   };
 
   const classifyMealType = async (foodName, timeStr) => {
+    const timeInference = inferMealTypeFromTime();
+    const foodInference = inferMealTypeFromFood(foodName);
     try {
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `A user logged "${foodName}" at ${timeStr}. Based on the food name and time of day, classify this into one of: breakfast, lunch, dinner, snack. Return only the single word.`,
+        prompt: `A user logged "${foodName}" at ${timeStr}. Classify into: breakfast, lunch, dinner, or snack. Also return confidence (0-1) for how certain you are.`,
         response_json_schema: {
           type: 'object',
-          properties: { meal_type: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack'] } }
-        }
+          properties: {
+            meal_type: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack'] },
+            confidence: { type: 'number' },
+          },
+        },
       });
-      return res?.meal_type || 'snack';
+      const parsed = parseApiResponse(res);
+      const llmType = parsed.meal_type || 'snack';
+      const llmConfidence = parsed.confidence ?? 0.5;
+      if (shouldAskMealSlot({ foodInference, timeInference, llmConfidence })) {
+        return { needsPicker: true, meal_type: llmType };
+      }
+      if (foodInference?.confidence >= 0.8) return { needsPicker: false, meal_type: foodInference.meal_type };
+      if (llmConfidence >= 0.85) return { needsPicker: false, meal_type: llmType };
+      if (timeInference.confidence >= 0.7) return { needsPicker: false, meal_type: timeInference.meal_type };
+      return { needsPicker: false, meal_type: llmType };
     } catch (_) {
-      return 'snack';
+      if (foodInference?.confidence >= 0.8) return { needsPicker: false, meal_type: foodInference.meal_type };
+      if (timeInference.confidence >= 0.7) return { needsPicker: false, meal_type: timeInference.meal_type };
+      return { needsPicker: true, meal_type: 'snack' };
     }
   };
 
-  const logMeal = async (logIt = true) => {
+  const saveMeal = async (logIt, meal_type) => {
     if (!result) return;
     const today = format(new Date(), 'yyyy-MM-dd');
     const timeStr = format(new Date(), 'h:mm a');
-    const meal_type = logIt ? await classifyMealType(result.name || 'food', timeStr) : 'snack';
     const mealData = {
       name: result.name || 'Unknown food',
       date: today,
@@ -333,12 +362,37 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     if (result.glycemic_reason) mealData.glycemic_reason = result.glycemic_reason;
     if (result.health_score) mealData.health_score = result.health_score;
     if (result.vitamins?.length) mealData.vitamins = result.vitamins;
-    const created = await base44.entities.Meal.create(mealData);
+    await base44.entities.Meal.create(mealData);
     queryClient.invalidateQueries({ queryKey: ['meals'] });
     queryClient.invalidateQueries({ queryKey: ['allMeals'] });
     queryClient.invalidateQueries({ queryKey: ['todayMeals'] });
-    navigate('/');
-    return created;
+    if (logIt) {
+      setLoggedMealName(mealData.name);
+      setShowLogSuccess(true);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const logMeal = async (logIt = true) => {
+    if (!result) return;
+    if (!logIt) {
+      await saveMeal(false, 'snack');
+      return;
+    }
+    const timeStr = format(new Date(), 'h:mm a');
+    const classification = await classifyMealType(result.name || 'food', timeStr);
+    if (classification.needsPicker) {
+      setPendingLogIt(logIt);
+      setShowMealSlotPicker(true);
+      return;
+    }
+    await saveMeal(logIt, classification.meal_type);
+  };
+
+  const handleMealSlotSelect = async (meal_type) => {
+    setShowMealSlotPicker(false);
+    await saveMeal(pendingLogIt, meal_type);
   };
 
   // "Anything to add" popup — shown right after photo is taken, before analyzing
@@ -386,20 +440,77 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
   // Result screen
   if (result) {
     return (
-      <FoodScanResult
-        result={result}
-        onLog={() => logMeal(true)}
-        onLogAnalysisOnly={() => logMeal(false)}
-        onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); setExtraNotes(''); }}
-        onBack={() => { setResult(null); navigate('/scanner'); }}
-      />
+      <>
+        <FoodScanResult
+          result={result}
+          onResultChange={setResult}
+          onLog={() => logMeal(true)}
+          onLogAnalysisOnly={() => logMeal(false)}
+          onScanAnother={() => { setResult(null); setCapturedImage(null); setCapturedFile(null); setExtraNotes(''); }}
+          onBack={() => { setResult(null); navigate('/scanner'); }}
+        />
+        {showMealSlotPicker && (
+          <MealSlotPicker
+            foodName={result.name || 'this food'}
+            onSelect={handleMealSlotSelect}
+            onClose={() => setShowMealSlotPicker(false)}
+          />
+        )}
+        {showLogSuccess && (
+          <SuccessModal
+            title="Meal Logged!"
+            message={`${loggedMealName} has been saved to your diary.`}
+            onClose={() => { setShowLogSuccess(false); navigate('/'); }}
+          />
+        )}
+      </>
     );
   }
 
 
 
+  // Hidden barcode camera input (used by BarcodeInput modal)
+  const barcodeCameraInput = (
+    <input
+      ref={barcodeInputRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      className="hidden"
+      onChange={async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        e.target.value = '';
+        setShowBarcodeInput(false);
+        setIsAnalyzing(true);
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const r = await base44.functions.invoke('analyzeWithClaude', {
+          image_url: file_url,
+          prompt: 'This image contains a barcode. Read the exact numeric barcode digits printed under the bars. Return ONLY the barcode number digits as a string, nothing else.',
+          response_json_schema: { type: 'object', properties: { barcode_number: { type: 'string' } } },
+        });
+        const barcodeNumber = (parseApiResponse(r).barcode_number || '').replace(/\D/g, '');
+        if (barcodeNumber) {
+          await analyseBarcodeManual(barcodeNumber);
+        } else {
+          setIsAnalyzing(false);
+          setShowBarcodeInput(true);
+        }
+      }}
+    />
+  );
+
   if (showBarcodeInput) {
-    return <BarcodeInput onSubmit={analyseBarcodeManual} onClose={() => setShowBarcodeInput(false)} />;
+    return (
+      <>
+        {barcodeCameraInput}
+        <BarcodeInput
+          onSubmit={analyseBarcodeManual}
+          onClose={() => setShowBarcodeInput(false)}
+          onCameraScan={() => barcodeInputRef.current?.click()}
+        />
+      </>
+    );
   }
 
   // Full-back prompt overlay
@@ -438,36 +549,6 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
   const foodInput = <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileChange(e, 'food')} />;
   const labelInput = <input ref={labelInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileChange(e, 'label')} />;
   const uploadInput = <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'food')} />;
-  // Barcode camera: take photo, AI reads the number, then fetches from OpenFoodFacts
-  const barcodeInput = (
-    <input
-      ref={barcodeInputRef}
-      type="file"
-      accept="image/*"
-      capture="environment"
-      className="hidden"
-      onChange={async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        e.target.value = '';
-        setIsAnalyzing(true);
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        // Use AI to read the barcode number from the image
-        const r = await base44.functions.invoke('analyzeWithClaude', {
-          image_url: file_url,
-          prompt: 'This image contains a barcode. Read the exact numeric barcode digits printed under the bars. Return ONLY the barcode number digits as a string, nothing else.',
-          response_json_schema: { type: 'object', properties: { barcode_number: { type: 'string' } } },
-        });
-        const barcodeNumber = (r.data?.result?.barcode_number || r.data?.barcode_number || '').replace(/\D/g, '');
-        if (barcodeNumber) {
-          await analyseBarcodeManual(barcodeNumber);
-        } else {
-          setIsAnalyzing(false);
-        }
-      }}
-    />
-  );
-
   // ─── Landing page ────────────────────────────────────────────────────────────
   return (
     <FoodScannerLanding
@@ -475,10 +556,10 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       foodInput={foodInput}
       labelInput={labelInput}
       uploadInput={uploadInput}
-      barcodeInput={barcodeInput}
+      barcodeInput={barcodeCameraInput}
       onBack={() => navigate(-1)}
       onCamera={() => cameraInputRef.current?.click()}
-      onBarcode={() => barcodeInputRef.current?.click()}
+      onBarcode={() => { setShowBarcodeInput(true); }}
       onLabel={() => labelInputRef.current?.click()}
       onGallery={() => uploadInputRef.current?.click()}
     />

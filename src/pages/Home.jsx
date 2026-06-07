@@ -10,6 +10,8 @@ import NutriCarousel from '../components/home/NutriCarousel';
 import MealSlotsModule from '../components/home/MealSlotsModule';
 import DayVerdictPage from '../components/home/DayVerdictPage';
 import AllergyBanner from '../components/home/AllergyBanner';
+import SupplementReminderBanner from '../components/home/SupplementReminderBanner';
+import WeeklyReportModal, { useWeeklyReportGate } from '../components/home/WeeklyReportModal';
 import { useUserProfile } from '../hooks/useUserProfile';
 
 const fadeUp = (delay = 0) => ({
@@ -25,8 +27,10 @@ export default function Home() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
+  const [reminderDismissed, setReminderDismissed] = useState(false);
   const touchStartY = useRef(0);
   const containerRef = useRef(null);
+  const { showWeeklyReport, dismissWeeklyReport } = useWeeklyReportGate();
 
   const handleTouchStart = (e) => {
     if (window.scrollY === 0) touchStartY.current = e.touches[0].clientY;
@@ -107,6 +111,7 @@ export default function Home() {
         </div>
       )}
       <motion.div {...fadeUp(0)}><Header streak={profile.streak || 0} /></motion.div>
+      <SupplementReminderBanner dismissed={reminderDismissed} onDismiss={() => setReminderDismissed(true)} />
       {profile.diet_mode === 'allergy_mode' && (
         <motion.div className="mt-3" {...fadeUp(0.1)}>
           <AllergyBanner allergens={profile.allergens || []} />
@@ -133,6 +138,9 @@ export default function Home() {
           profile={profile}
           onClose={() => setSelectedDay(null)}
         />
+      )}
+      {showWeeklyReport && (
+        <WeeklyReportModal profile={profile} onClose={dismissWeeklyReport} />
       )}
     </div>
   );

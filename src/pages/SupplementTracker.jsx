@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -14,6 +14,8 @@ export default function SupplementTracker() {
   const [newName, setNewName] = useState('');
   const [newDose, setNewDose] = useState('');
   const [newTime, setNewTime] = useState('morning');
+  const [newTimesPerDay, setNewTimesPerDay] = useState(1);
+  const [newIsMedication, setNewIsMedication] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
 
@@ -29,29 +31,69 @@ export default function SupplementTracker() {
 
   const { profile } = useUserProfile();
 
+  useEffect(() => {
+    const resetStale = async () => {
+      const stale = supplements.filter(s => s.last_taken_date && s.last_taken_date !== TODAY && (s.taken_today || (s.doses_taken_today || 0) > 0));
+      for (const s of stale) {
+        await base44.entities.Supplement.update(s.id, { taken_today: false, doses_taken_today: 0 });
+      }
+      if (stale.length) queryClient.invalidateQueries({ queryKey: ['supplements'] });
+    };
+    if (supplements.length) resetStale();
+  }, [supplements.length]);
+
+  const resetAddForm = () => {
+    setNewName('');
+    setNewDose('');
+    setNewTime('morning');
+    setNewTimesPerDay(1);
+    setNewIsMedication(false);
+  };
+
   const addSupplement = async () => {
     if (!newName.trim()) return;
     setShowAdd(false);
-    setNewName(''); setNewDose(''); setNewTime('morning');
+    const name = newName.trim();
+    const dose = newDose;
+    const time = newTime;
+    const timesPerDay = newTimesPerDay;
+    const isMedication = newIsMedication;
+    resetAddForm();
     await base44.entities.Supplement.create({
-      name: newName.trim(),
-      dose: newDose,
-      time_of_day: newTime,
+      name,
+      dose,
+      time_of_day: time,
+      times_per_day: timesPerDay,
+      doses_taken_today: 0,
       taken_today: false,
+      is_medication: isMedication,
     });
     queryClient.invalidateQueries({ queryKey: ['supplements'] });
   };
 
   const toggleMutation = useMutation({
-    mutationFn: (sup) => base44.entities.Supplement.update(sup.id, {
-      taken_today: !sup.taken_today,
-      last_taken_date: !sup.taken_today ? TODAY : sup.last_taken_date,
-    }),
+    mutationFn: (sup) => {
+      const timesPerDay = sup.times_per_day || 1;
+      const currentDoses = sup.doses_taken_today || 0;
+      const nextDoses = currentDoses >= timesPerDay ? 0 : currentDoses + 1;
+      return base44.entities.Supplement.update(sup.id, {
+        doses_taken_today: nextDoses,
+        taken_today: nextDoses >= timesPerDay,
+        last_taken_date: nextDoses > 0 ? TODAY : sup.last_taken_date,
+      });
+    },
     onMutate: async (sup) => {
       await queryClient.cancelQueries({ queryKey: ['supplements'] });
       const prev = queryClient.getQueryData(['supplements']);
+      const timesPerDay = sup.times_per_day || 1;
+      const currentDoses = sup.doses_taken_today || 0;
+      const nextDoses = currentDoses >= timesPerDay ? 0 : currentDoses + 1;
       queryClient.setQueryData(['supplements'], (old = []) =>
-        old.map(s => s.id === sup.id ? { ...s, taken_today: !s.taken_today } : s)
+        old.map(s => s.id === sup.id ? {
+          ...s,
+          doses_taken_today: nextDoses,
+          taken_today: nextDoses >= timesPerDay,
+        } : s)
       );
       return { prev };
     },
@@ -154,12 +196,18 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
                     <div key={sup.id} className="flex items-center gap-3">
                       <button onClick={() => toggleTaken(sup)}
                         className="w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shrink-0"
-                        style={{ borderColor: sup.taken_today ? '#6CC5A0' : 'hsl(var(--border))', background: sup.taken_today ? '#6CC5A0' : 'transparent' }}>
+                        style={{ borderColor: (sup.doses_taken_today || 0) > 0 ? '#6CC5A0' : 'hsl(var(--border))', background: sup.taken_today ? '#6CC5A0' : (sup.doses_taken_today || 0) > 0 ? 'rgba(108,197,160,0.25)' : 'transparent' }}>
                         {sup.taken_today && <Check className="w-3.5 h-3.5 text-white" />}
+                        {!sup.taken_today && (sup.doses_taken_today || 0) > 0 && (
+                          <span className="text-[10px] font-bold" style={{ color: '#6CC5A0' }}>{sup.doses_taken_today}</span>
+                        )}
                       </button>
                       <div className="flex-1">
                         <p className={`text-sm font-semibold ${sup.taken_today ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{sup.name}</p>
-                        {sup.dose && <p className="text-xs text-muted-foreground">{sup.dose}</p>}
+                        <p className="text-xs text-muted-foreground">
+                          {sup.dose}{sup.times_per_day > 1 ? ` · ${sup.doses_taken_today || 0}/${sup.times_per_day} doses` : ''}
+                          {sup.is_medication ? ' · Medication' : ''}
+                        </p>
                       </div>
                       <button onClick={() => deleteSup(sup.id)} className="w-7 h-7 flex items-center justify-center text-muted-foreground/40 hover:text-destructive">
                         <Trash2 className="w-3.5 h-3.5" />
@@ -256,7 +304,18 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
             {/* Fixed header */}
             <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
               <h3 className="text-lg font-bold text-foreground">Add Supplement</h3>
-              <button onClick={() => setShowAdd(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={addSupplement}
+                  disabled={!newName.trim()}
+                  className="w-9 h-9 rounded-full bg-foreground flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
+                >
+                  <Plus className="w-5 h-5 text-white" />
+                </button>
+                <button onClick={() => { setShowAdd(false); resetAddForm(); }}>
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
             </div>
 
             {/* Scrollable content */}
@@ -303,24 +362,43 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
                 <input value={newDose} onChange={e => setNewDose(e.target.value)} placeholder="Dose (e.g. 500mg, 1 capsule)"
                   className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground" />
               </div>
-              <div className="flex gap-2">
-                {Object.entries(timeLabel).map(([val, lbl]) => (
-                  <button key={val} onClick={() => setNewTime(val)}
-                    className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-                    style={{ background: newTime === val ? '#1a1a1a' : 'hsl(var(--secondary))', color: newTime === val ? 'white' : 'hsl(var(--foreground))' }}>
-                    {lbl}
-                  </button>
-                ))}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Time of day</p>
+                <div className="flex gap-2">
+                  {Object.entries(timeLabel).map(([val, lbl]) => (
+                    <button key={val} onClick={() => setNewTime(val)}
+                      className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                      style={{ background: newTime === val ? '#1a1a1a' : 'hsl(var(--secondary))', color: newTime === val ? 'white' : 'hsl(var(--foreground))' }}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Fixed footer button */}
-            <div className="px-5 pt-3 pb-10 shrink-0">
-              <button onClick={addSupplement}
-                className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-sm active:scale-95 transition-transform">
-                Add Supplement
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Times per day</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((n) => (
+                    <button key={n} onClick={() => setNewTimesPerDay(n)}
+                      className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                      style={{ background: newTimesPerDay === n ? '#1a1a1a' : 'hsl(var(--secondary))', color: newTimesPerDay === n ? 'white' : 'hsl(var(--foreground))' }}>
+                      {n}x daily
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={() => setNewIsMedication(!newIsMedication)}
+                className="w-full py-3 rounded-xl text-xs font-semibold border transition-all"
+                style={{
+                  background: newIsMedication ? '#fef2f2' : 'hsl(var(--secondary))',
+                  borderColor: newIsMedication ? '#fecaca' : 'hsl(var(--border))',
+                  color: newIsMedication ? '#dc2626' : 'hsl(var(--foreground))',
+                }}
+              >
+                {newIsMedication ? '✓ Important medication' : 'Mark as important medication'}
               </button>
             </div>
+            <div className="pb-8 shrink-0" />
           </motion.div>
         </div>
       )}

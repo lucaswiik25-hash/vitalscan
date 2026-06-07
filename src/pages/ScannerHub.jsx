@@ -231,6 +231,7 @@ function RecentScans() {
   const touchStartY = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pullDelta, setPullDelta] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: scans = [] } = useQuery({
     queryKey: ['scanResults'],
@@ -262,7 +263,13 @@ function RecentScans() {
   };
 
   const tabs = ['food', 'skincare', 'supplement'];
-  const filtered = scans.filter(s => s.type === tabs[activeTab]);
+  const filtered = scans
+    .filter(s => s.type === tabs[activeTab])
+    .filter(s => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (s.product_name || '').toLowerCase().includes(q) || (s.brand || '').toLowerCase().includes(q);
+    });
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -303,6 +310,13 @@ function RecentScans() {
         </div>
       )}
       <h2 className="text-sm font-bold text-foreground mb-3">Recent Scans</h2>
+      <input
+        type="search"
+        value={searchQuery}
+        onChange={e => setSearchQuery(e.target.value)}
+        placeholder="Search by food or product name..."
+        className="w-full mb-3 h-10 rounded-xl border border-border bg-white/60 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
+      />
       <div className="flex gap-1 mb-3 rounded-2xl p-1"
         style={{
           background: 'rgba(255,255,255,0.35)',

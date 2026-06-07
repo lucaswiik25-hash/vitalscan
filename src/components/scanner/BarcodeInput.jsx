@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Barcode, Search } from 'lucide-react';
+import { X, Barcode, Search, Camera } from 'lucide-react';
 
-export default function BarcodeInput({ onSubmit, onClose }) {
+export default function BarcodeInput({ onSubmit, onClose, onCameraScan }) {
   const [value, setValue] = useState('');
   const inputRef = useRef(null);
 
@@ -51,8 +51,17 @@ export default function BarcodeInput({ onSubmit, onClose }) {
             <Search className="w-5 h-5 text-white" />
           </button>
         </div>
+        {onCameraScan && (
+          <button
+            onClick={() => { onClose(); onCameraScan(); }}
+            className="w-full mt-4 h-12 rounded-2xl border border-gray-200 flex items-center justify-center gap-2 text-sm font-semibold text-gray-700"
+          >
+            <Camera className="w-4 h-4" />
+            Scan barcode with camera
+          </button>
+        )}
         <p className="text-xs text-gray-400 mt-3 text-center">
-          Scan with your camera or type the number under the barcode
+          Or type the number printed under the barcode
         </p>
       </div>
     </div>

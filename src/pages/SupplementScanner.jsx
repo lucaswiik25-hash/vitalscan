@@ -5,6 +5,7 @@ import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import SupplementVerdictPage from '../components/scanner/SupplementVerdictPage';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { parseApiResponse } from '../lib/parseApiResponse';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -90,7 +91,7 @@ Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule
         },
       },
     });
-    setStep1Data({ ...(rraw.data?.result || rraw.data || {}), image_url: file_url });
+    setStep1Data({ ...parseApiResponse(rraw), image_url: file_url });
     setIsAnalyzing(false);
     setStep(2);
     setS1File(null);
@@ -129,7 +130,7 @@ Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 we
         },
       },
     });
-    const combined = { ...step1Data, ...(rraw.data?.result || rraw.data || {}) };
+    const combined = { ...step1Data, ...parseApiResponse(rraw) };
     setResult(combined);
     base44.entities.ScanResult.create({
       type: 'supplement',

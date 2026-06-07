@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
 
 const MEALS = [
   { key: 'breakfast', label: 'Breakfast', emoji: '☕', targetFraction: 0.25 },
@@ -11,16 +11,21 @@ const MEALS = [
 ];
 
 function MealDetailPanel({ meal, items, onClose }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50">
-      <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} />
-      <motion.div
-        className="absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden"
+      <div
+        className={`bottom-sheet-backdrop absolute inset-0 bg-black/40 backdrop-blur-sm ${visible ? 'is-visible' : ''}`}
+        onClick={onClose}
+      />
+      <div
+        className={`bottom-sheet-panel absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden ${visible ? 'is-visible' : ''}`}
         style={{ top: 0, borderRadius: '24px 24px 0 0' }}
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+      >
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
@@ -78,7 +83,51 @@ function MealDetailPanel({ meal, items, onClose }) {
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function MealSlotRow({ meal, items, target, onOpen, onAdd }) {
+  const eaten = items.reduce((s, m) => s + Math.round(m.calories || 0), 0);
+  const { display, animClass } = useAnimatedCounter(eaten);
+  const [flash, setFlash] = useState(false);
+  const prevEaten = React.useRef(eaten);
+
+  useEffect(() => {
+    if (eaten > prevEaten.current && prevEaten.current >= 0) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 700);
+      prevEaten.current = eaten;
+      return () => clearTimeout(t);
+    }
+    prevEaten.current = eaten;
+  }, [eaten]);
+
+  return (
+    <div
+      className={`flex items-center px-4 py-4 gap-4 active:bg-gray-50 transition-colors cursor-pointer ${flash ? 'meal-slot-flash' : ''}`}
+      onClick={onOpen}
+    >
+      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-2xl"
+        style={{ border: '3px solid #e5e7eb' }}>
+        {meal.emoji}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1">
+          <span className="text-base font-bold text-gray-900">{meal.label}</span>
+          <span className="text-base text-gray-500">→</span>
+        </div>
+        <p className="text-sm text-gray-400 overflow-hidden">
+          <span className={`inline-block ${animClass}`}>{display}</span> / {target} kcal
+        </p>
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onAdd(e); }}
+        className="press-scale w-11 h-11 rounded-full bg-gray-900 flex items-center justify-center shrink-0"
+      >
+        <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
+      </button>
     </div>
   );
 }
@@ -99,54 +148,31 @@ export default function MealSlotsModule({ todayMeals = [], profile = {} }) {
         <div className="bg-white rounded-[20px] overflow-hidden glow-card">
           {MEALS.map((meal, idx) => {
             const items = todayMeals.filter(m => (m.meal_type || 'snack') === meal.key);
-            const eaten = items.reduce((s, m) => s + Math.round(m.calories || 0), 0);
             const target = Math.round(totalCalTarget * meal.targetFraction);
 
             return (
               <React.Fragment key={meal.key}>
                 {idx > 0 && <div className="h-px bg-gray-100 mx-4" />}
-                <div
-                  className="flex items-center px-4 py-4 gap-4 active:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => setOpenMeal(meal)}
-                >
-                  {/* Emoji circle */}
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-2xl"
-                    style={{ border: '3px solid #e5e7eb' }}>
-                    {meal.emoji}
-                  </div>
-
-                  {/* Label + calories */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-base font-bold text-gray-900">{meal.label}</span>
-                      <span className="text-base text-gray-500">→</span>
-                    </div>
-                    <p className="text-sm text-gray-400">{eaten} / {target} kcal</p>
-                  </div>
-
-                  {/* Plus button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); navigate('/food-scanner'); }}
-                    className="w-11 h-11 rounded-full bg-gray-900 flex items-center justify-center shrink-0 active:scale-90 transition-transform"
-                  >
-                    <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
-                  </button>
-                </div>
+                <MealSlotRow
+                  meal={meal}
+                  items={items}
+                  target={target}
+                  onOpen={() => setOpenMeal(meal)}
+                  onAdd={(e) => { e.stopPropagation(); navigate('/food-scanner'); }}
+                />
               </React.Fragment>
             );
           })}
         </div>
       </div>
 
-      <AnimatePresence>
-        {openMeal && (
-          <MealDetailPanel
-            meal={openMeal}
-            items={todayMeals.filter(m => (m.meal_type || 'snack') === openMeal.key)}
-            onClose={() => setOpenMeal(null)}
-          />
-        )}
-      </AnimatePresence>
+      {openMeal && (
+        <MealDetailPanel
+          meal={openMeal}
+          items={todayMeals.filter(m => (m.meal_type || 'snack') === openMeal.key)}
+          onClose={() => setOpenMeal(null)}
+        />
+      )}
     </>
   );
 }

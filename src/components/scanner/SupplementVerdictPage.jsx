@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import ProductVerdictLayout, {
   THEME,
   SectionHeading,
@@ -130,6 +129,7 @@ export default function SupplementVerdictPage({ result, onBack }) {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       >
+        <div key={activeTab} className="tab-content-enter">
         {activeTab === 'details' && (
           <div>
             {result?.quality_score != null && <ScoreDisplay score={result.quality_score} label={vc.label} />}
@@ -220,18 +220,16 @@ export default function SupplementVerdictPage({ result, onBack }) {
             )}
           </div>
         )}
+        </div>
       </ProductVerdictLayout>
 
-      <AnimatePresence>
-        {selectedIngredient && (
-          <IngredientDetailModal
-            key="ingredient-modal"
-            ingredient={selectedIngredient}
-            onClose={() => setSelectedIngredient(null)}
-            benefitsLabel="Body Effects"
-          />
-        )}
-      </AnimatePresence>
+      {selectedIngredient && (
+        <IngredientDetailModal
+          ingredient={selectedIngredient}
+          onClose={() => setSelectedIngredient(null)}
+          benefitsLabel="Body Effects"
+        />
+      )}
     </>
   );
 }

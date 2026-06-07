@@ -1,21 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
-import { motion } from 'framer-motion';
 import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
+import { useCountUp } from '../hooks/useCountUp';
+import { animCard } from '../lib/animHelpers';
 
 const ACCENT = '#1A1814';
 const TRACK_COLOR = '#FFFFFF';
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 function getMondayIndex(date) { const d = date.getDay(); return d === 0 ? 6 : d - 1; }
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: 'easeOut', delay },
-});
 
 const QUICK_EXERCISES = [
   { name: 'Running', icon: Activity, met: 9.8, category: 'cardio' },
@@ -44,6 +39,8 @@ export default function Exercise() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(today);
   const [showAdd, setShowAdd] = useState(false);
+  const [sheetClosing, setSheetClosing] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
   const [saving, setSaving] = useState(false);
@@ -61,11 +58,33 @@ export default function Exercise() {
   const exerciseTarget = 500;
   const pct = totalBurned > 0 ? (totalBurned / exerciseTarget) * 100 : 0;
   const goalCrushed = pct >= 100;
+  const displayPct = useCountUp(Math.min(100, Math.round(pct)), 800, [selectedDate, totalBurned]);
+  const [ringPct, setRingPct] = useState(0);
+
+  useEffect(() => {
+    setRingPct(0);
+    const t = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setRingPct(Math.min(pct, 100)));
+    });
+    return () => cancelAnimationFrame(t);
+  }, [selectedDate, pct]);
+
+  const openSheet = () => {
+    setShowAdd(true);
+    setSheetClosing(false);
+    requestAnimationFrame(() => requestAnimationFrame(() => setSheetVisible(true)));
+  };
+
+  const closeSheet = () => {
+    setSheetClosing(true);
+    setSheetVisible(false);
+    setTimeout(() => { setShowAdd(false); setSheetClosing(false); }, 280);
+  };
 
   const handleQuickSelect = (ex) => {
     const cal = calcCalories(ex.met, weight, 30);
     setForm({ name: ex.name, category: ex.category, duration_minutes: 30, intensity: 'medium', notes: '', calories_burned: cal });
-    setShowAdd(true);
+    openSheet();
   };
 
   const handleDurationChange = (mins) => {
@@ -84,6 +103,8 @@ export default function Exercise() {
     queryClient.invalidateQueries({ queryKey: ['exercises', today] });
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
     setShowAdd(false);
+    setSheetVisible(false);
+    setSheetClosing(false);
     setForm({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
     setSaving(false);
   };
@@ -104,14 +125,14 @@ export default function Exercise() {
           <ArrowLeft className="w-5 h-5 text-gray-900" />
         </button>
         <h1 className="text-xl font-bold text-gray-900 flex-1 text-center">Exercise</h1>
-        <button onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center">
+        <button onClick={openSheet} className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center press-scale">
           <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
         </button>
       </div>
 
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
-        <motion.div {...fadeUp(0)} className="rounded-[28px] overflow-hidden -mx-1 border border-border glow-card" style={{ background: '#F7F7F7' }}>
+        <div {...animCard(0)} className="rounded-[28px] overflow-hidden -mx-1 border border-border glow-card" style={{ background: '#F7F7F7' }}>
           <div className="px-5 pt-5 pb-8">
 
             {/* Weekly day strip — interactive */}
@@ -129,7 +150,7 @@ export default function Exercise() {
                     const isSelected = d.dateStr === selectedDate;
                     return (
                       <button key={i} onClick={() => setSelectedDate(d.dateStr)}
-                        className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
+                        className={`day-pill flex flex-col items-center gap-1 press-scale ${isSelected ? 'is-selected' : ''}`}>
                         <div className="w-7 h-7 rounded-full flex items-center justify-center"
                           style={isSelected
                             ? { background: ACCENT }
@@ -153,30 +174,29 @@ export default function Exercise() {
               const dash = (clampedPct / 100) * CIRC;
               const ringColor = ACCENT;
               return (
-                <div className="relative flex justify-center mb-4">
+                <div className={`relative flex justify-center mb-4 ${goalCrushed ? 'ring-goal-pulse' : ''}`}>
                   <svg key={selectedDate} width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: 'rotate(-90deg)' }}>
-                    {/* Track */}
                     <circle cx={CX} cy={CY} r={R} fill="none" stroke={TRACK_COLOR} strokeWidth={STROKE} strokeLinecap="round" />
-                    {/* Progress arc */}
-                    {pct > 0 && (
+                    {ringPct > 0 && (
                       <circle cx={CX} cy={CY} r={R} fill="none"
                         stroke={ringColor} strokeWidth={STROKE}
-                        strokeDasharray={`${dash} ${CIRC}`} strokeLinecap="round"
-                        style={{ transition: 'stroke-dasharray 0.7s ease' }} />
+                        strokeDasharray={CIRC}
+                        strokeDashoffset={CIRC - (ringPct / 100) * CIRC}
+                        strokeLinecap="round"
+                        className="ring-progress-arc" />
                     )}
                   </svg>
-                  {/* Center content */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     {goalCrushed ? (
                       <>
-                        <span className="text-2xl font-black" style={{ color: ACCENT }}>100%</span>
+                        <span className="text-2xl font-black" style={{ color: ACCENT }}>{displayPct}%</span>
                         <span className="text-[10px] font-semibold text-gray-400">Goal Crushed!</span>
                       </>
                     ) : pct === 0 ? (
                       <span className="text-sm font-semibold text-gray-400">No data</span>
                     ) : (
                       <>
-                        <span className="text-2xl font-black" style={{ color: ACCENT }}>{Math.round(pct)}%</span>
+                        <span className="text-2xl font-black" style={{ color: ACCENT }}>{displayPct}%</span>
                         <span className="text-[10px] font-semibold text-gray-400">of goal</span>
                       </>
                     )}
@@ -186,34 +206,34 @@ export default function Exercise() {
             })()}
 
             {/* Stats */}
-            <motion.div key={selectedDate} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }} className="mb-1">
+            <div key={selectedDate} className="mb-1 tab-content-enter">
               <p className="text-base font-semibold mb-0.5" style={{ color: ACCENT }}>
                 Movement {selectedDate !== today && <span className="text-sm font-normal text-gray-400">· {format(new Date(selectedDate), 'MMM d')}</span>}
               </p>
               <p className="text-3xl font-bold tracking-tight" style={{ color: ACCENT }}>
                 {totalBurned}/{exerciseTarget} <span className="text-2xl font-medium">KCAL</span>
               </p>
-            </motion.div>
+            </div>
             <div className="flex justify-between">
               <span style={{ fontSize: 13, color: '#9CA3AF' }}>{totalBurned} kcal burned</span>
               <span style={{ fontSize: 13, color: '#9CA3AF' }}>{exerciseTarget} kcal goal</span>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Add Exercise section */}
         <div>
-          <motion.div {...fadeUp(0.5)} className="mb-3">
+          <div {...animCard(1)} className="mb-3">
             <h2 className="text-base font-bold text-gray-900">Add Exercise</h2>
             <p className="text-xs text-gray-400 mt-0.5">Tap to log instantly</p>
-          </motion.div>
+          </div>
           <div className="space-y-2">
             {visibleExercises.map((ex, i) => {
               const Icon = ex.icon;
               const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
               return (
-                <motion.button key={ex.name} {...fadeUp(0.6 + i * 0.06)} onClick={() => handleQuickSelect(ex)}
-                  className="w-full rounded-[14px] p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform glow-card"
+                <button key={ex.name} {...animCard(2 + i)} onClick={() => handleQuickSelect(ex)}
+                  className="w-full rounded-[14px] p-4 flex items-center gap-3 text-left press-scale glow-card"
                   style={{
                     background: 'rgba(255,255,255,0.55)',
                     backdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
@@ -227,12 +247,12 @@ export default function Exercise() {
                     <p className="text-xs text-gray-400">approx {calPerHour} kcal per hour</p>
                   </div>
                   <Plus className="w-4 h-4 text-gray-400 shrink-0" />
-                </motion.button>
+                </button>
               );
             })}
           </div>
           {!showAll && (
-            <button onClick={() => setShowAll(true)} className="w-full mt-3 text-sm text-gray-400 font-medium py-2">
+            <button onClick={() => setShowAll(true)} className="w-full mt-3 text-sm text-gray-400 font-medium py-2 press-scale">
               Show more
             </button>
           )}
@@ -274,10 +294,14 @@ export default function Exercise() {
       {/* Add Exercise — full screen slide-up */}
       {showAdd && (
         <div className="fixed inset-0 z-50">
-          <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} onClick={() => setShowAdd(false)} />
-          <motion.div className="absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden"
+          <div
+            className={`bottom-sheet-backdrop absolute inset-0 bg-black/40 backdrop-blur-sm ${sheetVisible && !sheetClosing ? 'is-visible' : ''} ${sheetClosing ? 'is-closing' : ''}`}
+            onClick={closeSheet}
+          />
+          <div
+            className={`bottom-sheet-panel absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden ${sheetVisible && !sheetClosing ? 'is-visible' : ''} ${sheetClosing ? 'is-closing' : ''}`}
             style={{ top: 0, borderRadius: '24px 24px 0 0' }}
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+          >
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-gray-200" />
             </div>
@@ -286,7 +310,7 @@ export default function Exercise() {
                 <h2 className="text-xl font-bold text-gray-900">Log Exercise</h2>
                 <p className="text-sm text-gray-400 mt-0.5">Track your workout session</p>
               </div>
-              <button onClick={() => setShowAdd(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+              <button onClick={closeSheet} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center press-scale">
                 <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
@@ -359,12 +383,12 @@ export default function Exercise() {
               ) : null}
 
               <button onClick={handleSave} disabled={saving || !form.name.trim()}
-                className="w-full h-14 rounded-full bg-gray-900 text-white font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-50">
+                className="w-full h-14 rounded-full bg-gray-900 text-white font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-50 press-scale">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {saving ? 'Saving...' : 'Log Exercise'}
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,4 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useLayoutEffect, useState, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
 export const THEME = {
@@ -21,16 +20,34 @@ export const THEME = {
 };
 
 export function TabNav({ tabs, activeTab, onTabChange }) {
+  const trackRef = useRef(null);
+  const tabRefs = useRef({});
+  const [underline, setUnderline] = useState({ x: 0, width: 0 });
+
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    const el = tabRefs.current[activeTab];
+    if (!track || !el) return;
+    const trackRect = track.getBoundingClientRect();
+    const tabRect = el.getBoundingClientRect();
+    setUnderline({
+      x: tabRect.left - trackRect.left,
+      width: tabRect.width,
+    });
+  }, [activeTab, tabs]);
+
   return (
     <div style={{ borderBottom: `1px solid ${THEME.borderColor}`, marginBottom: 24 }}>
-      <div className="flex">
+      <div className="tab-nav-track flex relative" ref={trackRef}>
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              ref={(el) => { tabRefs.current[tab.id] = el; }}
               type="button"
               onClick={() => onTabChange(tab.id)}
+              className="press-scale"
               style={{
                 flex: 1,
                 paddingBottom: 12,
@@ -40,30 +57,21 @@ export function TabNav({ tabs, activeTab, onTabChange }) {
                 border: 'none',
                 background: 'none',
                 cursor: 'pointer',
-                position: 'relative',
                 fontFamily: THEME.fontBody,
                 whiteSpace: 'nowrap',
               }}
             >
               {tab.label}
-              {active && (
-                <motion.div
-                  layoutId="verdict-tab-indicator"
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: '10%',
-                    right: '10%',
-                    height: 2,
-                    background: THEME.textColor,
-                    borderRadius: 2,
-                  }}
-                  transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                />
-              )}
             </button>
           );
         })}
+        <div
+          className="tab-nav-underline"
+          style={{
+            width: underline.width,
+            transform: `translateX(${underline.x}px)`,
+          }}
+        />
       </div>
     </div>
   );
@@ -217,6 +225,11 @@ export function IngredientListItem({ name, rating, ratingColor, onClick }) {
 }
 
 export function IngredientDetailModal({ ingredient, onClose, benefitsLabel = 'Benefits' }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+  }, []);
+
   const badgeVariants = {
     beneficial: { background: THEME.successLight, color: THEME.successColor },
     caution: { background: '#fff3e0', color: '#e65100' },
@@ -227,26 +240,19 @@ export function IngredientDetailModal({ ingredient, onClose, benefitsLabel = 'Be
 
   return (
     <div className="fixed inset-0 z-[60]">
-      <motion.div
-        className="absolute inset-0"
+      <div
+        className={`bottom-sheet-backdrop absolute inset-0 ${visible ? 'is-visible' : ''}`}
         style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         onClick={onClose}
       />
-      <motion.div
-        className="absolute bottom-0 left-0 right-0 overflow-y-auto"
+      <div
+        className={`bottom-sheet-panel absolute bottom-0 left-0 right-0 overflow-y-auto ${visible ? 'is-visible' : ''}`}
         style={{
           background: THEME.surfaceColor,
           borderRadius: '32px 32px 0 0',
           maxHeight: '70%',
           padding: 24,
         }}
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
       >
         <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
           <p
@@ -335,7 +341,7 @@ export function IngredientDetailModal({ ingredient, onClose, benefitsLabel = 'Be
             <p style={{ fontSize: 14, color: '#444444', lineHeight: 1.5 }}>{ingredient.benefits}</p>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -352,14 +358,15 @@ export default function ProductVerdictLayout({
   children,
   footer,
 }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+  }, []);
+
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex flex-col"
+    <div
+      className={`fixed inset-0 z-50 flex flex-col bottom-sheet-panel ${visible ? 'is-visible' : ''}`}
       style={{ background: THEME.backgroundColor }}
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Hero background */}
       <div className="relative shrink-0" style={{ height: '32%', minHeight: 220 }}>
@@ -480,6 +487,6 @@ export default function ProductVerdictLayout({
         </div>
         {footer}
       </div>
-    </motion.div>
+    </div>
   );
 }

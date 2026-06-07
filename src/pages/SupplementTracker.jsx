@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format } from 'date-fns';
-import { motion } from 'framer-motion';
+import { animCard } from '@/lib/animHelpers';
 import { Plus, Check, Trash2, Sparkles, Loader2, Pill, X } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
@@ -11,6 +11,7 @@ const TODAY = format(new Date(), 'yyyy-MM-dd');
 export default function SupplementTracker() {
   const queryClient = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDose, setNewDose] = useState('');
   const [newTime, setNewTime] = useState('morning');
@@ -41,6 +42,14 @@ export default function SupplementTracker() {
     };
     if (supplements.length) resetStale();
   }, [supplements.length]);
+
+  useEffect(() => {
+    if (showAdd) {
+      requestAnimationFrame(() => requestAnimationFrame(() => setSheetVisible(true)));
+    } else {
+      setSheetVisible(false);
+    }
+  }, [showAdd]);
 
   const resetAddForm = () => {
     setNewName('');
@@ -169,17 +178,17 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
 
   return (
     <div className="min-h-screen pb-24">
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }} className="px-5 pt-6 pb-2 flex items-center justify-between">
+      <div {...animCard(0)} className="px-5 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Supplements</h1>
         <button onClick={() => setShowAdd(true)}
-          className="w-10 h-10 rounded-full bg-foreground flex items-center justify-center">
+          className="press-scale w-10 h-10 rounded-full bg-foreground flex items-center justify-center">
           <Plus className="w-5 h-5 text-white" />
         </button>
-      </motion.div>
+      </div>
 
       <div className="px-5 mt-3 space-y-4">
         {supplements.length === 0 ? (
-          <div className="bg-white rounded-[24px] p-8 text-center glow-card">
+          <div {...animCard(1)} className="bg-white rounded-[24px] p-8 text-center glow-card">
             <Pill className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="font-semibold text-foreground">No supplements added</p>
             <p className="text-sm text-muted-foreground mt-1">Tap + to add your first supplement</p>
@@ -189,7 +198,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
             const group = supplements.filter(s => s.time_of_day === tg);
             if (group.length === 0) return null;
             return (
-              <motion.div key={tg} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 + gi * 0.1 }} className="bg-white rounded-[24px] p-5 glow-card">
+              <div key={tg} {...animCard(gi + 1)} className="bg-white rounded-[24px] p-5 glow-card">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{timeLabel[tg]}</p>
                 <div className="space-y-2">
                   {group.map(sup => (
@@ -215,7 +224,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             );
           })
         )}
@@ -224,7 +233,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Analysis</p>
 
         {/* AI Analysis */}
-        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.4 }} className="bg-white rounded-[24px] p-5 glow-card">
+        <div {...animCard(5)} className="bg-white rounded-[24px] p-5 glow-card">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-foreground" />
             <h3 className="text-sm font-bold text-foreground">AI Deficiency Analysis</h3>
@@ -293,14 +302,20 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
               })}
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Add supplement modal */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} onClick={() => setShowAdd(false)} />
-          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[32px] flex flex-col" style={{ maxHeight: '90vh' }} initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
+          <div
+            className={`bottom-sheet-backdrop absolute inset-0 bg-black/30 backdrop-blur-sm ${sheetVisible ? 'is-visible' : ''}`}
+            onClick={() => setShowAdd(false)}
+          />
+          <div
+            className={`bottom-sheet-panel relative w-full max-w-lg bg-white rounded-t-[32px] flex flex-col ${sheetVisible ? 'is-visible' : ''}`}
+            style={{ maxHeight: '90vh' }}
+          >
             {/* Fixed header */}
             <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
               <h3 className="text-lg font-bold text-foreground">Add Supplement</h3>
@@ -399,7 +414,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
               </button>
             </div>
             <div className="pb-8 shrink-0" />
-          </motion.div>
+          </div>
         </div>
       )}
     </div>

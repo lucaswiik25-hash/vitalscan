@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import UnsplashImage from './UnsplashImage';
 import SuccessModal from '../shared/SuccessModal';
+import { animCard } from '@/lib/animHelpers';
 import { X, Loader2, Bookmark, Apple } from 'lucide-react';
 
 const SAVED_RECIPES_KEY = 'saved_recipes_v1';
@@ -42,6 +42,11 @@ function RecipeFullPage({ item, onClose, profile }) {
   const [logging, setLogging] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [saved, setSaved] = useState(isRecipeSaved(item.name));
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+  }, []);
 
   const logRecipeAsMeal = async () => {
     setLogging(true);
@@ -67,14 +72,15 @@ function RecipeFullPage({ item, onClose, profile }) {
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 overflow-y-auto"
-      style={{ background: '#F2F4F8' }}
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div
+        className={`bottom-sheet-backdrop fixed inset-0 bg-black/20 ${visible ? 'is-visible' : ''}`}
+        onClick={onClose}
+      />
+      <div
+        className={`bottom-sheet-panel relative min-h-full ${visible ? 'is-visible' : ''}`}
+        style={{ background: '#F2F4F8' }}
+      >
       {/* Hero image */}
       <div style={{ position: 'relative', height: 260 }}>
         <UnsplashImage query={item.name} fallbackEmoji={item.emoji || '🍽️'} height={260} />
@@ -173,7 +179,40 @@ function RecipeFullPage({ item, onClose, profile }) {
           onClose={() => { setShowSuccess(false); onClose(); }}
         />
       )}
-    </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function RecipeCard({ recipe, index, onSelect }) {
+  const [pressing, setPressing] = useState(false);
+
+  const openDetail = () => {
+    setPressing(true);
+    setTimeout(() => {
+      onSelect(recipe);
+      setPressing(false);
+    }, 100);
+  };
+
+  return (
+    <div
+      {...animCard(index)}
+      onClick={openDetail}
+      className={`cursor-pointer recipe-card-tap ${pressing ? 'is-pressing' : ''}`}
+      style={{ background: '#FFF', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0, 0, 0, 0.13)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
+    >
+      <UnsplashImage query={recipe.name} fallbackEmoji={recipe.emoji || '🍽️'} height={140} />
+      <div style={{ padding: '10px 12px 12px' }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, lineHeight: 1.3 }}>{recipe.name}</p>
+        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{recipe.desc}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {(recipe.tags || []).map((t, j) => (
+            <span key={j} style={{ background: '#F2F4F8', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 500, color: '#4a5568' }}>{t}</span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -290,35 +329,19 @@ Return JSON with recipes array, each with: name, desc, emoji, cat (breakfast/lun
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {(showSaved ? savedRecipes : recipes).map((r, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                onClick={() => setSelected(r)}
-                className="cursor-pointer active:scale-[0.97] transition-transform"
-                style={{ background: '#FFF', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0, 0, 0, 0.13)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-                <UnsplashImage query={r.name} fallbackEmoji={r.emoji || '🍽️'} height={140} />
-                <div style={{ padding: '10px 12px 12px' }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4, lineHeight: 1.3 }}>{r.name}</p>
-                  <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{r.desc}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {(r.tags || []).map((t, j) => (
-                      <span key={j} style={{ background: '#F2F4F8', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 500, color: '#4a5568' }}>{t}</span>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
+              <RecipeCard key={i} recipe={r} index={i} onSelect={setSelected} />
             ))}
           </div>
         )}
       </div>
 
-      <AnimatePresence>
-        {selected && (
-          <RecipeFullPage
-            item={selected}
-            profile={profile}
-            onClose={() => { setSelected(null); setSavedRecipes(getSavedRecipes()); }}
-          />
-        )}
-      </AnimatePresence>
+      {selected && (
+        <RecipeFullPage
+          item={selected}
+          profile={profile}
+          onClose={() => { setSelected(null); setSavedRecipes(getSavedRecipes()); }}
+        />
+      )}
     </div>
   );
 }

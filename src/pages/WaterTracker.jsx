@@ -1,14 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Minus, Sparkles, CalendarDays, Loader2, AlertTriangle, CheckCircle2, Lightbulb, BarChart2, Zap } from 'lucide-react';
 import WaterCalendarModal from '../components/water/WaterCalendarModal';
 import { MODULE_BORDER } from '@/lib/cardStyles';
 import WaterStatsScreen from '../components/water/WaterStatsScreen';
 import WaterStreakScreen from '../components/water/WaterStreakScreen';
+import { animCard } from '@/lib/animHelpers';
+import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -34,20 +35,26 @@ const SURFACE_CARD = { background: SURFACE, boxShadow: NM, border: MODULE_BORDER
 // Log Water panel (full-screen slide-up)
 function LogWaterPanel({ onClose, slotLabel, onAdd }) {
   const [customVal, setCustomVal] = useState('');
+  const [visible, setVisible] = useState(false);
   const QUICK = [150, 200, 250, 300, 400, 500, 750, 1000];
+
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+  }, []);
 
   const handleAdd = (ml) => { onAdd(ml); onClose(); };
   const handleCustom = () => { const ml = parseInt(customVal); if (ml > 0) handleAdd(ml); };
 
   return (
     <div className="fixed inset-0 z-50">
-      <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }} onClick={onClose} />
-      <motion.div className="absolute left-0 right-0 bottom-0 flex flex-col overflow-hidden"
+      <div
+        className={`bottom-sheet-backdrop absolute inset-0 bg-black/30 backdrop-blur-sm ${visible ? 'is-visible' : ''}`}
+        onClick={onClose}
+      />
+      <div
+        className={`bottom-sheet-panel absolute left-0 right-0 bottom-0 flex flex-col overflow-hidden ${visible ? 'is-visible' : ''}`}
         style={{ background: BG, borderRadius: '28px 28px 0 0' }}
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+      >
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(174,174,192,0.5)' }} />
         </div>
@@ -90,7 +97,7 @@ function LogWaterPanel({ onClose, slotLabel, onAdd }) {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -113,6 +120,8 @@ export default function WaterTracker() {
   const [loadingAI, setLoadingAI] = useState(false);
   const [showAiResults, setShowAiResults] = useState(false);
   const [openSlot, setOpenSlot] = useState(null);
+  const [dropPulse, setDropPulse] = useState(false);
+  const prevGlasses = useRef(0);
 
   const { data: todayLogs = [] } = useQuery({
     queryKey: ['waterLogs', TODAY],
@@ -132,6 +141,17 @@ export default function WaterTracker() {
   const glassSize = 250;
   const totalGlasses = Math.round(dailyTarget / glassSize);
   const filledGlasses = Math.min(totalGlasses, Math.round(effective / glassSize));
+  const { display: displayGlasses, animClass: glassAnimClass } = useAnimatedCounter(filledGlasses);
+
+  useEffect(() => {
+    if (filledGlasses > prevGlasses.current) {
+      setDropPulse(true);
+      const t = setTimeout(() => setDropPulse(false), 300);
+      prevGlasses.current = filledGlasses;
+      return () => clearTimeout(t);
+    }
+    prevGlasses.current = filledGlasses;
+  }, [filledGlasses]);
 
   const logMutation = useMutation({
     mutationFn: ({ ml, slot }) => base44.entities.WaterLog.create({ date: TODAY, amount_ml: ml, type: 'water', slot }),
@@ -232,15 +252,10 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
   // Ring
   const RING_SIZE = 120, RING_STROKE = 12, RING_R = (RING_SIZE - RING_STROKE) / 2;
   const RING_CIRC = 2 * Math.PI * RING_R;
-  const ringDash = (pct / 100) * RING_CIRC;
+  const ringOffset = RING_CIRC - (pct / 100) * RING_CIRC;
 
   return (
-    <motion.div
-      className="min-h-screen pb-28"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div className="min-h-screen pb-28">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-10 pb-4">
         <h1 className="text-xl font-semibold" style={{ color: '#1f2937' }}>Hydro</h1>
@@ -251,7 +266,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
       <div className="px-5 space-y-4">
 
         {/* Daily progress banner */}
-        <div className="rounded-[28px] px-5 py-5 relative overflow-hidden"
+        <div {...animCard(0)} className="rounded-[28px] px-5 py-5 relative overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)', boxShadow: BLK_SM }}>
           <p className="text-xs font-medium mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Daily progress</p>
           <p className="text-3xl font-bold text-white">
@@ -286,12 +301,12 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
         {/* Main row: tracker card + vertical bar */}
         <div className="flex gap-3">
           {/* Tracker card */}
-          <div className="flex-1 rounded-[28px] p-5" style={SURFACE_CARD}>
+          <div className="flex-1 rounded-[28px] p-5" style={SURFACE_CARD} {...animCard(1)}>
             <p className="text-base font-semibold mb-0.5" style={{ color: '#374151' }}>Drink water!</p>
             <p className="text-sm mb-5" style={{ color: '#9ca3af' }}>Check off a glass</p>
             <div className="flex items-center gap-5">
               {/* Water drop progress indicator */}
-              <div className="shrink-0 flex flex-col items-center gap-1">
+              <div className={`shrink-0 flex flex-col items-center gap-1 ${dropPulse ? 'hydration-drop-pulse' : ''}`}>
                 <svg width="52" height="68" viewBox="0 0 52 68" fill="none">
                   <defs>
                     <clipPath id="dropClip">
@@ -318,13 +333,15 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                   {pct > 0 && (
                     <circle cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_R} fill="none"
                       stroke={BLACK} strokeWidth={RING_STROKE}
-                      strokeDasharray={`${ringDash} ${RING_CIRC}`} strokeLinecap="round"
-                      style={{ transition: 'stroke-dasharray 0.7s ease' }} />
+                      strokeDasharray={RING_CIRC}
+                      strokeDashoffset={ringOffset}
+                      strokeLinecap="round"
+                      className="hydration-ring-arc" />
                   )}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xl font-bold" style={{ color: '#4b5563' }}>
-                    {filledGlasses}/{totalGlasses}
+                  <span className={`text-xl font-bold ${glassAnimClass}`} style={{ color: '#4b5563' }}>
+                    {displayGlasses}/{totalGlasses}
                   </span>
                 </div>
               </div>
@@ -367,7 +384,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
         </div>
 
         {/* Meal-time slots */}
-        <div>
+        <div {...animCard(2)}>
           <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Log by time</p>
           <div className="rounded-[24px] overflow-hidden" style={SURFACE_CARD}>
             {slotsWithTargets.map((slot, i) => (
@@ -406,41 +423,37 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
       </div>
 
       {/* Log Water Panel */}
-      <AnimatePresence>
-        {openSlot && (
-          <LogWaterPanel
-            slotLabel={openSlot.label}
-            onClose={() => setOpenSlot(null)}
-            onAdd={(ml) => {
-              const hour = new Date().getHours();
-              const autoSlot = openSlot.key || (hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night');
-              logSlot(ml, autoSlot);
-              setOpenSlot(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {openSlot && (
+        <LogWaterPanel
+          slotLabel={openSlot.label}
+          onClose={() => setOpenSlot(null)}
+          onAdd={(ml) => {
+            const hour = new Date().getHours();
+            const autoSlot = openSlot.key || (hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night');
+            logSlot(ml, autoSlot);
+            setOpenSlot(null);
+          }}
+        />
+      )}
 
       {/* AI loading overlay */}
-      <AnimatePresence>
-        {loadingAI && (
-          <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-            style={{ background: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(12px)' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <Loader2 className="w-10 h-10 animate-spin mb-4 text-white" />
-            <p className="text-white text-lg font-semibold">Analysing 14 days...</p>
-            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Your hydration coach is reviewing your data</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {loadingAI && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bottom-sheet-backdrop is-visible"
+          style={{ background: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(12px)' }}
+        >
+          <Loader2 className="w-10 h-10 animate-spin mb-4 text-white" />
+          <p className="text-white text-lg font-semibold">Analysing 14 days...</p>
+          <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Your hydration coach is reviewing your data</p>
+        </div>
+      )}
 
       {/* AI Results full-screen */}
-      <AnimatePresence>
-        {showAiResults && aiInsights && (
-          <motion.div className="fixed inset-0 z-50 flex flex-col overflow-hidden"
-            style={{ background: BG }}
-            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+      {showAiResults && aiInsights && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col overflow-hidden bottom-sheet-panel is-visible"
+          style={{ background: BG }}
+        >
             <div className="flex items-center justify-between px-5 pt-12 pb-4">
               <h2 className="text-2xl font-bold" style={{ color: '#1f2937' }}>AI Analysis</h2>
               <button onClick={() => setShowAiResults(false)}
@@ -477,10 +490,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
               {aiInsights.map((insight, i) => {
                 const style = insightStyle(insight.type);
                 return (
-                  <motion.div key={i}
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.35, ease: 'easeOut' }}
-                    className="rounded-[24px] p-4"
+                  <div key={i} {...animCard(i)} className="rounded-[24px] p-4 glow-card"
                     style={{ background: SURFACE, boxShadow: NM_SM }}>
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-[12px] flex items-center justify-center shrink-0"
@@ -492,7 +502,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                         <p className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>{insight.description}</p>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
 
@@ -505,42 +515,35 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* Calendar modal */}
-      <AnimatePresence>
-        {showCalendar && (
-          <WaterCalendarModal
-            allLogs={allLogs}
-            dailyTarget={dailyTarget}
-            onClose={() => setShowCalendar(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showCalendar && (
+        <WaterCalendarModal
+          allLogs={allLogs}
+          dailyTarget={dailyTarget}
+          onClose={() => setShowCalendar(false)}
+        />
+      )}
 
       {/* Stats screen */}
-      <AnimatePresence>
-        {showStats && (
-          <WaterStatsScreen
-            allLogs={allLogs}
-            dailyTarget={dailyTarget}
-            onClose={() => setShowStats(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showStats && (
+        <WaterStatsScreen
+          allLogs={allLogs}
+          dailyTarget={dailyTarget}
+          onClose={() => setShowStats(false)}
+        />
+      )}
 
       {/* Streak screen */}
-      <AnimatePresence>
-        {showStreak && (
-          <WaterStreakScreen
-            allLogs={allLogs}
-            dailyTarget={dailyTarget}
-            onClose={() => setShowStreak(false)}
-          />
-        )}
-      </AnimatePresence>
-    </motion.div>
+      {showStreak && (
+        <WaterStreakScreen
+          allLogs={allLogs}
+          dailyTarget={dailyTarget}
+          onClose={() => setShowStreak(false)}
+        />
+      )}
+    </div>
   );
 }

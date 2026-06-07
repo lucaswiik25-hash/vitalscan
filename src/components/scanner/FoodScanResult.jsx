@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple, Pencil, Share2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { parseApiResponse } from '@/lib/parseApiResponse';
+import { animCard } from '@/lib/animHelpers';
 
 // ─── Icon Module (replaces all emojis) ───────────────────────────────────────
 function IconModule({ icon: Icon, bg, color, size = 44 }) {
@@ -68,6 +68,7 @@ function VerdictBadge({ result }) {
 // ─── Sticky FAB with expandable actions ──────────────────────────────────────
 function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother, onEdit, onShare }) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const actions = [
     { label: 'Log as Meal', icon: Apple, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', onClick: onLog },
@@ -77,47 +78,49 @@ function ActionFAB({ onLog, onLogAnalysisOnly, onScanAnother, onEdit, onShare })
     { label: 'Share', icon: Share2, color: '#0ea5e9', bg: '#f0f9ff', border: '#bae6fd', onClick: onShare },
   ];
 
+  const closeMenu = () => {
+    setClosing(true);
+    setTimeout(() => { setOpen(false); setClosing(false); }, 180);
+  };
+
+  const handleAction = (fn) => {
+    closeMenu();
+    setTimeout(fn, closing ? 0 : 180);
+  };
+
   return (
     <>
-      {/* Backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
+          className={`bottom-sheet-backdrop fixed inset-0 z-40 bg-black/40 backdrop-blur-sm is-visible ${closing ? 'is-closing' : ''}`}
+          onClick={closeMenu}
         />
       )}
 
-      {/* Expanded actions */}
       {open && (
-        <div className="fixed top-28 right-4 z-50 flex flex-col gap-2 items-end">
+        <div className={`fixed top-28 right-4 z-50 flex flex-col gap-2 items-end ${closing ? 'action-menu-exit' : ''}`}>
           {actions.map(({ label, icon: Icon, color, bg, border, onClick }, i) => (
-            <motion.button
+            <button
               key={label}
-              initial={{ opacity: 0, x: 20, scale: 0.85 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ delay: i * 0.05, duration: 0.22, ease: 'easeOut' }}
-              onClick={() => { setOpen(false); onClick(); }}
-              className="flex items-center gap-2.5 px-4 h-11 rounded-2xl shadow-lg active:scale-95 transition-transform"
-              style={{ background: bg, border: `1.5px solid ${border}` }}
+              className="action-menu-item press-scale flex items-center gap-2.5 px-4 h-11 rounded-2xl shadow-lg"
+              style={{ '--action-i': i, background: bg, border: `1.5px solid ${border}` }}
+              onClick={() => handleAction(onClick)}
             >
               <Icon style={{ width: 16, height: 16, color, strokeWidth: 2, flexShrink: 0 }} />
               <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#1a1a1a' }}>{label}</span>
-            </motion.button>
+            </button>
           ))}
         </div>
       )}
 
-      {/* FAB button */}
       <div className="fixed top-14 right-4 z-50">
-        <motion.button
-          onClick={() => setOpen(o => !o)}
-          animate={{ rotate: open ? 45 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+        <button
+          onClick={() => open ? closeMenu() : setOpen(true)}
+          className={`fab-btn press-scale w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${open ? 'is-open' : ''}`}
           style={{ background: '#1a1a1a' }}
         >
-          <Plus style={{ width: 20, height: 20, color: 'white', strokeWidth: 2.5 }} />
-        </motion.button>
+          <Plus className="fab-icon" style={{ width: 20, height: 20, color: 'white', strokeWidth: 2.5 }} />
+        </button>
       </div>
     </>
   );
@@ -154,6 +157,15 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   const [ingredientResult, setIngredientResult] = useState(null);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
+  const [editSheetVisible, setEditSheetVisible] = useState(false);
+
+  useEffect(() => {
+    if (showEditSheet) {
+      requestAnimationFrame(() => requestAnimationFrame(() => setEditSheetVisible(true)));
+    } else {
+      setEditSheetVisible(false);
+    }
+  }, [showEditSheet]);
   const [editNote, setEditNote] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editedResult, setEditedResult] = useState(null);
@@ -613,17 +625,14 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
   };
 
   return (
-    <motion.div
+    <div
       ref={shareRef}
       className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden"
       style={{ maxWidth: 480, margin: '0 auto' }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
     >
 
       {/* ── 1. Product image — white card, image covers full area ── */}
-      <motion.div initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: 'easeOut', delay: 0.05 }} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
+      <div {...animCard(0)} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
         style={{ height: 170, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
         {result.image_url ? (
         <img src={result.image_url} alt={result.name}
@@ -638,28 +647,28 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
         style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
         <ArrowLeft style={{ width: 16, height: 16, color: 'white', strokeWidth: 2.5 }} />
         </button>
-        </motion.div>
+        </div>
 
         {/* ── 2. Name + verdict badge ── */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: 'easeOut', delay: 0.15 }} className="shrink-0 px-5 pt-4 pb-2">
+        <div {...animCard(1)} className="shrink-0 px-5 pt-4 pb-2">
         <div className="flex items-start gap-2">
           <h1 className="text-[22px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
             {currentResult.name?.length > 40 ? currentResult.name.slice(0, 40).trim() + '…' : currentResult.name}
           </h1>
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.3 }} className="shrink-0 mt-0.5">
+          <div {...animCard(2)} className="shrink-0 mt-0.5">
             <VerdictBadge result={currentResult} />
-          </motion.div>
+          </div>
         </div>
-        </motion.div>
+        </div>
 
         {/* ── 3. Dot page indicators — centered above content ── */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.35 }} className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
+        <div {...animCard(3)} className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
         {allSlides.map((_, i) => (
           <button key={i} onClick={() => setSlide(i)}
             className="rounded-full transition-all duration-200"
             style={{ width: i === slide ? 22 : 7, height: 7, background: i === slide ? '#1a1a1a' : '#d1d5db' }} />
         ))}
-        </motion.div>
+        </div>
 
         {/* ── 5. Swipeable content (no scroll on the container itself) ── */}
       <div className="flex-1 overflow-hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
@@ -677,9 +686,13 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
       {/* ── Edit bottom sheet ── */}
       {showEditSheet && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowEditSheet(false)} />
-          <motion.div className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 space-y-4"
-            initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }}>
+          <div
+            className={`bottom-sheet-backdrop absolute inset-0 bg-black/30 backdrop-blur-sm ${editSheetVisible ? 'is-visible' : ''}`}
+            onClick={() => setShowEditSheet(false)}
+          />
+          <div
+            className={`bottom-sheet-panel relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 space-y-4 ${editSheetVisible ? 'is-visible' : ''}`}
+          >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">Edit Scan Result</h3>
               <button onClick={() => setShowEditSheet(false)}>
@@ -696,13 +709,13 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
               autoFocus
             />
             <button onClick={handleEdit} disabled={editLoading || !editNote.trim()}
-              className="w-full h-12 rounded-2xl bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40">
+              className="press-scale w-full h-12 rounded-2xl bg-gray-900 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40">
               {editLoading ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Pencil style={{ width: 16, height: 16 }} />}
               {editLoading ? 'Updating...' : 'Apply Corrections'}
             </button>
-          </motion.div>
+          </div>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

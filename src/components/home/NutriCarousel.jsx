@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MODULE_BORDER } from '@/lib/cardStyles';
 
 const glassStyle = {
@@ -6,15 +6,28 @@ const glassStyle = {
   border: MODULE_BORDER,
 };
 
-function GlassMacroCard({ value, unit = 'g', label, progress }) {
+function GlassMacroCard({ value, unit = 'g', label, progress, animateFill = false }) {
   const pct = Math.min(100, Math.max(0, progress));
+  const [mounted, setMounted] = useState(!animateFill);
+  useEffect(() => {
+    if (!animateFill) return;
+    const t = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(t);
+  }, [animateFill, pct]);
+
   return (
     <div className="flex-1 rounded-[22px] p-5 flex flex-col gap-3 glow-card" style={glassStyle}>
       <p className="text-xs font-semibold text-foreground/50 leading-none">{label}</p>
       <p className="text-3xl font-light text-foreground leading-none">{Math.max(0, Math.round(value))}<span className="text-sm font-semibold text-foreground/50 ml-0.5">{unit}</span></p>
       <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
-        <div className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: pct >= 90 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0' }} />
+        <div
+          className={`h-full rounded-full ${animateFill ? 'macro-bar-fill' : ''} ${mounted && animateFill ? 'is-mounted' : ''}`}
+          style={{
+            '--macro-pct': `${pct}%`,
+            ...(animateFill ? {} : { width: `${pct}%` }),
+            background: pct >= 90 ? '#F47C7C' : pct >= 60 ? '#F5C842' : '#6CC5A0',
+          }}
+        />
       </div>
     </div>
   );
@@ -358,9 +371,9 @@ function StandardCarousel({ consumed, profile }) {
   return [
     <div key="s1" className="min-w-full px-5 space-y-3">
       <div className="flex gap-2">
-        <GlassMacroCard value={Math.max(0, proteinLeft)} label="Protein left" progress={consumed.protein ? (consumed.protein / (profile.protein_target || 191)) * 100 : 0} />
-        <GlassMacroCard value={Math.max(0, carbsLeft)} label="Carbs left" progress={consumed.carbs ? (consumed.carbs / (profile.carbs_target || 438)) * 100 : 0} />
-        <GlassMacroCard value={Math.max(0, fatLeft)} label="Fat left" progress={consumed.fat ? (consumed.fat / (profile.fat_target || 93)) * 100 : 0} />
+        <GlassMacroCard value={Math.max(0, proteinLeft)} label="Protein left" progress={consumed.protein ? (consumed.protein / (profile.protein_target || 191)) * 100 : 0} animateFill />
+        <GlassMacroCard value={Math.max(0, carbsLeft)} label="Carbs left" progress={consumed.carbs ? (consumed.carbs / (profile.carbs_target || 438)) * 100 : 0} animateFill />
+        <GlassMacroCard value={Math.max(0, fatLeft)} label="Fat left" progress={consumed.fat ? (consumed.fat / (profile.fat_target || 93)) * 100 : 0} animateFill />
       </div>
       <GlassCalorieCard caloriesLeft={caloriesLeft} caloriesTarget={profile.calorie_target || 2500} caloriesConsumed={consumed.calories || 0} />
     </div>,

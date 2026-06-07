@@ -30,6 +30,7 @@ import {
   buildWeekDays,
 } from '@/lib/sleepCalculations';
 import { MODULE_BORDER, moduleCardShadow } from '@/lib/cardStyles';
+import { animCard } from '@/lib/animHelpers';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 const YESTERDAY = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -138,6 +139,7 @@ export default function SleepTracker() {
   const [alarmWake, setAlarmWake] = useState('07:00');
   const [selectedBedtime, setSelectedBedtime] = useState(null);
   const [reminderNote, setReminderNote] = useState(null);
+  const [prevBedtime, setPrevBedtime] = useState(null);
 
   const [tooltipDay, setTooltipDay] = useState(null);
   const [mood, setMood] = useState(null);
@@ -324,7 +326,7 @@ export default function SleepTracker() {
         <h1 className="text-2xl font-bold text-[#111827] mb-2">Sleep</h1>
 
         {/* SECTION 1 — Hero ring */}
-        <div style={CARD_STYLE} className="flex flex-col items-center">
+        <div {...animCard(0)} style={CARD_STYLE} className="flex flex-col items-center">
           <SleepHeroRing
             sleepTime={sleepTime}
             wakeTime={wakeTime}
@@ -347,7 +349,7 @@ export default function SleepTracker() {
         </div>
 
         {/* SECTION 2 — Sub-scores */}
-        <div className="grid grid-cols-3 gap-3">
+        <div {...animCard(1)} className="grid grid-cols-3 gap-3">
           {[
             { label: 'Duration', score: durationScore, color: '#111827' },
             {
@@ -378,7 +380,7 @@ export default function SleepTracker() {
         </div>
 
         {/* SECTION 3 — Smart Alarm */}
-        <div style={CARD_STYLE}>
+        <div {...animCard(2)} style={CARD_STYLE}>
           <p className="text-[15px] font-bold text-[#111827]">Smart Alarm</p>
           <p className="text-xs text-[#9BA3AF] mt-0.5 mb-4">Based on 90-min sleep cycles</p>
 
@@ -391,8 +393,8 @@ export default function SleepTracker() {
               <button
                 key={opt.cycles}
                 type="button"
-                onClick={() => setSelectedBedtime(opt.time)}
-                className="text-[14px] font-semibold text-[#111827] active:scale-95 transition-transform"
+                onClick={() => { setPrevBedtime(selectedBedtime); setSelectedBedtime(opt.time); }}
+                className={`day-pill press-scale text-[14px] font-semibold ${selectedBedtime === opt.time ? 'is-selected' : ''} ${prevBedtime === opt.time && selectedBedtime !== opt.time ? 'was-selected' : ''}`}
                 style={{
                   background: selectedBedtime === opt.time ? '#111827' : PAGE_BG,
                   color: selectedBedtime === opt.time ? '#FFFFFF' : '#111827',
@@ -423,7 +425,7 @@ export default function SleepTracker() {
         </div>
 
         {/* SECTION 4 — Weekly history */}
-        <div style={CARD_STYLE}>
+        <div {...animCard(3)} style={CARD_STYLE}>
           <p className="text-[15px] font-bold text-[#111827] mb-4">Last 7 Nights</p>
 
           <div className="relative" style={{ height: chartHeight + 32 }}>
@@ -491,7 +493,7 @@ export default function SleepTracker() {
         </div>
 
         {/* SECTION 5 — Sleep debt */}
-        <div style={CARD_STYLE}>
+        <div {...animCard(4)} style={CARD_STYLE}>
           <p className="text-[15px] font-bold text-[#111827]">Sleep Debt</p>
           <p
             className="text-[40px] font-bold mt-3 leading-none"
@@ -520,7 +522,7 @@ export default function SleepTracker() {
         </div>
 
         {/* SECTION 6 — Insights */}
-        <div style={CARD_STYLE}>
+        <div {...animCard(5)} style={CARD_STYLE}>
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#6366F1]" />
             <p className="text-[15px] font-bold text-[#111827]">Sleep Insights</p>
@@ -559,7 +561,7 @@ export default function SleepTracker() {
         </div>
 
         {/* SECTION 7 — Journal */}
-        <div style={CARD_STYLE}>
+        <div {...animCard(6)} style={CARD_STYLE}>
           <p className="text-[15px] font-bold text-[#111827]">Morning Journal</p>
           <p className="text-xs text-[#9BA3AF] mt-0.5 mb-4">How do you feel this morning?</p>
 

@@ -1,0 +1,247 @@
+/* ── Global animation tokens ── */
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-default: 280ms;
+}
+
+/* ── 3. Universal button press ── */
+.press-scale {
+  transition: transform 120ms var(--ease-spring);
+}
+.press-scale:active {
+  transform: scale(0.96);
+}
+
+button:not(.no-press-scale),
+[role="button"]:not(.no-press-scale),
+a.btn:not(.no-press-scale) {
+  transition: transform 120ms var(--ease-spring);
+}
+button:not(.no-press-scale):active,
+[role="button"]:not(.no-press-scale):active {
+  transform: scale(0.96);
+}
+
+/* ── 2. Staggered card fade-up ── */
+@keyframes cardFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anim-card {
+  opacity: 0;
+  animation: cardFadeUp 400ms var(--ease-smooth) forwards;
+  animation-delay: calc(var(--anim-i, 0) * 60ms);
+}
+
+/* ── 1. Bottom nav tab icon ── */
+.nav-tab-icon {
+  transition: transform 200ms var(--ease-spring);
+  transform: scale(1);
+}
+.nav-tab-icon.is-active {
+  transform: scale(1.15);
+}
+.nav-tab-label {
+  opacity: 0.7;
+  transition: opacity 150ms var(--ease-smooth);
+}
+.nav-tab-label.is-active {
+  opacity: 1;
+}
+.nav-indicator-pill {
+  transition: left 250ms var(--ease-spring), width 250ms var(--ease-spring);
+}
+
+/* ── 4. FAB ── */
+.fab-btn {
+  transition: transform 180ms var(--ease-spring);
+}
+.fab-btn:active {
+  transform: scale(0.88) rotate(45deg);
+}
+.fab-btn.is-open .fab-icon {
+  transform: rotate(45deg);
+}
+.fab-icon {
+  transition: transform 250ms var(--ease-smooth);
+  transform: rotate(0deg);
+}
+
+/* ── 5. Bottom sheets ── */
+.bottom-sheet-backdrop {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-smooth);
+}
+.bottom-sheet-backdrop.is-visible {
+  opacity: 1;
+}
+.bottom-sheet-backdrop.is-closing {
+  opacity: 0;
+  transition-duration: 280ms;
+}
+.bottom-sheet-panel {
+  transform: translateY(100%);
+  transition: transform 380ms var(--ease-smooth);
+}
+.bottom-sheet-panel.is-visible {
+  transform: translateY(0);
+}
+.bottom-sheet-panel.is-closing {
+  transform: translateY(100%);
+  transition-duration: 280ms;
+}
+
+/* ── 6. Toggle switches ── */
+.toggle-switch {
+  transition: background-color 250ms ease;
+}
+.toggle-thumb {
+  transition: transform 300ms var(--ease-spring);
+}
+.toggle-switch.is-pressing .toggle-thumb {
+  transform: scale(1.1);
+}
+.toggle-switch.is-on .toggle-thumb {
+  transform: translateX(20px) scale(1);
+}
+.toggle-switch:not(.is-on) .toggle-thumb {
+  transform: translateX(2px) scale(1);
+}
+
+/* ── 7. Exercise ring goal pulse ── */
+@keyframes goalPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.ring-goal-pulse {
+  animation: goalPulse 2s ease-in-out infinite;
+}
+.ring-progress-arc {
+  transition: stroke-dashoffset 800ms var(--ease-smooth);
+}
+
+/* ── 8. Hydration counter & drop ── */
+@keyframes counterOutUp {
+  to { transform: translateY(-16px); opacity: 0; }
+}
+@keyframes counterInUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.counter-out-up {
+  animation: counterOutUp 150ms var(--ease-smooth) forwards;
+}
+.counter-in-up {
+  animation: counterInUp 200ms var(--ease-smooth) forwards;
+}
+@keyframes dropPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.hydration-drop-pulse {
+  animation: dropPulse 300ms var(--ease-spring);
+}
+.hydration-ring-arc {
+  transition: stroke-dashoffset 600ms var(--ease-smooth);
+}
+
+/* ── 9. Food scanner action menu ── */
+@keyframes actionDropIn {
+  from { transform: translateY(-12px) scale(0.92); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes actionDropOut {
+  to { transform: scale(0.92); opacity: 0; }
+}
+.action-menu-item {
+  opacity: 0;
+  animation: actionDropIn 320ms var(--ease-spring) forwards;
+  animation-delay: calc(var(--action-i, 0) * 60ms);
+}
+.action-menu-exit .action-menu-item {
+  animation: actionDropOut 180ms var(--ease-smooth) forwards;
+  animation-delay: 0ms;
+}
+
+/* ── 10. Tab switcher ── */
+.tab-nav-track {
+  position: relative;
+}
+.tab-nav-underline {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: #1a1a1a;
+  border-radius: 2px;
+  transition: transform 280ms var(--ease-spring), width 280ms var(--ease-spring);
+}
+@keyframes tabContentIn {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.tab-content-enter {
+  animation: tabContentIn 200ms var(--ease-smooth) forwards;
+}
+
+/* ── 11. Week day selector ── */
+.day-pill {
+  transition: transform 200ms var(--ease-spring), background-color 180ms var(--ease-smooth), border-color 180ms var(--ease-smooth);
+  transform: scale(0.85);
+}
+.day-pill.is-selected {
+  transform: scale(1);
+}
+.day-pill.was-selected {
+  transform: scale(0.85);
+}
+
+/* ── 12. Meal slot flash ── */
+@keyframes mealSlotFlash {
+  0% { background-color: rgba(16, 185, 129, 0.08); }
+  100% { background-color: #ffffff; }
+}
+.meal-slot-flash {
+  animation: mealSlotFlash 400ms var(--ease-smooth), mealSlotFadeBack 300ms 400ms var(--ease-smooth) forwards;
+}
+@keyframes mealSlotFadeBack {
+  from { background-color: rgba(16, 185, 129, 0.08); }
+  to { background-color: #ffffff; }
+}
+
+/* ── 13. Macro progress bars ── */
+.macro-bar-fill {
+  width: 0%;
+  transition: width 700ms var(--ease-smooth);
+}
+.macro-bar-fill.is-mounted {
+  width: var(--macro-pct, 0%);
+}
+
+/* ── 14. Recipe card press ── */
+.recipe-card-tap {
+  transition: transform 100ms var(--ease-spring);
+}
+.recipe-card-tap.is-pressing {
+  transform: scale(0.97);
+}
+
+/* ── 15. Page transitions ── */
+.page-route-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 250ms var(--ease-smooth), transform 250ms var(--ease-smooth);
+}
+.page-route-enter.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.page-route-exit {
+  opacity: 1;
+  transition: opacity 150ms var(--ease-smooth);
+}
+.page-route-exit.is-exiting {
+  opacity: 0;
+}

@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format, subDays, differenceInCalendarDays } from 'date-fns';
-import { motion } from 'framer-motion';
+import { animCard } from '@/lib/animHelpers';
 import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
@@ -13,12 +13,6 @@ import AllergyBanner from '../components/home/AllergyBanner';
 import SupplementReminderBanner from '../components/home/SupplementReminderBanner';
 import WeeklyReportModal, { useWeeklyReportGate } from '../components/home/WeeklyReportModal';
 import { useUserProfile } from '../hooks/useUserProfile';
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: 'easeOut', delay },
-});
 
 export default function Home() {
   const navigate = useNavigate();
@@ -110,26 +104,26 @@ export default function Home() {
           <div className={`w-6 h-6 border-2 border-gray-300 border-t-gray-800 rounded-full ${refreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullY * 4}deg)` }} />
         </div>
       )}
-      <motion.div {...fadeUp(0)}><Header streak={profile.streak || 0} /></motion.div>
+      <div {...animCard(0)}><Header streak={profile.streak || 0} /></div>
       <SupplementReminderBanner dismissed={reminderDismissed} onDismiss={() => setReminderDismissed(true)} />
       {profile.diet_mode === 'allergy_mode' && (
-        <motion.div className="mt-3" {...fadeUp(0.1)}>
+        <div className="mt-3" {...animCard(1)}>
           <AllergyBanner allergens={profile.allergens || []} />
-        </motion.div>
+        </div>
       )}
-      <motion.div className="mt-3 mb-2" {...fadeUp(0.15)}>
+      <div className="mt-3 mb-2" {...animCard(2)}>
         <WeekCalendar meals={allMeals} profile={profile} waterLogs={allWaterLogs} onDayClick={setSelectedDay} />
-      </motion.div>
-      <motion.div className="px-5 mt-3 mb-1" {...fadeUp(0.2)}>
+      </div>
+      <div className="px-5 mt-3 mb-1" {...animCard(3)}>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Macros</p>
-      </motion.div>
-      <motion.div className="mt-1 mb-4" {...fadeUp(0.28)}>
+      </div>
+      <div className="mt-1 mb-4" {...animCard(4)}>
         <NutriCarousel profile={profile} consumed={consumed} waterLogs={allWaterLogs} todayMeals={todayMeals} />
-      </motion.div>
-      <motion.div className="px-5 mb-2" {...fadeUp(0.36)}>
+      </div>
+      <div className="px-5 mb-2" {...animCard(5)}>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Meals</p>
-      </motion.div>
-      <motion.div {...fadeUp(0.44)}><MealSlotsModule todayMeals={todayMeals} profile={profile} /></motion.div>
+      </div>
+      <div {...animCard(6)}><MealSlotsModule todayMeals={todayMeals} profile={profile} /></div>
       {selectedDay && (
         <DayVerdictPage
           date={selectedDay}

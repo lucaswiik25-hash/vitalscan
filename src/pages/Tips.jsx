@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { animCard } from '@/lib/animHelpers';
 import RecipesTab from '../components/tips/RecipesTab';
 import SkincareTab from '../components/tips/SkincareTab';
 import SupplementsTab from '../components/tips/SupplementsTab';
@@ -23,13 +24,13 @@ export default function Tips() {
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
-      <div className="px-5 pt-14 pb-4">
+      <div {...animCard(0)} className="px-5 pt-14 pb-4">
         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>Tips</h1>
         <p style={{ fontSize: 14, color: '#6B7280', marginTop: 2 }}>Personalised for you</p>
       </div>
 
       {/* Tab pills */}
-      <div className="px-5 mb-5 flex gap-2">
+      <div {...animCard(1)} className="px-5 mb-5 flex gap-2">
         {TABS.map(t => (
           <button
             key={t.key}
@@ -51,9 +52,11 @@ export default function Tips() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'recipes' && <RecipesTab profile={profile} />}
-      {activeTab === 'skincare' && <SkincareTab profile={profile} />}
-      {activeTab === 'supplements' && <SupplementsTab profile={profile} />}
+      <div {...animCard(2)} key={activeTab} className="tab-content-enter">
+        {activeTab === 'recipes' && <RecipesTab profile={profile} />}
+        {activeTab === 'skincare' && <SkincareTab profile={profile} />}
+        {activeTab === 'supplements' && <SupplementsTab profile={profile} />}
+      </div>
     </div>
   );
 }

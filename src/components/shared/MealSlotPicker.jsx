@@ -1,5 +1,4 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 const SLOTS = [
@@ -10,19 +9,19 @@ const SLOTS = [
 ];
 
 export default function MealSlotPicker({ foodName, onSelect, onClose }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center">
-      <motion.div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+      <div
+        className={`bottom-sheet-backdrop absolute inset-0 bg-black/40 backdrop-blur-sm ${visible ? 'is-visible' : ''}`}
         onClick={onClose}
       />
-      <motion.div
-        className="relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10"
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+      <div
+        className={`bottom-sheet-panel relative w-full max-w-lg bg-white rounded-t-[28px] px-5 pt-5 pb-10 ${visible ? 'is-visible' : ''}`}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">Which meal?</h3>
@@ -38,14 +37,14 @@ export default function MealSlotPicker({ foodName, onSelect, onClose }) {
             <button
               key={slot.key}
               onClick={() => onSelect(slot.key)}
-              className="h-16 rounded-2xl border border-gray-200 bg-gray-50 flex items-center justify-center gap-2 font-semibold text-gray-900 active:scale-95 transition-transform"
+              className="press-scale h-16 rounded-2xl border border-gray-200 bg-gray-50 flex items-center justify-center gap-2 font-semibold text-gray-900"
             >
               <span className="text-xl">{slot.emoji}</span>
               {slot.label}
             </button>
           ))}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

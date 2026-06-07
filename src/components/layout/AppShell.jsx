@@ -7,36 +7,31 @@ const HIDE_NAV_PATHS = ['/onboarding', '/food-scanner', '/skincare-scanner', '/s
 export default function AppShell() {
   const location = useLocation();
   const hideNav = HIDE_NAV_PATHS.some(p => location.pathname.startsWith(p));
-  const [visible, setVisible] = useState(false);
-
-  // Sync dark mode with system preference
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = (e) => {
-      document.documentElement.classList.toggle('dark', e.matches);
-    };
-    apply(mq);
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
+  const [phase, setPhase] = useState('enter');
 
   useEffect(() => {
-    setVisible(false);
-    const t = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setVisible(true));
-    });
-    return () => cancelAnimationFrame(t);
+    setPhase('exit');
+    const exitTimer = setTimeout(() => setPhase('enter'), 150);
+    return () => clearTimeout(exitTimer);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (phase === 'enter') {
+      const t = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setPhase('visible'));
+      });
+      return () => cancelAnimationFrame(t);
+    }
+  }, [phase]);
+
+  const isVisible = phase === 'visible';
+  const isExiting = phase === 'exit';
 
   return (
     <div className="min-h-screen max-w-lg mx-auto relative" style={{ background: 'transparent' }}>
       <div
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0px)' : 'translateY(18px)',
-          transition: 'opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1)',
-          paddingBottom: hideNav ? 0 : '100px',
-        }}
+        className={`page-route-enter ${isVisible ? 'is-visible' : ''} ${isExiting ? 'page-route-exit is-exiting' : ''}`}
+        style={{ paddingBottom: hideNav ? 0 : '100px' }}
       >
         <Outlet />
       </div>

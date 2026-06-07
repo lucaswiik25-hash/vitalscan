@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, User, Shield, Info, RefreshCw, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { animCard } from '@/lib/animHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { calculateTargets } from '../lib/calculateTargets';
@@ -43,12 +43,6 @@ const ACTIVITY_LABELS = {
   extra_active: 'Extra Active',
 };
 
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: 'easeOut', delay },
-});
-
 export default function Settings() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -56,6 +50,7 @@ export default function Settings() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [togglePress, setTogglePress] = useState(false);
 
   const { profile } = useUserProfile();
 
@@ -134,7 +129,7 @@ export default function Settings() {
 
       <div className="px-5 space-y-4">
         {/* Profile summary */}
-        <motion.div {...fadeUp(0)} className="bg-white rounded-[24px] p-5 glow-card">
+        <div {...animCard(0)} className="bg-white rounded-[24px] p-5 glow-card">
           {!editingProfile ? (
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-xl font-bold text-foreground shrink-0">
@@ -179,10 +174,10 @@ export default function Settings() {
               </button>
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* Diet & Goals */}
-        <motion.div {...fadeUp(0.12)} className="bg-white rounded-[24px] px-5 glow-card">
+        <div {...animCard(1)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Diet & Goals</p>
           <SettingRow icon={User} label="Goal">
             <Select value={profile.goal || 'maintain'} onValueChange={v => updateField('goal', v)}>
@@ -221,24 +216,29 @@ export default function Settings() {
             </Select>
           </SettingRow>
           <div className="pb-1" />
-        </motion.div>
+        </div>
 
         {/* Appearance */}
-        <motion.div {...fadeUp(0.24)} className="bg-white rounded-[24px] px-5 glow-card">
+        <div {...animCard(2)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Preferences</p>
           <SettingRow icon={Shield} label="Appearance Mode">
             <button
               onClick={() => updateField('appearance_mode', !profile.appearance_mode)}
-              className="w-11 h-6 rounded-full transition-colors relative"
+              onMouseDown={() => setTogglePress(true)}
+              onMouseUp={() => setTogglePress(false)}
+              onMouseLeave={() => setTogglePress(false)}
+              onTouchStart={() => setTogglePress(true)}
+              onTouchEnd={() => setTogglePress(false)}
+              className={`toggle-switch w-11 h-6 rounded-full relative ${profile.appearance_mode ? 'is-on' : ''} ${togglePress ? 'is-pressing' : ''}`}
               style={{ background: profile.appearance_mode ? '#1a1a1a' : 'hsl(var(--muted))' }}>
-              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${profile.appearance_mode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <div className="toggle-thumb absolute top-0.5 w-5 h-5 bg-white rounded-full shadow" />
             </button>
           </SettingRow>
           <div className="pb-1" />
-        </motion.div>
+        </div>
 
         {/* Daily targets */}
-        <motion.div {...fadeUp(0.36)} className="bg-white rounded-[24px] p-5 glow-card">
+        <div {...animCard(3)} className="bg-white rounded-[24px] p-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Daily Targets</p>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -255,40 +255,40 @@ export default function Settings() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* About */}
-        <motion.div {...fadeUp(0.48)} className="bg-white rounded-[24px] px-5 glow-card">
+        <div {...animCard(4)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">About</p>
           <SettingRow icon={Info} label="Version">
             <span className="text-xs text-muted-foreground">Scanly v1.0</span>
           </SettingRow>
           <div className="pb-1" />
-        </motion.div>
+        </div>
 
         {/* Redo Onboarding */}
-        <motion.button {...fadeUp(0.56)}
+        <button {...animCard(5)}
           onClick={() => navigate('/onboarding')}
-          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform glow-card">
+          className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <RefreshCw className="w-4 h-4 text-foreground" />
           <span className="text-sm font-semibold text-foreground">Redo Onboarding</span>
-        </motion.button>
+        </button>
 
         {/* Logout */}
-        <motion.button {...fadeUp(0.64)}
+        <button {...animCard(6)}
           onClick={() => base44.auth.logout()}
-          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform glow-card">
+          className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <LogOut className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Log Out</span>
-        </motion.button>
+        </button>
 
         {/* Delete Account */}
-        <motion.button {...fadeUp(0.72)}
+        <button {...animCard(7)}
           onClick={() => setShowDeleteConfirm(true)}
-          className="w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 active:scale-[0.98] transition-transform glow-card">
+          className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <Trash2 className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Delete Account</span>
-        </motion.button>
+        </button>
       </div>
     </div>
   );

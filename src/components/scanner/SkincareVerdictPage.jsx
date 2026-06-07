@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import ProductVerdictLayout, {
   THEME,
@@ -127,6 +126,7 @@ export default function SkincareVerdictPage({ result, onBack }) {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       >
+        <div key={activeTab} className="tab-content-enter">
         {activeTab === 'details' && (
           <div>
             {result?._loadingDetails ? (
@@ -244,18 +244,16 @@ export default function SkincareVerdictPage({ result, onBack }) {
             )}
           </div>
         )}
+        </div>
       </ProductVerdictLayout>
 
-      <AnimatePresence>
-        {selectedIngredient && (
-          <IngredientDetailModal
-            key="ingredient-modal"
-            ingredient={selectedIngredient}
-            onClose={() => setSelectedIngredient(null)}
-            benefitsLabel="Notes"
-          />
-        )}
-      </AnimatePresence>
+      {selectedIngredient && (
+        <IngredientDetailModal
+          ingredient={selectedIngredient}
+          onClose={() => setSelectedIngredient(null)}
+          benefitsLabel="Notes"
+        />
+      )}
     </>
   );
 }

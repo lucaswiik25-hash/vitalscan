@@ -1,215 +1,261 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import ProductVerdictLayout, {
+  THEME,
+  SectionHeading,
+  DetailRows,
+  NumberedSteps,
+  IngredientTag,
+  IngredientListItem,
+  IngredientDetailModal,
+} from './ProductVerdictLayout';
 
-const safetyColor = (r) => {
-  const v = (r || '').toLowerCase();
-  if (v === 'safe') return { bg: '#dcfce7', text: '#16a34a' };
-  if (v === 'caution') return { bg: '#fef9c3', text: '#ca8a04' };
-  return { bg: '#fee2e2', text: '#dc2626' };
-};
+const TABS = [
+  { id: 'details', label: 'Details' },
+  { id: 'howtouse', label: 'How to use' },
+  { id: 'ingredients', label: 'Ingredients' },
+  { id: 'analysis', label: 'Analysis' },
+];
 
 const verdictConfig = {
-  recommended: { emoji: '✅', color: '#16a34a', label: 'Recommended' },
-  'use with caution': { emoji: '⚠️', color: '#ca8a04', label: 'Use with Caution' },
-  avoid: { emoji: '🚫', color: '#dc2626', label: 'Avoid' },
+  recommended: { color: THEME.successColor, label: 'Recommended', badgeType: 'beneficial' },
+  'use with caution': { color: '#e65100', label: 'Use with Caution', badgeType: 'caution' },
+  avoid: { color: THEME.dangerColor, label: 'Avoid', badgeType: 'avoid' },
 };
 
-function ScoreDial({ score }) {
-  const pct = Math.min(100, Math.max(0, score || 0));
-  const r = 44;
-  const circ = 2 * Math.PI * r;
-  const dash = (pct / 100) * circ;
-  const color = pct >= 70 ? '#16a34a' : pct >= 40 ? '#ca8a04' : '#dc2626';
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: 100, height: 100 }}>
-      <svg width="100" height="100" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="#f0f0f0" strokeWidth="8" />
-        <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ - dash}`}
-          style={{ transform: 'rotate(-90deg)', transformOrigin: '50px 50px' }} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span style={{ fontSize: 24, fontWeight: 800, color: '#111' }}>{pct}</span>
-        <span style={{ fontSize: 11, color: '#9CA3AF' }}>/ 100</span>
-      </div>
-    </div>
-  );
+function safetyToRating(rating) {
+  const v = (rating || '').toLowerCase();
+  if (v === 'safe') return { label: 'Good', color: '#4caf50', badgeType: 'beneficial', tagVariant: 'good' };
+  if (v === 'caution') return { label: 'Caution', color: '#ff9800', badgeType: 'caution', tagVariant: 'caution' };
+  return { label: 'Avoid', color: '#f44336', badgeType: 'avoid', tagVariant: 'bad' };
 }
 
-function IngredientRow({ ing }) {
-  const [open, setOpen] = useState(false);
-  const sc = safetyColor(ing.safety_rating);
+function buildIngredientModal(ing) {
+  const rating = safetyToRating(ing.safety_rating);
+  const flags = [
+    ing.is_irritant && 'Potential irritant',
+    ing.is_allergen && 'Known allergen',
+    ing.is_comedogenic && `Comedogenic (${ing.comedogenic_rating || '?'}/5)`,
+    ing.is_hormone_disruptor && 'Hormone disruptor',
+  ].filter(Boolean);
+
+  return {
+    title: ing.name || ing.inci_name,
+    badge: ing.is_active_beneficial ? 'Beneficial' : rating.label,
+    badgeType: ing.is_active_beneficial ? 'beneficial' : rating.badgeType,
+    description: ing.skin_effect || 'No detailed description available for this ingredient.',
+    function: ing.body_benefit || ing.body_risk || null,
+    benefits: flags.length > 0 ? flags.join(' · ') : (ing.body_benefit || null),
+  };
+}
+
+function ScoreDisplay({ score, label }) {
+  const pct = Math.min(100, Math.max(0, score || 0));
+  const color = pct >= 70 ? THEME.successColor : pct >= 40 ? THEME.warningColor : THEME.dangerColor;
   return (
-    <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: 12, marginBottom: 12 }}>
-      <div className="flex items-center justify-between cursor-pointer" onClick={() => setOpen(o => !o)}>
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#111', flex: 1 }} className="truncate">
-            {ing.name || ing.inci_name}
-          </span>
-          <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: sc.bg, color: sc.text, whiteSpace: 'nowrap' }}>
-            {ing.safety_rating || 'Safe'}
-          </span>
-        </div>
-        <div className="ml-2 text-gray-400">
-          {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </div>
+    <div
+      className="flex items-center gap-4"
+      style={{ background: '#f8f8f8', borderRadius: 16, padding: 16, marginBottom: 20 }}
+    >
+      <p style={{ fontFamily: THEME.fontHeading, fontSize: 36, fontWeight: 700, color: THEME.textColor }}>
+        {pct}
+      </p>
+      <div>
+        <p style={{ fontSize: 14, fontWeight: 600, color: color }}>{label}</p>
+        <p style={{ fontSize: 12, color: THEME.secondaryTextColor }}>Safety score out of 100</p>
       </div>
-      {open && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {ing.skin_effect && <p style={{ fontSize: 12, color: '#6B7280' }}>{ing.skin_effect}</p>}
-          <div className="flex flex-wrap gap-2 mt-1">
-            {ing.is_irritant && <span style={{ fontSize: 11, background: '#fee2e2', color: '#dc2626', padding: '1px 7px', borderRadius: 99 }}>Irritant</span>}
-            {ing.is_allergen && <span style={{ fontSize: 11, background: '#fef9c3', color: '#ca8a04', padding: '1px 7px', borderRadius: 99 }}>Allergen</span>}
-            {ing.is_comedogenic && <span style={{ fontSize: 11, background: '#fef3c7', color: '#b45309', padding: '1px 7px', borderRadius: 99 }}>Comedogenic {ing.comedogenic_rating}/5</span>}
-            {ing.is_hormone_disruptor && <span style={{ fontSize: 11, background: '#ede9fe', color: '#7c3aed', padding: '1px 7px', borderRadius: 99 }}>Hormone Disruptor</span>}
-            {ing.is_active_beneficial && <span style={{ fontSize: 11, background: '#dcfce7', color: '#16a34a', padding: '1px 7px', borderRadius: 99 }}>Beneficial Active</span>}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 export default function SkincareVerdictPage({ result, onBack }) {
+  const [activeTab, setActiveTab] = useState('ingredients');
+  const [selectedIngredient, setSelectedIngredient] = useState(null);
+
   const vc = verdictConfig[(result?.verdict || '').toLowerCase()] || verdictConfig['use with caution'];
   const ingredients = result?.ingredients || [];
+  const keyIngredients = [
+    ...(result?.top_beneficial || []),
+    ...ingredients.filter((i) => i.is_active_beneficial).map((i) => i.name || i.inci_name),
+  ].filter((v, i, a) => v && a.indexOf(v) === i);
+
+  const description = result?.verdict_reason || result?.marketing_claims?.[0] || null;
+
+  const detailItems = [
+    { label: 'Verdict', value: vc.label, color: vc.color },
+    result?.safety_score != null && { label: 'Safety Score', value: `${result.safety_score}/100` },
+    result?.skin_type_suitability && { label: 'Skin Type', value: result.skin_type_suitability },
+    result?.eye_area_safe != null && {
+      label: 'Eye Area',
+      value: result.eye_area_safe ? 'Safe' : 'Avoid',
+      color: result.eye_area_safe ? THEME.successColor : THEME.dangerColor,
+    },
+    result?.pregnancy_safe != null && {
+      label: 'Pregnancy',
+      value: result.pregnancy_safe ? 'Safe' : 'Not recommended',
+      color: result.pregnancy_safe ? THEME.successColor : THEME.dangerColor,
+    },
+    result?.frequency && { label: 'Frequency', value: result.frequency },
+    result?.product_type && { label: 'Product Type', value: result.product_type },
+  ].filter(Boolean);
+
+  const howToSteps = result?.routine_steps?.length
+    ? result.routine_steps.map((s) => {
+        const match = s.match(/^\d+\.\s*(.+?)(?::\s*(.+))?$/);
+        return match
+          ? { title: match[1], description: match[2] || '' }
+          : { title: null, description: s };
+      })
+    : [
+        result?.routine_step && { title: 'When to use', description: result.routine_step },
+        result?.application_method && { title: 'Application', description: result.application_method },
+        result?.apply_after && { title: 'Layering', description: result.apply_after },
+        result?.do_not_combine && { title: 'Do not combine', description: result.do_not_combine },
+        result?.results_timeline && { title: 'Results timeline', description: result.results_timeline },
+      ].filter(Boolean);
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
-      style={{ background: '#F7F8FA' }}
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="flex items-center px-5 pt-12 pb-4 bg-white" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-        <button onClick={onBack} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">
-          <ArrowLeft className="w-5 h-5 text-gray-900" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <p style={{ fontSize: 17, fontWeight: 700, color: '#111', lineHeight: 1.2 }} className="truncate">
-            {result?.product_name || 'Skincare Product'}
-          </p>
-          {result?.brand && <p style={{ fontSize: 13, color: '#9CA3AF' }}>{result.brand}</p>}
-        </div>
-      </div>
-
-      <div className="flex-1 px-5 py-5" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span style={{ fontSize: 22 }}>{vc.emoji}</span>
-                <span style={{ fontSize: 18, fontWeight: 800, color: vc.color }}>{vc.label}</span>
+    <>
+      <ProductVerdictLayout
+        imageUrl={result?.image_url}
+        onBack={onBack}
+        brand={result?.brand}
+        productName={result?.product_name || 'Skincare Product'}
+        description={description}
+        tabs={TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      >
+        {activeTab === 'details' && (
+          <div>
+            {result?._loadingDetails ? (
+              <div className="flex items-center justify-center gap-2 py-8">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: THEME.mutedTextColor }} />
+                <span style={{ fontSize: 13, color: THEME.mutedTextColor }}>Loading full analysis...</span>
               </div>
-              {result?.verdict_reason && (
-                <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5, maxWidth: 220 }}>{result.verdict_reason}</p>
-              )}
-            </div>
-            {result?.safety_score != null && <ScoreDial score={result.safety_score} />}
-          </div>
-          {result?._loadingDetails && (
-            <div className="flex items-center gap-2 mt-4 pt-4" style={{ borderTop: '1px solid #f3f4f6' }}>
-              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>Loading full analysis...</span>
-            </div>
-          )}
-        </div>
-
-        {!result?._loadingDetails && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>Key Details</p>
-            <div className="grid grid-cols-2 gap-3">
-              {result?.skin_type_suitability && (
-                <div style={{ background: '#F7F8FA', borderRadius: 12, padding: '10px 12px' }}>
-                  <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>SKIN TYPE</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{result.skin_type_suitability}</p>
-                </div>
-              )}
-              {result?.eye_area_safe != null && (
-                <div style={{ background: '#F7F8FA', borderRadius: 12, padding: '10px 12px' }}>
-                  <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>EYE AREA</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: result.eye_area_safe ? '#16a34a' : '#dc2626' }}>
-                    {result.eye_area_safe ? 'Safe' : 'Avoid'}
-                  </p>
-                </div>
-              )}
-              {result?.pregnancy_safe != null && (
-                <div style={{ background: '#F7F8FA', borderRadius: 12, padding: '10px 12px' }}>
-                  <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>PREGNANCY</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: result.pregnancy_safe ? '#16a34a' : '#dc2626' }}>
-                    {result.pregnancy_safe ? 'Safe' : 'Not recommended'}
-                  </p>
-                </div>
-              )}
-              {result?.frequency && (
-                <div style={{ background: '#F7F8FA', borderRadius: 12, padding: '10px 12px' }}>
-                  <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>FREQUENCY</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{result.frequency}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {!result?._loadingDetails && (result?.top_beneficial?.length > 0 || result?.top_concerning?.length > 0) && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>Highlights</p>
-            {result?.top_beneficial?.length > 0 && (
-              <div className="mb-3">
-                <p style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, marginBottom: 6 }}>✅ Beneficial</p>
-                <div className="flex flex-wrap gap-2">
-                  {result.top_beneficial.map((i, idx) => (
-                    <span key={idx} style={{ fontSize: 12, background: '#dcfce7', color: '#16a34a', padding: '3px 10px', borderRadius: 99 }}>{i}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {result?.top_concerning?.length > 0 && (
-              <div>
-                <p style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, marginBottom: 6 }}>⚠️ Concerning</p>
-                <div className="flex flex-wrap gap-2">
-                  {result.top_concerning.map((i, idx) => (
-                    <span key={idx} style={{ fontSize: 12, background: '#fee2e2', color: '#dc2626', padding: '3px 10px', borderRadius: 99 }}>{i}</span>
-                  ))}
-                </div>
-              </div>
+            ) : (
+              <>
+                {result?.safety_score != null && <ScoreDisplay score={result.safety_score} label={vc.label} />}
+                <DetailRows items={detailItems} />
+              </>
             )}
           </div>
         )}
 
-        {!result?._loadingDetails && (result?.routine_step || result?.application_method) && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>How to Use</p>
-            {result.routine_step && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>⏰ {result.routine_step}</p>}
-            {result.application_method && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>🤲 {result.application_method}</p>}
-            {result.apply_after && <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>📋 {result.apply_after}</p>}
-            {result.do_not_combine && <p style={{ fontSize: 13, color: '#dc2626', marginBottom: 8 }}>🚫 {result.do_not_combine}</p>}
-            {result.results_timeline && <p style={{ fontSize: 13, color: '#6B7280' }}>⏳ {result.results_timeline}</p>}
+        {activeTab === 'howtouse' && (
+          <div>
+            {howToSteps.length > 0 ? (
+              <NumberedSteps steps={howToSteps} />
+            ) : result?._loadingDetails ? (
+              <div className="flex items-center justify-center gap-2 py-8">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: THEME.mutedTextColor }} />
+                <span style={{ fontSize: 13, color: THEME.mutedTextColor }}>Loading usage instructions...</span>
+              </div>
+            ) : (
+              <p style={{ fontSize: 13, color: THEME.secondaryTextColor }}>No usage instructions available.</p>
+            )}
           </div>
         )}
 
-        {ingredients.length > 0 && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>
-              Ingredients ({ingredients.length})
-            </p>
-            {ingredients.map((ing, idx) => (
-              <IngredientRow key={idx} ing={ing} />
-            ))}
+        {activeTab === 'ingredients' && (
+          <div>
+            {keyIngredients.length > 0 && (
+              <>
+                <SectionHeading subtitle="Tap on ingredient to see details">Key ingredients</SectionHeading>
+                <div className="flex flex-wrap gap-2" style={{ marginBottom: 24 }}>
+                  {keyIngredients.map((name) => {
+                    const ing = ingredients.find(
+                      (i) => (i.name || i.inci_name)?.toLowerCase() === name.toLowerCase()
+                    );
+                    const rating = ing ? safetyToRating(ing.safety_rating) : { tagVariant: 'good' };
+                    return (
+                      <IngredientTag
+                        key={name}
+                        label={name}
+                        variant={rating.tagVariant}
+                        onClick={() => ing && setSelectedIngredient(buildIngredientModal(ing))}
+                      />
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <SectionHeading>All ingredients</SectionHeading>
+            {ingredients.length > 0 ? (
+              ingredients.map((ing, idx) => {
+                const rating = safetyToRating(ing.safety_rating);
+                return (
+                  <IngredientListItem
+                    key={idx}
+                    name={ing.name || ing.inci_name}
+                    rating={rating.label}
+                    ratingColor={rating.color}
+                    onClick={() => setSelectedIngredient(buildIngredientModal(ing))}
+                  />
+                );
+              })
+            ) : (
+              <p style={{ fontSize: 13, color: THEME.secondaryTextColor }}>No ingredients found.</p>
+            )}
           </div>
         )}
 
-        {result?.long_term_summary && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid rgba(0, 0, 0, 0.13)' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 8 }}>Long-Term Use</p>
-            <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>{result.long_term_summary}</p>
+        {activeTab === 'analysis' && (
+          <div>
+            {result?._loadingDetails ? (
+              <div className="flex items-center justify-center gap-2 py-8">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: THEME.mutedTextColor }} />
+                <span style={{ fontSize: 13, color: THEME.mutedTextColor }}>Loading analysis...</span>
+              </div>
+            ) : (
+              <>
+                {result?.top_beneficial?.length > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <SectionHeading>Beneficial highlights</SectionHeading>
+                    <div className="flex flex-wrap gap-2">
+                      {result.top_beneficial.map((item, idx) => (
+                        <IngredientTag key={idx} label={item} variant="good" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {result?.top_concerning?.length > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <SectionHeading>Concerning ingredients</SectionHeading>
+                    <div className="flex flex-wrap gap-2">
+                      {result.top_concerning.map((item, idx) => (
+                        <IngredientTag key={idx} label={item} variant="bad" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {result?.long_term_summary && (
+                  <div>
+                    <SectionHeading>Long-term use</SectionHeading>
+                    <p style={{ fontSize: 14, color: '#555555', lineHeight: 1.6 }}>{result.long_term_summary}</p>
+                  </div>
+                )}
+                {!result?.top_beneficial?.length && !result?.top_concerning?.length && !result?.long_term_summary && (
+                  <p style={{ fontSize: 13, color: THEME.secondaryTextColor }}>No analysis available yet.</p>
+                )}
+              </>
+            )}
           </div>
         )}
-      </div>
-    </motion.div>
+      </ProductVerdictLayout>
+
+      <AnimatePresence>
+        {selectedIngredient && (
+          <IngredientDetailModal
+            key="ingredient-modal"
+            ingredient={selectedIngredient}
+            onClose={() => setSelectedIngredient(null)}
+            benefitsLabel="Notes"
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }

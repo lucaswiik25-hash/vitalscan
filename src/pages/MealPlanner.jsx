@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Loader2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
-import { animCard } from '@/lib/animHelpers';
+import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 
 const MEAL_COUNTS = [2, 3, 4, 5, 6];
 const STORAGE_KEY = 'scanly_meal_plan';
@@ -29,6 +29,7 @@ export default function MealPlanner() {
     queryFn: () => base44.entities.UserProfile.list(),
   });
   const profile = profiles[0] || {};
+  const pageVisible = usePageVisible();
 
   // Load saved plan on mount, clear if from a different day
   useEffect(() => {
@@ -139,15 +140,15 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
   const toggleExpand = (i) => setExpanded(prev => ({ ...prev, [i]: !prev[i] }));
 
   return (
-    <div className="min-h-screen pb-10">
-      <div {...animCard(0)} className="px-5 pt-6 pb-4">
+    <div className="min-h-screen pb-10" style={pageRevealStyle(pageVisible)}>
+      <div {...animCard(0, pageVisible)} className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Meal Planner</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised meals for today' : 'AI-generated meals for your diet & goals'}</p>
       </div>
 
       <div className="px-5 space-y-4">
         {/* Meal count selector */}
-        <div {...animCard(1)} className="bg-white rounded-[24px] p-5 glow-card">
+        <div {...animCard(1, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
           <p className="text-sm font-semibold text-foreground mb-3">How many meals per day?</p>
           <div className="flex gap-2">
             {MEAL_COUNTS.map(n => (
@@ -162,14 +163,14 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
 
         {/* Diet info */}
         {profile.diet_mode && profile.diet_mode !== 'none' && (
-          <div {...animCard(2)} className="bg-secondary/50 border border-border rounded-[20px] px-4 py-3 flex items-center gap-2">
+          <div {...animCard(2, pageVisible)} className="bg-secondary/50 border border-border rounded-[20px] px-4 py-3 flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Diet mode active:</span>
             <span className="text-xs font-bold text-foreground capitalize">{DIET_LABELS[profile.diet_mode] || profile.diet_mode?.replace(/_/g, ' ')}</span>
           </div>
         )}
 
         {/* Generate button */}
-        <button {...animCard(3)} onClick={generatePlan} disabled={loading}
+        <button {...animCard(3, pageVisible)} onClick={generatePlan} disabled={loading}
           className="press-scale w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base flex items-center justify-center gap-2">
           {loading
             ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating your plan...</>
@@ -182,7 +183,7 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
         {/* Plan */}
         {plan && (
           <>
-            <div {...animCard(4)} className="flex gap-3">
+            <div {...animCard(4, pageVisible)} className="flex gap-3">
               <div className="flex-1 bg-white rounded-[20px] p-4 text-center glow-card">
                 <p className="text-2xl font-extrabold text-foreground">{plan.total_calories}</p>
                 <p className="text-xs text-muted-foreground">Total kcal</p>
@@ -205,7 +206,7 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
 
             <div className="space-y-3">
               {(plan.meals || []).map((meal, i) => (
-                <div key={i} {...animCard(5 + i)} className="bg-white rounded-[24px] p-5 glow-card">
+                <div key={i} {...animCard(5 + i, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
                   <button onClick={() => toggleExpand(i)} className="w-full text-left">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

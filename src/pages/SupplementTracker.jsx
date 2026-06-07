@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format } from 'date-fns';
-import { animCard } from '@/lib/animHelpers';
+import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import { Plus, Check, Trash2, Sparkles, Loader2, Pill, X } from 'lucide-react';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
@@ -175,10 +175,11 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
   const timeGroups = ['morning', 'afternoon', 'evening', 'with_food'];
   const timeLabel = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening', with_food: 'With Food' };
   const sevColor = { high: { bg: '#fee2e2', text: '#dc2626' }, medium: { bg: '#fef9c3', text: '#ca8a04' }, low: { bg: '#dcfce7', text: '#16a34a' } };
+  const pageVisible = usePageVisible();
 
   return (
-    <div className="min-h-screen pb-24">
-      <div {...animCard(0)} className="px-5 pt-6 pb-2 flex items-center justify-between">
+    <div className="min-h-screen pb-24" style={pageRevealStyle(pageVisible)}>
+      <div {...animCard(0, pageVisible)} className="px-5 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Supplements</h1>
         <button onClick={() => setShowAdd(true)}
           className="press-scale w-10 h-10 rounded-full bg-foreground flex items-center justify-center">
@@ -188,7 +189,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
 
       <div className="px-5 mt-3 space-y-4">
         {supplements.length === 0 ? (
-          <div {...animCard(1)} className="bg-white rounded-[24px] p-8 text-center glow-card">
+          <div {...animCard(1, pageVisible)} className="bg-white rounded-[24px] p-8 text-center glow-card">
             <Pill className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="font-semibold text-foreground">No supplements added</p>
             <p className="text-sm text-muted-foreground mt-1">Tap + to add your first supplement</p>
@@ -198,7 +199,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
             const group = supplements.filter(s => s.time_of_day === tg);
             if (group.length === 0) return null;
             return (
-              <div key={tg} {...animCard(gi + 1)} className="bg-white rounded-[24px] p-5 glow-card">
+              <div key={tg} {...animCard(gi + 1, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{timeLabel[tg]}</p>
                 <div className="space-y-2">
                   {group.map(sup => (
@@ -233,7 +234,7 @@ Identify the top 5 supplement deficiencies or gaps they likely have based on the
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Analysis</p>
 
         {/* AI Analysis */}
-        <div {...animCard(5)} className="bg-white rounded-[24px] p-5 glow-card">
+        <div {...animCard(5, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-foreground" />
             <h3 className="text-sm font-bold text-foreground">AI Deficiency Analysis</h3>

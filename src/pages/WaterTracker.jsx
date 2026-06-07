@@ -8,7 +8,7 @@ import WaterCalendarModal from '../components/water/WaterCalendarModal';
 import { MODULE_BORDER } from '@/lib/cardStyles';
 import WaterStatsScreen from '../components/water/WaterStatsScreen';
 import WaterStreakScreen from '../components/water/WaterStreakScreen';
-import { animCard } from '@/lib/animHelpers';
+import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
@@ -122,6 +122,7 @@ export default function WaterTracker() {
   const [openSlot, setOpenSlot] = useState(null);
   const [dropPulse, setDropPulse] = useState(false);
   const prevGlasses = useRef(0);
+  const pageVisible = usePageVisible();
 
   const { data: todayLogs = [] } = useQuery({
     queryKey: ['waterLogs', TODAY],
@@ -255,7 +256,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
   const ringOffset = RING_CIRC - (pct / 100) * RING_CIRC;
 
   return (
-    <div className="min-h-screen pb-28">
+    <div className="min-h-screen pb-28" style={pageRevealStyle(pageVisible)}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-10 pb-4">
         <h1 className="text-xl font-semibold" style={{ color: '#1f2937' }}>Hydro</h1>
@@ -266,8 +267,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
       <div className="px-5 space-y-4">
 
         {/* Daily progress banner */}
-        <div {...animCard(0)} className="rounded-[28px] px-5 py-5 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)', boxShadow: BLK_SM }}>
+        <div {...animCard(0, pageVisible, { background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)', boxShadow: BLK_SM })} className="rounded-[28px] px-5 py-5 relative overflow-hidden">
           <p className="text-xs font-medium mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Daily progress</p>
           <p className="text-3xl font-bold text-white">
             {effective.toLocaleString()} <span className="text-xl font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>/ {dailyTarget.toLocaleString()} ml</span>
@@ -301,7 +301,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
         {/* Main row: tracker card + vertical bar */}
         <div className="flex gap-3">
           {/* Tracker card */}
-          <div className="flex-1 rounded-[28px] p-5" style={SURFACE_CARD} {...animCard(1)}>
+          <div {...animCard(1, pageVisible, SURFACE_CARD)} className="flex-1 rounded-[28px] p-5">
             <p className="text-base font-semibold mb-0.5" style={{ color: '#374151' }}>Drink water!</p>
             <p className="text-sm mb-5" style={{ color: '#9ca3af' }}>Check off a glass</p>
             <div className="flex items-center gap-5">
@@ -384,7 +384,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
         </div>
 
         {/* Meal-time slots */}
-        <div {...animCard(2)}>
+        <div {...animCard(2, pageVisible)}>
           <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Log by time</p>
           <div className="rounded-[24px] overflow-hidden" style={SURFACE_CARD}>
             {slotsWithTargets.map((slot, i) => (
@@ -490,8 +490,7 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
               {aiInsights.map((insight, i) => {
                 const style = insightStyle(insight.type);
                 return (
-                  <div key={i} {...animCard(i)} className="rounded-[24px] p-4 glow-card"
-                    style={{ background: SURFACE, boxShadow: NM_SM }}>
+                  <div key={i} {...animCard(i, pageVisible, { background: SURFACE, boxShadow: NM_SM })} className="rounded-[24px] p-4 glow-card">
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-[12px] flex items-center justify-center shrink-0"
                         style={{ background: style.iconBg }}>

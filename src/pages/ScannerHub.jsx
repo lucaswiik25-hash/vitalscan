@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 
 async function registerScan(type, productName, brand, imageUrl, safetyScore, qualityScore, verdict) {
   try {
@@ -82,7 +82,7 @@ function FoodSearch() {
   };
 
   return (
-    <div className="px-5 mt-5 fade-in-up-2">
+    <div className="px-5 mt-5">
       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Forgot to log something?</p>
       <div className="flex gap-2">
         <div className="flex-1 flex items-center gap-2 bg-white border border-border rounded-2xl px-3.5 py-2.5 shadow-sm">
@@ -109,7 +109,7 @@ function FoodSearch() {
       {results && results.length > 0 && (
         <div className="mt-3 space-y-2">
           {results.map((item, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-3 fade-in-up glow-card">
+            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-3 glow-card">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{query}</p>
                 <p className="text-xs text-muted-foreground">{item.serving_label} · {item.calories} kcal · {item.protein}g prot · {item.carbs}g carbs</p>
@@ -152,7 +152,7 @@ function ScannerCarousel({ cardKeys }) {
   };
 
   return (
-    <div className="mt-5 fade-in-up-1">
+    <div className="mt-5">
       <div className="px-5 mb-3 flex items-center justify-between">
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scanners</p>
         <div className="flex gap-1.5">
@@ -296,7 +296,7 @@ function RecentScans() {
   };
 
   return (
-    <div className="mt-6 px-5 fade-in-up-4"
+    <div className="mt-6 px-5"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -347,15 +347,12 @@ function RecentScans() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.slice(0, 6).map((scan, idx) => {
+            {filtered.slice(0, 6).map((scan) => {
               const score = scan.safety_score ?? scan.quality_score ?? null;
               const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
               return (
-                <motion.button
+                <button
                   key={scan.id}
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.36, delay: idx * 0.07, ease: [0.22, 1, 0.36, 1] }}
                   className="w-full rounded-[20px] p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform glow-card"
                   style={cardStyle}
                   onClick={() => handleScanClick(scan)}
@@ -377,7 +374,7 @@ function RecentScans() {
                     )}
                     {scan.verdict && <p className="text-[10px] capitalize mt-0.5" style={{ color: scoreColor }}>{scan.verdict}</p>}
                   </div>
-                </motion.button>
+                </button>
               );
             })}
           </div>
@@ -390,6 +387,7 @@ function RecentScans() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ScannerHub() {
   const navigate = useNavigate();
+  const pageVisible = usePageVisible();
 
   const { profile } = useUserProfile();
   const isAppearanceMode = profile.diet_mode === 'appearance_mode';
@@ -399,9 +397,9 @@ export default function ScannerHub() {
     : ['food', 'skincare', 'supplement', 'body', 'exerciseform'];
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20" style={pageRevealStyle(pageVisible)}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-12 pb-2">
+      <div {...animCard(0, pageVisible)} className="flex items-center justify-between px-5 pt-12 pb-2">
         <button onClick={() => navigate('/')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
           <Home className="w-5 h-5 text-foreground" />
         </button>
@@ -410,19 +408,19 @@ export default function ScannerHub() {
       </div>
 
       {/* Food search bar */}
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }}>
+      <div {...animCard(1, pageVisible)}>
         <FoodSearch />
-      </motion.div>
+      </div>
 
       {/* Scanner cards carousel */}
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}>
+      <div {...animCard(2, pageVisible)}>
         <ScannerCarousel cardKeys={cardKeys} />
-      </motion.div>
+      </div>
 
       {/* Recent scans */}
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut', delay: 0.4 }}>
+      <div {...animCard(3, pageVisible)}>
         <RecentScans />
-      </motion.div>
+      </div>
     </div>
   );
 }

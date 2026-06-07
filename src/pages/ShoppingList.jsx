@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Loader2, ShoppingCart, Check, RefreshCw, X, Search } from 'lucide-react';
-import { animCard } from '@/lib/animHelpers';
+import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 
 const ALL_COUNTRIES = [
   { country: 'Afghanistan', currency: '؋', code: 'AFN' },
@@ -120,6 +120,7 @@ export default function ShoppingList() {
   });
   const profile = profiles[0] || {};
   const curr = ALL_COUNTRIES.find(c => c.country === country) || ALL_COUNTRIES.find(c => c.country === 'Finland');
+  const pageVisible = usePageVisible();
 
   const generateList = async () => {
     if (!budget) return;
@@ -198,15 +199,15 @@ Include estimated cost per item and total cost. Make it practical — whole food
   const checkedCount = Object.values(checked).filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-background pb-10">
-      <div {...animCard(0)} className="px-5 pt-6 pb-4">
+    <div className="min-h-screen bg-background pb-10" style={pageRevealStyle(pageVisible)}>
+      <div {...animCard(0, pageVisible)} className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Shopping List</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised groceries' : 'AI-generated based on your diet & budget'}</p>
       </div>
 
       <div className="px-5 space-y-4">
         {/* Config */}
-        <div {...animCard(1)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm space-y-4">
+        <div {...animCard(1, pageVisible)} className="bg-white border border-border rounded-[24px] p-5 shadow-sm space-y-4">
           <div>
             <p className="text-sm font-semibold text-foreground mb-2">Your Country</p>
             <button
@@ -239,14 +240,14 @@ Include estimated cost per item and total cost. Make it practical — whole food
           </div>
         </div>
 
-        <button {...animCard(2)} onClick={generateList} disabled={loading || !budget}
+        <button {...animCard(2, pageVisible)} onClick={generateList} disabled={loading || !budget}
           className="press-scale w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-50">
           {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Building your list...</> : <><ShoppingCart className="w-5 h-5" /> Generate Shopping List</>}
         </button>
 
         {list && (
           <>
-            <div {...animCard(3)} className="flex gap-3">
+            <div {...animCard(3, pageVisible)} className="flex gap-3">
               <div className="flex-1 bg-white border border-border rounded-[20px] p-4 shadow-sm text-center">
                 <p className="text-2xl font-extrabold text-foreground">{curr.currency}{list.total_cost?.toFixed(0)}</p>
                 <p className="text-xs text-muted-foreground">Total Cost</p>

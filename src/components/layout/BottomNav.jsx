@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Droplets, Dumbbell, Settings, Plus, Lightbulb,
@@ -23,7 +23,6 @@ export default function BottomNav() {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const itemRefs = useRef({});
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const [tappedPath, setTappedPath] = useState(null);
   const [fabOpen, setFabOpen] = useState(false);
 
@@ -35,11 +34,6 @@ export default function BottomNav() {
     const containerRect = container.getBoundingClientRect();
     const itemRect = activeEl.getBoundingClientRect();
     const scrollLeft = container.scrollLeft;
-
-    setIndicatorStyle({
-      left: itemRect.left - containerRect.left + scrollLeft,
-      width: itemRect.width,
-    });
 
     const itemLeft = itemRect.left - containerRect.left + scrollLeft;
     const itemRight = itemLeft + itemRect.width;
@@ -54,7 +48,7 @@ export default function BottomNav() {
 
   const handleTabTap = (path) => {
     setTappedPath(path);
-    setTimeout(() => setTappedPath(null), 200);
+    setTimeout(() => setTappedPath(null), 280);
   };
 
   const handleFabClick = () => {
@@ -90,23 +84,6 @@ export default function BottomNav() {
             borderRadius: '28px 28px 0 0',
             pointerEvents: 'none',
             zIndex: 1,
-          }}
-        />
-
-        <div
-          className="nav-indicator-pill"
-          style={{
-            position: 'absolute',
-            top: 8,
-            left: indicatorStyle.left,
-            width: indicatorStyle.width,
-            height: 'calc(100% - 16px)',
-            background: 'rgba(255,255,255,0.88)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 20,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
-            zIndex: 0,
-            pointerEvents: 'none',
           }}
         />
 
@@ -153,12 +130,28 @@ export default function BottomNav() {
                   flexShrink: 0,
                 }}
               >
+                <div
+                  className={`nav-tab-pill ${isActive ? 'is-active' : ''}`}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(255,255,255,0.92)',
+                    borderRadius: 20,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                  }}
+                />
                 <Icon
                   className={`nav-tab-icon ${isActive || isTapped ? 'is-active' : ''}`}
                   style={{
-                    width: 22, height: 22,
+                    width: isActive ? 24 : 22,
+                    height: isActive ? 24 : 22,
                     color: '#111827',
                     strokeWidth: isActive ? 2.2 : 1.8,
+                    position: 'relative',
+                    zIndex: 1,
+                    transition: 'width 280ms cubic-bezier(0.34, 1.56, 0.64, 1), height 280ms cubic-bezier(0.34, 1.56, 0.64, 1)',
                   }}
                 />
                 <span
@@ -169,6 +162,8 @@ export default function BottomNav() {
                     whiteSpace: 'nowrap',
                     color: '#111827',
                     lineHeight: 1,
+                    position: 'relative',
+                    zIndex: 1,
                   }}
                 >
                   {tab.label}

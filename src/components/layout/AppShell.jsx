@@ -11,7 +11,7 @@ export default function AppShell() {
 
   useEffect(() => {
     setPhase('exit');
-    const exitTimer = setTimeout(() => setPhase('enter'), 150);
+    const exitTimer = setTimeout(() => setPhase('enter'), 200);
     return () => clearTimeout(exitTimer);
   }, [location.pathname]);
 

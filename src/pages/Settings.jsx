@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, User, Shield, Info, RefreshCw, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { animCard } from '@/lib/animHelpers';
+import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { calculateTargets } from '../lib/calculateTargets';
@@ -53,6 +53,7 @@ export default function Settings() {
   const [togglePress, setTogglePress] = useState(false);
 
   const { profile } = useUserProfile();
+  const pageVisible = usePageVisible();
 
   const startEdit = () => {
     setEditForm({ name: profile.name || '', age: profile.age || '', weight: profile.weight || '', height: profile.height || '' });
@@ -103,7 +104,7 @@ export default function Settings() {
   );
 
   return (
-    <div className="min-h-screen pb-10">
+    <div className="min-h-screen pb-10" style={pageRevealStyle(pageVisible)}>
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
       </div>
@@ -129,7 +130,7 @@ export default function Settings() {
 
       <div className="px-5 space-y-4">
         {/* Profile summary */}
-        <div {...animCard(0)} className="bg-white rounded-[24px] p-5 glow-card">
+        <div {...animCard(0, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
           {!editingProfile ? (
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-xl font-bold text-foreground shrink-0">
@@ -177,7 +178,7 @@ export default function Settings() {
         </div>
 
         {/* Diet & Goals */}
-        <div {...animCard(1)} className="bg-white rounded-[24px] px-5 glow-card">
+        <div {...animCard(1, pageVisible)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Diet & Goals</p>
           <SettingRow icon={User} label="Goal">
             <Select value={profile.goal || 'maintain'} onValueChange={v => updateField('goal', v)}>
@@ -219,7 +220,7 @@ export default function Settings() {
         </div>
 
         {/* Appearance */}
-        <div {...animCard(2)} className="bg-white rounded-[24px] px-5 glow-card">
+        <div {...animCard(2, pageVisible)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Preferences</p>
           <SettingRow icon={Shield} label="Appearance Mode">
             <button
@@ -238,7 +239,7 @@ export default function Settings() {
         </div>
 
         {/* Daily targets */}
-        <div {...animCard(3)} className="bg-white rounded-[24px] p-5 glow-card">
+        <div {...animCard(3, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Daily Targets</p>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -258,7 +259,7 @@ export default function Settings() {
         </div>
 
         {/* About */}
-        <div {...animCard(4)} className="bg-white rounded-[24px] px-5 glow-card">
+        <div {...animCard(4, pageVisible)} className="bg-white rounded-[24px] px-5 glow-card">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">About</p>
           <SettingRow icon={Info} label="Version">
             <span className="text-xs text-muted-foreground">Scanly v1.0</span>
@@ -267,7 +268,7 @@ export default function Settings() {
         </div>
 
         {/* Redo Onboarding */}
-        <button {...animCard(5)}
+        <button {...animCard(5, pageVisible)}
           onClick={() => navigate('/onboarding')}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <RefreshCw className="w-4 h-4 text-foreground" />
@@ -275,7 +276,7 @@ export default function Settings() {
         </button>
 
         {/* Logout */}
-        <button {...animCard(6)}
+        <button {...animCard(6, pageVisible)}
           onClick={() => base44.auth.logout()}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <LogOut className="w-4 h-4 text-destructive" />
@@ -283,7 +284,7 @@ export default function Settings() {
         </button>
 
         {/* Delete Account */}
-        <button {...animCard(7)}
+        <button {...animCard(7, pageVisible)}
           onClick={() => setShowDeleteConfirm(true)}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <Trash2 className="w-4 h-4 text-destructive" />

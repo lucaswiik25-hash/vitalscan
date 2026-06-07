@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
-import { animCard } from '../lib/animHelpers';
+import { animCard, usePageVisible, pageRevealStyle } from '../lib/animHelpers';
 
 const ACCENT = '#1A1814';
 const TRACK_COLOR = '#FFFFFF';
@@ -116,9 +116,10 @@ export default function Exercise() {
   };
 
   const visibleExercises = showAll ? QUICK_EXERCISES : QUICK_EXERCISES.slice(0, 6);
+  const pageVisible = usePageVisible();
 
   return (
-    <div className="min-h-screen pb-28">
+    <div className="min-h-screen pb-28" style={pageRevealStyle(pageVisible)}>
       {/* Header */}
       <div className="px-5 pt-12 pb-4 flex items-center">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">
@@ -132,7 +133,7 @@ export default function Exercise() {
 
       <div className="px-5 space-y-5">
         {/* Today's Burn Hero Card */}
-        <div {...animCard(0)} className="rounded-[28px] overflow-hidden -mx-1 border border-border glow-card" style={{ background: '#F7F7F7' }}>
+        <div {...animCard(0, pageVisible, { background: '#F7F7F7' })} className="rounded-[28px] overflow-hidden -mx-1 border border-border glow-card">
           <div className="px-5 pt-5 pb-8">
 
             {/* Weekly day strip — interactive */}
@@ -223,7 +224,7 @@ export default function Exercise() {
 
         {/* Add Exercise section */}
         <div>
-          <div {...animCard(1)} className="mb-3">
+          <div {...animCard(1, pageVisible)} className="mb-3">
             <h2 className="text-base font-bold text-gray-900">Add Exercise</h2>
             <p className="text-xs text-gray-400 mt-0.5">Tap to log instantly</p>
           </div>
@@ -232,7 +233,7 @@ export default function Exercise() {
               const Icon = ex.icon;
               const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
               return (
-                <button key={ex.name} {...animCard(2 + i)} onClick={() => handleQuickSelect(ex)}
+                <button key={ex.name} {...animCard(2 + i, pageVisible)} onClick={() => handleQuickSelect(ex)}
                   className="w-full rounded-[14px] p-4 flex items-center gap-3 text-left press-scale glow-card"
                   style={{
                     background: 'rgba(255,255,255,0.55)',

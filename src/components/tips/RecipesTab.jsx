@@ -184,7 +184,7 @@ function RecipeFullPage({ item, onClose, profile }) {
   );
 }
 
-function RecipeCard({ recipe, index, onSelect }) {
+function RecipeCard({ recipe, index, onSelect, pageVisible }) {
   const [pressing, setPressing] = useState(false);
 
   const openDetail = () => {
@@ -195,12 +195,13 @@ function RecipeCard({ recipe, index, onSelect }) {
     }, 100);
   };
 
+  const cardStyle = { background: '#FFF', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0, 0, 0, 0.13)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' };
+
   return (
     <div
-      {...animCard(index)}
+      {...animCard(index, pageVisible, cardStyle)}
       onClick={openDetail}
       className={`cursor-pointer recipe-card-tap ${pressing ? 'is-pressing' : ''}`}
-      style={{ background: '#FFF', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(0, 0, 0, 0.13)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
     >
       <UnsplashImage query={recipe.name} fallbackEmoji={recipe.emoji || '🍽️'} height={140} />
       <div style={{ padding: '10px 12px 12px' }}>
@@ -216,7 +217,7 @@ function RecipeCard({ recipe, index, onSelect }) {
   );
 }
 
-export default function RecipesTab({ profile }) {
+export default function RecipesTab({ profile, pageVisible = true }) {
   const [cat, setCat] = useState('all');
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -329,7 +330,7 @@ Return JSON with recipes array, each with: name, desc, emoji, cat (breakfast/lun
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {(showSaved ? savedRecipes : recipes).map((r, i) => (
-              <RecipeCard key={i} recipe={r} index={i} onSelect={setSelected} />
+              <RecipeCard key={i} recipe={r} index={i} onSelect={setSelected} pageVisible={pageVisible} />
             ))}
           </div>
         )}

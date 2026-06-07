@@ -3,7 +3,7 @@ import html2canvas from 'html2canvas';
 import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple, Pencil, Share2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { parseApiResponse } from '@/lib/parseApiResponse';
-import { animCard } from '@/lib/animHelpers';
+import { animCard, usePageVisible } from '@/lib/animHelpers';
 
 // ─── Icon Module (replaces all emojis) ───────────────────────────────────────
 function IconModule({ icon: Icon, bg, color, size = 44 }) {
@@ -172,6 +172,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   const [sharing, setSharing] = useState(false);
   const touchStartX = useRef(null);
   const shareRef = useRef(null);
+  const pageVisible = usePageVisible();
 
   const currentResult = editedResult || result;
 
@@ -632,8 +633,7 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
     >
 
       {/* ── 1. Product image — white card, image covers full area ── */}
-      <div {...animCard(0)} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden"
-        style={{ height: 170, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
+      <div {...animCard(0, pageVisible, { height: 170, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' })} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden">
         {result.image_url ? (
         <img src={result.image_url} alt={result.name}
           className="w-full h-full object-cover" />
@@ -650,19 +650,19 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
         </div>
 
         {/* ── 2. Name + verdict badge ── */}
-        <div {...animCard(1)} className="shrink-0 px-5 pt-4 pb-2">
+        <div {...animCard(1, pageVisible)} className="shrink-0 px-5 pt-4 pb-2">
         <div className="flex items-start gap-2">
           <h1 className="text-[22px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
             {currentResult.name?.length > 40 ? currentResult.name.slice(0, 40).trim() + '…' : currentResult.name}
           </h1>
-          <div {...animCard(2)} className="shrink-0 mt-0.5">
+          <div {...animCard(2, pageVisible)} className="shrink-0 mt-0.5">
             <VerdictBadge result={currentResult} />
           </div>
         </div>
         </div>
 
         {/* ── 3. Dot page indicators — centered above content ── */}
-        <div {...animCard(3)} className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
+        <div {...animCard(3, pageVisible)} className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
         {allSlides.map((_, i) => (
           <button key={i} onClick={() => setSlide(i)}
             className="rounded-full transition-all duration-200"

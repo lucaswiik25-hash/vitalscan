@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { animCard } from '@/lib/animHelpers';
+import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import RecipesTab from '../components/tips/RecipesTab';
 import SkincareTab from '../components/tips/SkincareTab';
 import SupplementsTab from '../components/tips/SupplementsTab';
@@ -14,6 +14,7 @@ const TABS = [
 
 export default function Tips() {
   const [activeTab, setActiveTab] = useState('recipes');
+  const pageVisible = usePageVisible();
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
@@ -22,15 +23,15 @@ export default function Tips() {
   const profile = profiles[0] || null;
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24" style={pageRevealStyle(pageVisible)}>
       {/* Header */}
-      <div {...animCard(0)} className="px-5 pt-14 pb-4">
+      <div {...animCard(0, pageVisible)} className="px-5 pt-14 pb-4">
         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>Tips</h1>
         <p style={{ fontSize: 14, color: '#6B7280', marginTop: 2 }}>Personalised for you</p>
       </div>
 
       {/* Tab pills */}
-      <div {...animCard(1)} className="px-5 mb-5 flex gap-2">
+      <div {...animCard(1, pageVisible)} className="px-5 mb-5 flex gap-2">
         {TABS.map(t => (
           <button
             key={t.key}
@@ -52,8 +53,8 @@ export default function Tips() {
       </div>
 
       {/* Tab content */}
-      <div {...animCard(2)} key={activeTab} className="tab-content-enter">
-        {activeTab === 'recipes' && <RecipesTab profile={profile} />}
+      <div {...animCard(2, pageVisible)} key={activeTab} className="tab-content-enter">
+        {activeTab === 'recipes' && <RecipesTab profile={profile} pageVisible={pageVisible} />}
         {activeTab === 'skincare' && <SkincareTab profile={profile} />}
         {activeTab === 'supplements' && <SupplementsTab profile={profile} />}
       </div>

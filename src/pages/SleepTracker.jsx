@@ -2,13 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
-import { Sparkles, Lightbulb } from 'lucide-react';
+import { Sparkles, Lightbulb, Calendar, Pencil, Moon } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import SleepHeroRing from '@/components/sleep/SleepHeroRing';
-import MiniScoreRing from '@/components/sleep/MiniScoreRing';
 import {
   TARGET_HOURS,
-  TARGET_MINUTES,
   MOOD_OPTIONS,
   calcDurationMinutes,
   calcDurationScore,
@@ -25,26 +22,71 @@ import {
   formatDuration,
   minutesToTime,
   timeToMinutes,
-  barColorForHours,
   generateInsights,
   buildWeekDays,
 } from '@/lib/sleepCalculations';
-import { MODULE_BORDER, moduleCardShadow } from '@/lib/cardStyles';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 const YESTERDAY = format(subDays(new Date(), 1), 'yyyy-MM-dd');
 
-const PAGE_BG = 'transparent';
-const CARD_STYLE = {
-  background: '#FFFFFF',
-  borderRadius: 28,
-  padding: 20,
-  border: MODULE_BORDER,
-  boxShadow: moduleCardShadow,
+// ── Theme ────────────────────────────────────────────────────────────────────
+const T = {
+  bg: '#0a0a1a',
+  card: '#1a1a2e',
+  cardLight: '#252540',
+  purple: '#7C5CFC',
+  purpleLight: '#a78bfa',
+  yellow: '#F5C542',
+  white: '#ffffff',
+  sub: 'rgba(255,255,255,0.6)',
+  muted: 'rgba(255,255,255,0.4)',
+  track: 'rgba(255,255,255,0.06)',
+  border: 'rgba(255,255,255,0.08)',
 };
 
-function TimeDrumPicker({ value, onChange }) {
+function SubScoreRing({ score, label }) {
+  const pct = score == null ? 0 : Math.min(100, Math.max(0, score));
+  const r = 26;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+
+  return (
+    <div
+      className="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform"
+      style={{
+        background: T.white,
+        borderRadius: 20,
+        padding: '14px 10px',
+        flex: 1,
+      }}
+    >
+      <p style={{ fontSize: 12, fontWeight: 600, color: '#111827' }}>{label}</p>
+      <div className="relative" style={{ width: 64, height: 64 }}>
+        <svg width="64" height="64" viewBox="0 0 64 64" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="32" cy="32" r={r} fill="none" stroke="#f0f0f0" strokeWidth="8" />
+          <circle
+            cx="32" cy="32" r={r}
+            fill="none"
+            stroke={T.purple}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 1s ease' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
+            {score == null ? '–' : score}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimeDrumPicker({ value, onChange, dark = false }) {
   const mins = timeToMinutes(value);
   const h24 = Math.floor(mins / 60);
   const min = mins % 60;
@@ -67,61 +109,53 @@ function TimeDrumPicker({ value, onChange }) {
   const setPeriod = (p) => onChange(minutesToTime(to24h(h12, min, p)));
 
   const colClass = 'h-24 overflow-y-auto snap-y snap-mandatory no-scrollbar flex flex-col items-center';
+  const activeBg = dark ? T.cardLight : '#FFFFFF';
+  const activeColor = dark ? T.white : '#111827';
+  const inactiveColor = dark ? T.sub : '#9BA3AF';
 
   return (
-    <div
-      className="flex items-center justify-center gap-1 rounded-[14px] py-2 px-3"
-      style={{ background: PAGE_BG }}
-    >
+    <div className="flex items-center justify-center gap-1 rounded-[14px] py-2 px-3">
       <div className={colClass}>
         {hours.map((h) => (
-          <button
-            key={h}
-            type="button"
-            onClick={() => setHour(h)}
+          <button key={h} type="button" onClick={() => setHour(h)}
             className="snap-center py-1 px-3 text-sm font-semibold rounded-lg shrink-0"
-            style={{
-              color: h === h12 ? '#111827' : '#9BA3AF',
-              background: h === h12 ? '#FFFFFF' : 'transparent',
-            }}
-          >
+            style={{ color: h === h12 ? activeColor : inactiveColor, background: h === h12 ? activeBg : 'transparent' }}>
             {h}
           </button>
         ))}
       </div>
-      <span className="text-[#111827] font-bold">:</span>
+      <span style={{ color: dark ? T.white : '#111827', fontWeight: 700 }}>:</span>
       <div className={colClass}>
         {minutes.map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMinute(m)}
+          <button key={m} type="button" onClick={() => setMinute(m)}
             className="snap-center py-1 px-3 text-sm font-semibold rounded-lg shrink-0"
-            style={{
-              color: m === min ? '#111827' : '#9BA3AF',
-              background: m === min ? '#FFFFFF' : 'transparent',
-            }}
-          >
+            style={{ color: m === min ? activeColor : inactiveColor, background: m === min ? activeBg : 'transparent' }}>
             {String(m).padStart(2, '0')}
           </button>
         ))}
       </div>
       <div className={colClass}>
         {['AM', 'PM'].map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => setPeriod(p)}
+          <button key={p} type="button" onClick={() => setPeriod(p)}
             className="snap-center py-1 px-3 text-sm font-semibold rounded-lg shrink-0"
-            style={{
-              color: p === period ? '#111827' : '#9BA3AF',
-              background: p === period ? '#FFFFFF' : 'transparent',
-            }}
-          >
+            style={{ color: p === period ? activeColor : inactiveColor, background: p === period ? activeBg : 'transparent' }}>
             {p}
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DarkCard({ children, style = {}, className = '' }) {
+  return (
+    <div className={className} style={{
+      background: T.card,
+      borderRadius: 20,
+      border: `1px solid ${T.border}`,
+      ...style,
+    }}>
+      {children}
     </div>
   );
 }
@@ -139,9 +173,9 @@ export default function SleepTracker() {
   const [alarmWake, setAlarmWake] = useState('07:00');
   const [selectedBedtime, setSelectedBedtime] = useState(null);
   const [reminderNote, setReminderNote] = useState(null);
-  const [prevBedtime, setPrevBedtime] = useState(null);
 
-  const [tooltipDay, setTooltipDay] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null); // null = today
+  const [showLogPanel, setShowLogPanel] = useState(false);
   const [mood, setMood] = useState(null);
   const [journalNote, setJournalNote] = useState('');
   const [journalSaving, setJournalSaving] = useState(false);
@@ -178,10 +212,7 @@ export default function SleepTracker() {
   }, [todayLog?.id]);
 
   const yesterdayWater = useMemo(
-    () =>
-      waterLogs
-        .filter((w) => w.date === YESTERDAY && w.amount_ml > 0)
-        .reduce((s, w) => s + w.amount_ml, 0),
+    () => waterLogs.filter((w) => w.date === YESTERDAY && w.amount_ml > 0).reduce((s, w) => s + w.amount_ml, 0),
     [waterLogs]
   );
   const yesterdayMeals = meals.some((m) => m.date === YESTERDAY && m.logged);
@@ -214,13 +245,38 @@ export default function SleepTracker() {
   }, [weekDays]);
 
   const journalEntries = useMemo(
-    () =>
-      [...sleepLogs]
-        .filter((l) => l.mood || l.journal_note)
-        .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, 3),
+    () => [...sleepLogs].filter((l) => l.mood || l.journal_note).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3),
     [sleepLogs]
   );
+
+  // Build 7 day pills (last 7 days)
+  const dayPills = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(today, 6 - i);
+      const dateStr = format(d, 'yyyy-MM-dd');
+      return {
+        dateStr,
+        letter: format(d, 'EEEEE'), // single letter
+        num: format(d, 'd'),
+        isToday: dateStr === TODAY,
+        idx: i,
+      };
+    });
+  }, []);
+
+  const activeIdx = selectedDay ?? dayPills.findIndex((p) => p.isToday);
+
+  // Bar chart data from weekDays
+  const maxBarHours = 10;
+  const barChartData = useMemo(() => {
+    return weekDays.map((d) => ({
+      label: d.label,
+      hours: d.hours,
+      date: d.date,
+      score: d.log?.sleep_score ?? 0,
+    }));
+  }, [weekDays]);
 
   const logSleep = async () => {
     setSaving(true);
@@ -237,35 +293,27 @@ export default function SleepTracker() {
       mood: mood || todayLog?.mood,
       journal_note: journalNote || todayLog?.journal_note || '',
     };
-
-    try {
-      if (todayLog?.id) {
-        await base44.entities.SleepLog.update(todayLog.id, payload);
-      } else {
-        await base44.entities.SleepLog.create(payload);
-      }
-
-      if (profile.id) {
-        await base44.entities.UserProfile.update(profile.id, {
-          last_sleep_hours: durationMin / 60,
-          last_sleep_date: TODAY,
-        });
-      }
-
-      try {
-        const stored = JSON.parse(localStorage.getItem('scanly_sleep') || '{}');
-        stored[TODAY] = durationMin / 60;
-        localStorage.setItem('scanly_sleep', JSON.stringify(stored));
-      } catch (_) {}
-
-      queryClient.invalidateQueries({ queryKey: ['sleepLogs'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      setSaveMsg('Sleep logged successfully');
-    } catch (err) {
-      setSaveMsg('Could not save — try again');
-      console.error(err);
+    if (todayLog?.id) {
+      await base44.entities.SleepLog.update(todayLog.id, payload);
+    } else {
+      await base44.entities.SleepLog.create(payload);
     }
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, {
+        last_sleep_hours: durationMin / 60,
+        last_sleep_date: TODAY,
+      });
+    }
+    try {
+      const stored = JSON.parse(localStorage.getItem('scanly_sleep') || '{}');
+      stored[TODAY] = durationMin / 60;
+      localStorage.setItem('scanly_sleep', JSON.stringify(stored));
+    } catch (_) {}
+    queryClient.invalidateQueries({ queryKey: ['sleepLogs'] });
+    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    setSaveMsg('Sleep logged!');
     setSaving(false);
+    setShowLogPanel(false);
     setTimeout(() => setSaveMsg(null), 3000);
   };
 
@@ -284,16 +332,12 @@ export default function SleepTracker() {
       mood,
       journal_note: journalNote.trim(),
     };
-    try {
-      if (todayLog?.id) {
-        await base44.entities.SleepLog.update(todayLog.id, base);
-      } else {
-        await base44.entities.SleepLog.create(base);
-      }
-      queryClient.invalidateQueries({ queryKey: ['sleepLogs'] });
-    } catch (e) {
-      console.error(e);
+    if (todayLog?.id) {
+      await base44.entities.SleepLog.update(todayLog.id, base);
+    } else {
+      await base44.entities.SleepLog.create(base);
     }
+    queryClient.invalidateQueries({ queryKey: ['sleepLogs'] });
     setJournalSaving(false);
   };
 
@@ -301,284 +345,246 @@ export default function SleepTracker() {
     if (!selectedBedtime) return;
     const label = formatTime12(selectedBedtime);
     if ('Notification' in window) {
-      if (Notification.permission === 'default') {
-        await Notification.requestPermission();
-      }
+      if (Notification.permission === 'default') await Notification.requestPermission();
       if (Notification.permission === 'granted') {
-        try {
-          new Notification('Bedtime reminder', {
-            body: `Wind down for sleep at ${label}`,
-          });
-          setReminderNote(`Reminder set for ${label}`);
-          return;
-        } catch (_) {}
+        try { new Notification('Bedtime reminder', { body: `Wind down for sleep at ${label}` }); setReminderNote(`Reminder set for ${label}`); return; } catch (_) {}
       }
     }
     setReminderNote(`Set a reminder in your phone for ${label}`);
   };
 
-  const maxBarHours = 10;
-  const chartHeight = 120;
   const pageVisible = usePageVisible();
 
   return (
-    <div className="min-h-screen pb-28" style={pageRevealStyle(pageVisible)}>
-      <div className="px-5 pt-12 max-w-lg mx-auto space-y-4">
-        <h1 className="text-2xl font-bold text-[#111827] mb-2">Sleep</h1>
+    <div className="min-h-screen pb-32" style={{ background: T.bg, ...pageRevealStyle(pageVisible) }}>
+      <div className="max-w-lg mx-auto">
 
-        {/* SECTION 1 — Hero ring */}
-        <div {...animCard(0, pageVisible, CARD_STYLE)} className="flex flex-col items-center">
-          <SleepHeroRing
-            sleepTime={sleepTime}
-            wakeTime={wakeTime}
-            onSleepChange={setSleepTime}
-            onWakeChange={setWakeTime}
-            sleepScore={sleepScore}
-          />
+        {/* ── Top Bar ── */}
+        <div className="flex gap-3 px-5 pt-12 pb-3">
           <button
-            type="button"
-            onClick={logSleep}
-            disabled={saving || logsLoading}
-            className="w-full mt-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-60"
-            style={{ height: 52, borderRadius: 16, background: '#111827' }}
+            style={{ flex: 1, height: 44, background: T.card, borderRadius: 12, border: `1px solid ${T.border}`, color: T.sub, fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           >
-            {saving ? 'Saving…' : 'Log Sleep'}
+            <Calendar style={{ width: 16, height: 16, color: T.muted }} />
+            Today
           </button>
-          {saveMsg && (
-            <p className="text-xs text-[#10B981] mt-2 font-medium">{saveMsg}</p>
+          <button
+            style={{ flex: 1, height: 44, background: T.card, borderRadius: 12, border: `1px solid ${T.border}`, color: T.sub, fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {format(new Date(), 'MMMM yyyy')}
+          </button>
+        </div>
+
+        {/* ── Day Selector ── */}
+        <div className="flex gap-2 px-5 pb-4 overflow-x-auto no-scrollbar">
+          {dayPills.map((pill, i) => {
+            const active = i === activeIdx;
+            return (
+              <button
+                key={pill.dateStr}
+                onClick={() => setSelectedDay(i)}
+                style={{
+                  minWidth: 52, height: 64, borderRadius: 16, flexShrink: 0,
+                  background: active ? T.purple : 'transparent',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+                  transform: active ? 'scale(1.05)' : 'scale(1)',
+                  transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 500, color: active ? T.white : T.muted }}>{pill.letter}</span>
+                <span style={{ fontSize: 17, fontWeight: 500, color: active ? T.white : T.sub }}>{pill.num}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Sleeping Status Card ── */}
+        <div className="mx-5 mb-4" style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.border}`, padding: '16px 20px 20px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(124,92,252,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+              😴
+            </div>
+            <p style={{ fontSize: 17, fontWeight: 600, color: T.white, flex: 1, textAlign: 'center' }}>Sleeping Status</p>
+            <button
+              onClick={() => setShowLogPanel(true)}
+              style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Pencil style={{ width: 18, height: 18, color: T.sub }} />
+            </button>
+          </div>
+
+          {/* Bar Chart */}
+          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', gap: 8, padding: '0 4px' }}>
+            {barChartData.map((bar, i) => {
+              const maxH = 130;
+              const barH = bar.hours > 0 ? Math.max(20, (bar.hours / maxBarHours) * maxH) : 20;
+              const isSelected = bar.date === (dayPills[activeIdx]?.dateStr);
+              return (
+                <div key={bar.date} className="flex flex-col items-center" style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      width: '100%', maxWidth: 36, height: barH,
+                      borderRadius: 18,
+                      background: bar.hours > 0 ? T.purple : T.track,
+                      opacity: isSelected ? 1 : 0.55,
+                      transition: 'all 0.4s cubic-bezier(0.4,0,0.2,1)',
+                      alignSelf: 'flex-end',
+                    }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.sub, marginTop: 8 }}>{bar.label}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Today sleep time summary */}
+          {todayLog && (
+            <div className="flex justify-center gap-6 mt-4 pt-4" style={{ borderTop: `1px solid ${T.track}` }}>
+              <div className="text-center">
+                <p style={{ fontSize: 11, color: T.muted, marginBottom: 2 }}>Bedtime</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: T.white }}>{formatTime12(todayLog.sleep_time)}</p>
+              </div>
+              <div style={{ width: 1, background: T.track }} />
+              <div className="text-center">
+                <p style={{ fontSize: 11, color: T.muted, marginBottom: 2 }}>Wake up</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: T.white }}>{formatTime12(todayLog.wake_time)}</p>
+              </div>
+              <div style={{ width: 1, background: T.track }} />
+              <div className="text-center">
+                <p style={{ fontSize: 11, color: T.muted, marginBottom: 2 }}>Duration</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: T.white }}>{formatDuration(todayLog.duration_minutes)}</p>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* SECTION 2 — Sub-scores */}
-        <div {...animCard(1, pageVisible)} className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Duration', score: durationScore, color: '#111827' },
-            {
-              label: 'Consistency',
-              score: consistencyScore,
-              color: '#6366F1',
-            },
-            { label: 'Habits', score: habitsScore, color: '#10B981' },
-          ].map(({ label, score, color }) => (
-            <div
-              key={label}
-              style={{
-                ...CARD_STYLE,
-                borderRadius: 24,
-                padding: 14,
-              }}
-              className="flex flex-col items-center"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9BA3AF] mb-2 w-full text-center">
-                {label}
-              </p>
-              <MiniScoreRing score={score} color={color} size={40} />
-              <p className="text-[28px] font-bold text-[#111827] mt-2 leading-none">
-                {score == null ? '–' : score}
-              </p>
-            </div>
-          ))}
+        {/* ── Sub-score rings ── */}
+        <div className="flex gap-3 px-5 mb-6">
+          <SubScoreRing score={durationScore} label="Duration" />
+          <SubScoreRing score={consistencyScore} label="Consistency" />
+          <SubScoreRing score={habitsScore} label="Habits" />
         </div>
 
-        {/* SECTION 3 — Smart Alarm */}
-        <div {...animCard(2, pageVisible, CARD_STYLE)}>
-          <p className="text-[15px] font-bold text-[#111827]">Smart Alarm</p>
-          <p className="text-xs text-[#9BA3AF] mt-0.5 mb-4">Based on 90-min sleep cycles</p>
+        {saveMsg && (
+          <div className="mx-5 mb-4 text-center py-3 rounded-2xl" style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <p style={{ color: '#10B981', fontSize: 14, fontWeight: 600 }}>{saveMsg}</p>
+          </div>
+        )}
 
-          <p className="text-[11px] font-semibold uppercase text-[#9BA3AF] mb-2">Target wake time</p>
-          <TimeDrumPicker value={alarmWake} onChange={setAlarmWake} />
+        {/* ── Log Sleep Button ── */}
+        <div className="px-5 mb-6">
+          <button
+            onClick={() => setShowLogPanel(true)}
+            style={{
+              width: '100%', height: 56, background: T.purple, borderRadius: 28,
+              color: T.white, fontSize: 16, fontWeight: 600,
+              boxShadow: '0 8px 24px rgba(124,92,252,0.45)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+            }}
+          >
+            <Moon style={{ width: 18, height: 18 }} />
+            Log Sleep
+          </button>
+        </div>
 
-          <p className="text-[11px] font-semibold uppercase text-[#9BA3AF] mt-4 mb-2">Recommended bedtimes</p>
+        {/* ── Smart Alarm ── */}
+        <div className="mx-5 mb-4 p-5" style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.border}` }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: T.white }}>Smart Alarm</p>
+          <p style={{ fontSize: 12, color: T.muted, marginTop: 2, marginBottom: 16 }}>Based on 90-min sleep cycles</p>
+          <p style={{ fontSize: 11, fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Target wake time</p>
+          <TimeDrumPicker value={alarmWake} onChange={setAlarmWake} dark />
+          <p style={{ fontSize: 11, fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 16, marginBottom: 8 }}>Recommended bedtimes</p>
           <div className="flex flex-wrap gap-2">
             {cycleBedtimes.map((opt) => (
               <button
                 key={opt.cycles}
                 type="button"
-                onClick={() => { setPrevBedtime(selectedBedtime); setSelectedBedtime(opt.time); }}
-                className={`day-pill press-scale text-[14px] font-semibold ${selectedBedtime === opt.time ? 'is-selected' : ''} ${prevBedtime === opt.time && selectedBedtime !== opt.time ? 'was-selected' : ''}`}
+                onClick={() => setSelectedBedtime(opt.time)}
                 style={{
-                  background: selectedBedtime === opt.time ? '#111827' : PAGE_BG,
-                  color: selectedBedtime === opt.time ? '#FFFFFF' : '#111827',
-                  borderRadius: 20,
-                  padding: '8px 16px',
+                  padding: '8px 16px', borderRadius: 20, fontSize: 14, fontWeight: 600,
+                  background: selectedBedtime === opt.time ? T.purple : T.cardLight,
+                  color: selectedBedtime === opt.time ? T.white : T.sub,
+                  border: `1px solid ${selectedBedtime === opt.time ? T.purple : T.border}`,
+                  transition: 'all 0.2s',
                 }}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-
           <button
             type="button"
             onClick={setBedtimeReminder}
             disabled={!selectedBedtime}
-            className="w-full mt-4 text-white font-semibold text-sm disabled:opacity-40"
-            style={{ height: 44, borderRadius: 16, background: '#111827' }}
+            style={{
+              width: '100%', marginTop: 16, height: 44, borderRadius: 16,
+              background: selectedBedtime ? T.purple : T.cardLight,
+              color: T.white, fontSize: 14, fontWeight: 600, opacity: !selectedBedtime ? 0.4 : 1,
+              transition: 'all 0.2s',
+            }}
           >
             Set Bedtime Reminder
           </button>
-          {reminderNote && (
-            <p className="text-xs text-[#6366F1] mt-2 font-medium">{reminderNote}</p>
-          )}
-          <p className="text-[11px] text-[#9BA3AF] mt-3 leading-relaxed">
-            Wake up between cycles to feel more refreshed. Falling asleep takes ~15 min on average.
-          </p>
+          {reminderNote && <p style={{ fontSize: 12, color: T.purpleLight, marginTop: 8, fontWeight: 500 }}>{reminderNote}</p>}
+          <p style={{ fontSize: 11, color: T.muted, marginTop: 12, lineHeight: 1.6 }}>Wake up between cycles to feel more refreshed.</p>
         </div>
 
-        {/* SECTION 4 — Weekly history */}
-        <div {...animCard(3, pageVisible, CARD_STYLE)}>
-          <p className="text-[15px] font-bold text-[#111827] mb-4">Last 7 Nights</p>
-
-          <div className="relative" style={{ height: chartHeight + 32 }}>
-            {[2, 4, 6, 8, 10].map((h) => (
-              <div
-                key={h}
-                className="absolute left-0 right-8 border-t border-[#F2F4F8]"
-                style={{ bottom: 24 + (h / maxBarHours) * chartHeight }}
-              />
-            ))}
-            <div
-              className="absolute right-0 flex items-center border-t border-dashed border-[#D1D5DB]"
-              style={{ bottom: 24 + (TARGET_HOURS / maxBarHours) * chartHeight, width: '100%' }}
-            >
-              <span className="ml-auto text-[11px] text-[#9BA3AF] pr-1 -mt-2">Goal</span>
-            </div>
-
-            <div className="absolute left-0 right-0 bottom-0 flex justify-between items-end gap-1.5 px-0" style={{ height: chartHeight + 24 }}>
-              {weekDays.map((day) => {
-                const barH = day.hours > 0 ? (day.hours / maxBarHours) * chartHeight : 4;
-                const color = day.hours > 0 ? barColorForHours(day.hours) : '#E5E7EB';
-                return (
-                  <div key={day.date} className="flex-1 flex flex-col items-center relative">
-                    {tooltipDay === day.date && day.log && (
-                      <div
-                        className="absolute -top-14 z-10 text-center px-2 py-1 rounded-lg text-[10px] text-white whitespace-nowrap"
-                        style={{ background: '#111827' }}
-                      >
-                        {format(new Date(day.date), 'MMM d')}
-                        <br />
-                        {formatDuration(day.log.duration_minutes)} · {day.log.sleep_score}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      className="w-full rounded-t-lg transition-all"
-                      style={{
-                        height: Math.max(barH, 4),
-                        background: color,
-                        borderRadius: 8,
-                      }}
-                      onClick={() => setTooltipDay(tooltipDay === day.date ? null : day.date)}
-                    />
-                    <span className="text-[11px] font-semibold text-[#9BA3AF] mt-2">{day.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex justify-between mt-4 pt-3 border-t border-[#F2F4F8]">
-            <p className="text-[13px] text-[#6B7280]">
-              Avg this week:{' '}
-              <span className="font-semibold text-[#111827]">
-                {weekStats.avg != null ? formatDuration(Math.round(weekStats.avg)) : '—'}
-              </span>
-            </p>
-            <p className="text-[13px] text-[#6B7280]">
-              Best night:{' '}
-              <span className="font-semibold text-[#111827]">
-                {weekStats.best != null ? formatDuration(weekStats.best) : '—'}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {/* SECTION 5 — Sleep debt */}
-        <div {...animCard(4, pageVisible, CARD_STYLE)}>
-          <p className="text-[15px] font-bold text-[#111827]">Sleep Debt</p>
-          <p
-            className="text-[40px] font-bold mt-3 leading-none"
-            style={{ color: debt.color }}
-          >
+        {/* ── Sleep Debt ── */}
+        <div className="mx-5 mb-4 p-5" style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.border}` }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: T.white }}>Sleep Debt</p>
+          <p style={{ fontSize: 40, fontWeight: 800, marginTop: 8, color: debtMinutes > 0 ? '#f87171' : '#34d399', lineHeight: 1 }}>
             {formatDuration(debtMinutes)}
           </p>
-          <p className="text-sm text-[#6B7280] mt-2">
-            {debtMinutes > 0
-              ? `You need ${formatDuration(debtMinutes)} extra this week to recover`
-              : 'You are on track with your sleep goal this week'}
+          <p style={{ fontSize: 13, color: T.sub, marginTop: 8 }}>
+            {debtMinutes > 0 ? `You need ${formatDuration(debtMinutes)} extra this week` : 'On track with your sleep goal'}
           </p>
-          <div className="mt-4 h-3 rounded-full overflow-hidden" style={{ background: PAGE_BG }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${Math.min(100, (debtMinutes / (10 * 60)) * 100)}%`,
-                background: debt.color,
-              }}
-            />
+          <div style={{ marginTop: 16, height: 6, borderRadius: 999, background: T.track, overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 999, background: debtMinutes > 0 ? '#f87171' : '#34d399', width: `${Math.min(100, (debtMinutes / (10 * 60)) * 100)}%`, transition: 'width 0.7s ease' }} />
           </div>
-          <div className="flex items-start gap-2 mt-4 p-3 rounded-2xl" style={{ background: PAGE_BG }}>
-            <Lightbulb className="w-4 h-4 text-[#F59E0B] shrink-0 mt-0.5" />
-            <p className="text-[13px] text-[#4B5563] leading-snug">{debtTip(debt.label)}</p>
+          <div className="flex items-start gap-2 mt-4 p-3 rounded-2xl" style={{ background: T.cardLight }}>
+            <Lightbulb style={{ width: 16, height: 16, color: T.yellow, flexShrink: 0, marginTop: 2 }} />
+            <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.5 }}>{debtTip(debt.label)}</p>
           </div>
         </div>
 
-        {/* SECTION 6 — Insights */}
-        <div {...animCard(5, pageVisible, CARD_STYLE)}>
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#6366F1]" />
-            <p className="text-[15px] font-bold text-[#111827]">Sleep Insights</p>
+        {/* ── Insights ── */}
+        <div className="mx-5 mb-4 p-5" style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.border}` }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles style={{ width: 16, height: 16, color: T.purpleLight }} />
+            <p style={{ fontSize: 15, fontWeight: 700, color: T.white }}>Sleep Insights</p>
           </div>
-          <p className="text-xs text-[#9BA3AF] mt-0.5 mb-4">Based on your food and hydration logs</p>
-
+          <p style={{ fontSize: 12, color: T.muted, marginBottom: 16 }}>Based on your food and hydration logs</p>
           {!insightsData.ready ? (
-            <div className="rounded-2xl p-4" style={{ background: PAGE_BG }}>
-              <p className="text-sm text-[#6B7280]">
-                Log 5 nights of sleep to unlock your personal insights
-              </p>
-              <div className="mt-3 h-2 rounded-full overflow-hidden" style={{ background: '#E5E7EB' }}>
-                <div
-                  className="h-full rounded-full bg-[#6366F1] transition-all"
-                  style={{ width: `${(insightsData.count / 5) * 100}%` }}
-                />
+            <div className="rounded-2xl p-4" style={{ background: T.cardLight }}>
+              <p style={{ fontSize: 13, color: T.sub }}>Log 5 nights of sleep to unlock insights</p>
+              <div style={{ marginTop: 10, height: 6, borderRadius: 999, background: T.track, overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 999, background: T.purple, width: `${(insightsData.count / 5) * 100}%`, transition: 'width 0.7s ease' }} />
               </div>
-              <p className="text-xs text-[#9BA3AF] mt-2">{insightsData.count}/5 nights logged</p>
+              <p style={{ fontSize: 11, color: T.muted, marginTop: 6 }}>{insightsData.count}/5 nights logged</p>
             </div>
           ) : (
             <div className="space-y-3">
               {insightsData.insights.map((ins, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl py-3 px-4 text-[13px] text-[#374151] leading-snug"
-                  style={{
-                    background: '#F8FAFC',
-                    borderLeft: `4px solid ${ins.border}`,
-                  }}
-                >
-                  {ins.text}
+                <div key={i} className="rounded-2xl py-3 px-4" style={{ background: T.cardLight, borderLeft: `4px solid ${ins.border}` }}>
+                  <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.5 }}>{ins.text}</p>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* SECTION 7 — Journal */}
-        <div {...animCard(6, pageVisible, CARD_STYLE)}>
-          <p className="text-[15px] font-bold text-[#111827]">Morning Journal</p>
-          <p className="text-xs text-[#9BA3AF] mt-0.5 mb-4">How do you feel this morning?</p>
-
+        {/* ── Journal ── */}
+        <div className="mx-5 mb-4 p-5" style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.border}` }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: T.white }}>Morning Journal</p>
+          <p style={{ fontSize: 12, color: T.muted, marginTop: 2, marginBottom: 16 }}>How do you feel this morning?</p>
           <div className="flex justify-between gap-2 mb-4">
             {MOOD_OPTIONS.map((m) => {
               const selected = mood === m.key;
               return (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => setMood(m.key)}
+                <button key={m.key} type="button" onClick={() => setMood(m.key)}
                   className="w-12 h-12 flex items-center justify-center text-xl transition-all active:scale-90"
-                  style={{
-                    borderRadius: '50%',
-                    background: selected ? '#111827' : PAGE_BG,
-                  }}
+                  style={{ borderRadius: '50%', background: selected ? T.purple : T.cardLight, border: `2px solid ${selected ? T.purple : T.border}` }}
                   title={m.label}
                 >
                   {m.emoji}
@@ -586,53 +592,84 @@ export default function SleepTracker() {
               );
             })}
           </div>
-
           <textarea
             value={journalNote}
             onChange={(e) => setJournalNote(e.target.value)}
             placeholder="Any notes? Dreams, disturbances, stress..."
-            className="w-full text-sm text-[#111827] resize-none focus:outline-none"
-            style={{
-              borderRadius: 14,
-              background: PAGE_BG,
-              padding: 12,
-              minHeight: 80,
-            }}
+            className="w-full text-sm resize-none focus:outline-none"
+            style={{ borderRadius: 14, background: T.cardLight, padding: 12, minHeight: 80, color: T.white, border: `1px solid ${T.border}` }}
           />
-
-          <button
-            type="button"
-            onClick={saveJournal}
-            disabled={journalSaving}
-            className="w-full mt-4 text-white font-bold text-[15px] disabled:opacity-50"
-            style={{ height: 48, borderRadius: 16, background: '#111827' }}
-          >
+          <button type="button" onClick={saveJournal} disabled={journalSaving}
+            style={{ width: '100%', marginTop: 16, height: 48, borderRadius: 16, background: T.purple, color: T.white, fontSize: 15, fontWeight: 700, opacity: journalSaving ? 0.5 : 1 }}>
             {journalSaving ? 'Saving…' : 'Save Journal Entry'}
           </button>
-
           {journalEntries.length > 0 && (
-            <div className="mt-5 pt-4 border-t border-[#F2F4F8] space-y-3">
+            <div className="mt-5 pt-4 space-y-3" style={{ borderTop: `1px solid ${T.track}` }}>
               {journalEntries.map((entry) => {
                 const moodOpt = MOOD_OPTIONS.find((m) => m.key === entry.mood);
                 return (
-                  <div key={entry.id} className="text-sm">
-                    <div className="flex items-center gap-2 text-[#9BA3AF] text-xs">
+                  <div key={entry.id}>
+                    <div className="flex items-center gap-2" style={{ color: T.muted, fontSize: 12 }}>
                       <span>{format(new Date(entry.date), 'EEE, MMM d')}</span>
                       {moodOpt && <span>{moodOpt.emoji}</span>}
                     </div>
-                    {entry.journal_note && (
-                      <p className="text-[#374151] mt-1 leading-snug">{entry.journal_note}</p>
-                    )}
+                    {entry.journal_note && <p style={{ fontSize: 13, color: T.sub, marginTop: 4, lineHeight: 1.5 }}>{entry.journal_note}</p>}
                   </div>
                 );
               })}
-              <button type="button" className="text-xs font-semibold text-[#6366F1]">
-                See all
-              </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Log Sleep Bottom Sheet ── */}
+      {showLogPanel && (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setShowLogPanel(false)}>
+          <div
+            className="w-full max-w-lg mx-auto rounded-t-[32px] p-6 pb-10"
+            style={{ background: T.card, border: `1px solid ${T.border}` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <p style={{ fontSize: 18, fontWeight: 700, color: T.white }}>Log Sleep</p>
+              <button onClick={() => setShowLogPanel(false)} style={{ color: T.sub, fontSize: 24, lineHeight: 1 }}>×</button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div style={{ background: T.cardLight, borderRadius: 16, padding: '12px 8px' }}>
+                <p style={{ fontSize: 11, color: T.muted, textAlign: 'center', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Bedtime</p>
+                <TimeDrumPicker value={sleepTime} onChange={setSleepTime} dark />
+              </div>
+              <div style={{ background: T.cardLight, borderRadius: 16, padding: '12px 8px' }}>
+                <p style={{ fontSize: 11, color: T.muted, textAlign: 'center', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Wake up</p>
+                <TimeDrumPicker value={wakeTime} onChange={setWakeTime} dark />
+              </div>
+            </div>
+            <div className="flex justify-between mb-6">
+              {[
+                { label: 'Duration', val: formatDuration(durationMin) },
+                { label: 'Sleep Score', val: sleepScore },
+              ].map(({ label, val }) => (
+                <div key={label} style={{ background: T.cardLight, borderRadius: 14, padding: '10px 20px', textAlign: 'center', flex: 1, margin: '0 4px' }}>
+                  <p style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>{label}</p>
+                  <p style={{ fontSize: 20, fontWeight: 700, color: T.white }}>{val}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={logSleep}
+              disabled={saving || logsLoading}
+              style={{
+                width: '100%', height: 56, borderRadius: 28, background: T.purple,
+                color: T.white, fontSize: 16, fontWeight: 700,
+                boxShadow: '0 8px 24px rgba(124,92,252,0.45)',
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? 'Saving…' : 'Save Sleep'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

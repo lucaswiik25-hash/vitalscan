@@ -3,12 +3,18 @@ import { useState, useEffect } from 'react';
 const CARD_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const CARD_DURATION = 600;
 
-/** Page reveal hook — sets visible 50ms after mount */
+/** Page reveal hook — sets visible 50ms after mount (after first paint) */
 export function usePageVisible() {
   const [pageVisible, setPageVisible] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setPageVisible(true), 50);
-    return () => clearTimeout(t);
+    let timer;
+    const raf = requestAnimationFrame(() => {
+      timer = setTimeout(() => setPageVisible(true), 50);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      if (timer) clearTimeout(timer);
+    };
   }, []);
   return pageVisible;
 }

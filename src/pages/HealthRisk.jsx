@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { subDays, format } from 'date-fns';
 import { Sparkles, Loader2, ShieldAlert, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 const SEV_STYLES = {
@@ -26,62 +27,113 @@ export default function HealthRisk() {
     queryFn: () => base44.entities.Meal.filter({ logged: true }),
   });
 
+  const { data: waterLogs = [] } = useQuery({
+    queryKey: ['allWaterLogs'],
+    queryFn: () => base44.entities.WaterLog.list(),
+  });
+
+  const { data: exerciseLogs = [] } = useQuery({
+    queryKey: ['allExercises'],
+    queryFn: () => base44.entities.Exercise.list(),
+  });
+
+  const { data: sleepLogs = [] } = useQuery({
+    queryKey: ['sleepLogs'],
+    queryFn: () => base44.entities.SleepLog.list(),
+  });
+
   const analyze = async () => {
     setLoading(true);
     setResult(null);
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const recentMeals = meals.filter(m => new Date(m.date) >= cutoff);
+    const cutoffStr = format(cutoff, 'yyyy-MM-dd');
+
+    const recentMeals = meals.filter(m => m.date >= cutoffStr);
+    const recentWater = waterLogs.filter(w => w.date >= cutoffStr);
+    const recentExercise = exerciseLogs.filter(e => e.date >= cutoffStr);
+    const recentSleep = sleepLogs.filter(s => s.date >= cutoffStr);
+
+    const daySet = new Set(recentMeals.map(m => m.date));
+    const numDays = Math.max(1, daySet.size);
+    const tot = recentMeals.reduce((a, m) => ({
+      calories: a.calories + (m.calories || 0), protein: a.protein + (m.protein || 0),
+      carbs: a.carbs + (m.carbs || 0), fat: a.fat + (m.fat || 0),
+      fiber: a.fiber + (m.fiber || 0), sugar: a.sugar + (m.sugar || 0), sodium: a.sodium + (m.sodium || 0),
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
+
+    const avgCal = Math.round(tot.calories / numDays);
+    const avgProtein = Math.round(tot.protein / numDays);
+    const avgCarbs = Math.round(tot.carbs / numDays);
+    const avgFat = Math.round(tot.fat / numDays);
+    const avgFiber = Math.round(tot.fiber / numDays);
+    const avgSugar = Math.round(tot.sugar / numDays);
+    const avgSodium = Math.round(tot.sodium / numDays);
+
+    const waterDaySet = new Set(recentWater.filter(w => w.amount_ml > 0).map(w => w.date));
+    const numWaterDays = Math.max(1, waterDaySet.size);
+    const avgWaterMl = Math.round(recentWater.filter(w => w.amount_ml > 0).reduce((s, w) => s + w.amount_ml, 0) / numWaterDays);
+    const waterGoal = profile.water_target_ml || 2000;
+    const waterGoalHitDays = [...waterDaySet].filter(d => recentWater.filter(w => w.date === d && w.amount_ml > 0).reduce((s, w) => s + w.amount_ml, 0) >= waterGoal).length;
+    const waterGoalHitRate = waterDaySet.size > 0 ? Math.round((waterGoalHitDays / waterDaySet.size) * 100) : 0;
+
+    const exerciseDaySet = new Set(recentExercise.map(e => e.date));
+    const exerciseSessionsPerWeek = Math.round((exerciseDaySet.size / days) * 7 * 10) / 10;
+    const avgCalBurnedPerDay = Math.round(recentExercise.reduce((s, e) => s + (e.calories_burned || 0), 0) / days);
+
+    const avgSleepMin = recentSleep.length > 0 ? Math.round(recentSleep.reduce((s, l) => s + (l.duration_minutes || 0), 0) / recentSleep.length) : 0;
+    const avgSleepScore = recentSleep.length > 0 ? Math.round(recentSleep.reduce((s, l) => s + (l.sleep_score || 0), 0) / recentSleep.length) : 0;
 
     const mealSummary = recentMeals.map(m =>
       `${m.date} - ${m.name}: ${m.calories}cal, ${m.protein}g protein, ${m.fat}g fat, ${m.carbs}g carbs, ${m.sugar || 0}g sugar, ${m.sodium || 0}mg sodium`
     ).join('\n');
 
-    const avgCal = recentMeals.length > 0
-      ? Math.round(recentMeals.reduce((s, m) => s + (m.calories || 0), 0) / Math.max(1, new Set(recentMeals.map(m => m.date)).size))
-      : 0;
-
     const isAppearance = profile.diet_mode === 'appearance_mode';
 
-    const appearancePrompt = `You are a dermatologist and appearance optimization expert. Analyze this user's food log over the past ${days} days ENTIRELY through the lens of facial appearance, skin clarity, and puffiness.
+    const dataBlock = `USER DATA (past ${days} days — base your entire analysis on these specific numbers):
+- Calories avg/day: ${avgCal} kcal (target: ${profile.calorie_target || 'unknown'} kcal)
+- Protein avg: ${avgProtein}g/day | Carbs avg: ${avgCarbs}g/day | Fat avg: ${avgFat}g/day
+- Fiber avg: ${avgFiber}g/day | Sugar avg: ${avgSugar}g/day | Sodium avg: ${avgSodium}mg/day
+- Water avg: ${avgWaterMl}ml/day (goal: ${waterGoal}ml, goal hit ${waterGoalHitRate}% of days)
+- Sleep avg: ${avgSleepMin > 0 ? (avgSleepMin / 60).toFixed(1) + 'h' : 'not logged'} (sleep score: ${avgSleepScore > 0 ? avgSleepScore + '/100' : 'n/a'})
+- Exercise: ${exerciseSessionsPerWeek} sessions/week, avg ${avgCalBurnedPerDay} kcal burned/day
+- Activity level: ${profile.activity_level || 'unknown'} | Meals logged: ${recentMeals.length} over ${numDays} days`;
+
+    const appearancePrompt = `You are a dermatologist and appearance optimization expert. Analyze this user's data over the past ${days} days ENTIRELY through the lens of facial appearance, skin clarity, and puffiness.
+
+Base your entire analysis on the specific numbers provided below. Do not make assumptions. Do not use generic advice. Every recommendation must directly reference the actual data provided.
 
 User: age ${profile.age}, sex ${profile.sex}, weight ${profile.weight}kg.
+${dataBlock}
 
-Food log (past ${days} days):
-${mealSummary || 'No meals logged yet'}
+Full meal log: ${mealSummary || 'No meals logged yet'}
 
-Average daily sodium: estimated from meals above.
-
-Return a comprehensive APPEARANCE analysis:
-- overall_score: 1-100 (appearance optimization score for this period)
+Return a APPEARANCE analysis. Every finding must cite a specific number from USER DATA above:
+- overall_score: 1-100
 - overall_verdict: "excellent", "good", "concerning", or "dangerous"
-- summary: today's appearance score summary covering sodium impact on tomorrow's face, skin inflammation levels from food choices
-- risks (renamed to appearance issues): each with title, severity, description of appearance impact, consequences (face/skin effects), actions (specific appearance-improving steps)
-- positive_habits: what the user did well for their appearance goal
-- top_recommendation: one specific change for better appearance results tomorrow
-- sodium_assessment: how today's average sodium intake is likely to affect tomorrow's face
-- inflammation_assessment: how today's food choices affected skin inflammation
-- 30_day_plan: brief 4-point plan: low sodium baseline, removing seed oils, adding collagen foods, optimising sleep through magnesium/low cortisol foods`;
+- summary: appearance score summary citing actual sodium (${avgSodium}mg), sugar (${avgSugar}g), hydration (${avgWaterMl}ml) numbers
+- risks: each with title, severity, description citing actual data numbers, consequences (face/skin effects), actions (steps with specific targets)
+- positive_habits: what the user did well based on their actual numbers
+- top_recommendation: one specific change targeting the worst number in their data
+- sodium_assessment: how ${avgSodium}mg average daily sodium is affecting their face
+- inflammation_assessment: how ${avgSugar}g sugar and ${avgFat}g fat daily is affecting skin inflammation
+- 30_day_plan: 4-point plan targeting specific weaknesses found in their data`;
 
-    const standardPrompt = `You are a clinical nutritionist and health risk assessor. Analyze this user's diet over the past ${days} days.
+    const standardPrompt = `You are a clinical nutritionist and health risk assessor. Analyze this user's health data over the past ${days} days.
 
-User profile:
-- Age: ${profile.age}, Sex: ${profile.sex}
-- Weight: ${profile.weight}kg, Height: ${profile.height}cm
-- Goal: ${profile.goal}, Diet: ${profile.diet_mode}
-- Daily calorie target: ${profile.calorie_target} kcal
+Base your entire analysis on the specific numbers provided below. Do not make assumptions. Do not use generic advice. Every recommendation must directly reference the actual data provided.
 
-Food log (past ${days} days):
-${mealSummary || 'No meals logged yet'}
+User profile: age ${profile.age}, sex ${profile.sex}, weight ${profile.weight}kg, height ${profile.height}cm, goal: ${profile.goal}, diet: ${profile.diet_mode}
+${dataBlock}
 
-Average daily calories: ${avgCal} kcal
+Full meal log: ${mealSummary || 'No meals logged yet'}
 
-Identify ALL health risks. For each risk provide:
+Identify ALL health risks based on the actual numbers above. For each risk:
 - title, severity (critical/high/medium/low)
-- description (brief, 1-2 sentences)
+- description (1-2 sentences citing the specific number e.g. "Your ${avgSodium}mg daily sodium...")
 - consequences as a bullet list (3-4 points)
-- action as a bullet list (2-3 actionable steps)`;
+- action as a bullet list (2-3 steps with specific numeric targets)`;
 
     const appearanceSchema = {
       type: 'object',

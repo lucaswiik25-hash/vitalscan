@@ -121,6 +121,60 @@
     "last_sleep_date": {
       "type": "string",
       "format": "date"
+    },
+    "skin_type": {
+      "type": "string",
+      "enum": [
+        "oily",
+        "dry",
+        "combination",
+        "normal",
+        "sensitive"
+      ],
+      "description": "User's skin type for skincare personalisation"
+    },
+    "skin_concerns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of skin concerns: acne, redness, aging, hyperpigmentation, dullness"
+    },
+    "hair_type": {
+      "type": "string",
+      "enum": [
+        "oily",
+        "dry",
+        "normal",
+        "damaged",
+        "curly",
+        "fine"
+      ],
+      "description": "User's hair type"
+    },
+    "hair_concerns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of hair concerns: dandruff, frizz, thinning, color-treated"
+    },
+    "health_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Health conditions relevant to supplement personalisation"
+    },
+    "skincare_onboarding_done": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the skincare mini-onboarding has been shown"
+    },
+    "supplement_onboarding_done": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the supplement mini-onboarding has been shown"
     }
   },
   "required": [

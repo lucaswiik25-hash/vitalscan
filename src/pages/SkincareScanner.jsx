@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import SkincareVerdictPage from '../components/scanner/SkincareVerdictPage';
+import SkincareMiniOnboarding from '../components/onboarding/SkincareMiniOnboarding';
 import { parseApiResponse } from '../lib/parseApiResponse';
+import { AnimatePresence } from 'framer-motion';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -51,6 +53,7 @@ const safetyColor = (r) => {
 
 export default function SkincareScanner() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const cam1Ref = useRef(null);
   const up1Ref = useRef(null);
   const cam2Ref = useRef(null);
@@ -63,12 +66,37 @@ export default function SkincareScanner() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingMsg, setAnalyzingMsg] = useState('');
   const [result, setResult] = useState(null);
+  const [showSkinOnboarding, setShowSkinOnboarding] = useState(false);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
     queryFn: () => base44.entities.UserProfile.list(),
   });
-  const userName = profiles[0]?.name || 'there';
+  const profile = profiles[0] || {};
+  const userName = profile.name || 'there';
+
+  // Show skincare mini-onboarding if first time and skin_type not set
+  useEffect(() => {
+    if (profiles.length > 0 && !profile.skin_type && !profile.skincare_onboarding_done) {
+      setShowSkinOnboarding(true);
+    }
+  }, [profiles.length, profile.skin_type, profile.skincare_onboarding_done]);
+
+  const handleSkinOnboardingComplete = async (data) => {
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, { ...data, skincare_onboarding_done: true });
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
+    setShowSkinOnboarding(false);
+  };
+
+  const handleSkinOnboardingSkip = async () => {
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, { skincare_onboarding_done: true });
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
+    setShowSkinOnboarding(false);
+  };
 
   const handleS1File = async (e) => {
     const file = e.target.files[0];
@@ -115,17 +143,27 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
   const analyseStep2WithFile = async (file) => {
     setIsAnalyzing(true);
     setAnalyzingMsg('Analyzing ingredients & safety...');
+    const skinType = profile.skin_type;
+    const skinConcerns = (profile.skin_concerns || []).join(', ');
+    const skinPersonalisation = skinType
+      ? `User skin type: ${skinType}. Skin concerns: ${skinConcerns || 'none specified'}.
+Evaluate this product specifically for ${skinType} skin. If the product is formulated for a different skin type, state this clearly as the FIRST LINE of the verdict with a warning.
+If it contains ingredients known to worsen ${skinConcerns || 'the user\'s skin concerns'}, flag each one explicitly in the verdict_reason.`
+      : 'No skin type data available — provide general analysis.';
+
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const rraw = await base44.functions.invoke('analyzeWithClaude', {
         image_url: file_url,
         prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type || 'skincare product'}).
 
+${skinPersonalisation}
+
 Read EVERY ingredient visible on the label. Return a COMPLETE analysis:
 
 INGREDIENTS: array of every ingredient with: name, inci_name, skin_effect (one sentence), body_benefit, body_risk, safety_rating ("Safe"/"Caution"/"Avoid"), is_irritant, is_allergen, is_comedogenic, comedogenic_rating (0-5), is_hormone_disruptor, has_fragrance, is_active_beneficial.
 
-SAFETY: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason (2 sentences), skin_type_suitability, eye_area_safe, pregnancy_safe, pregnancy_note, long_term_summary, top_beneficial (3 ingredient names), top_concerning (3 strings).
+SAFETY: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid"), verdict_reason (2 sentences — must reference user's skin type if available), skin_type_suitability, eye_area_safe, pregnancy_safe, pregnancy_note, long_term_summary, top_beneficial (3 ingredient names), top_concerning (3 strings).
 
 USAGE: routine_step, application_method (how much and how to apply), frequency, apply_after, do_not_combine, results_timeline, routine_steps (4-5 numbered steps like "1. Cleanse: Start with a clean face").
 
@@ -188,6 +226,12 @@ NEVER fail. Always return at least 3 ingredients if any are visible.`,
   };
 
   if (isAnalyzing) return <AnalyzingScreen type="skincare" message={analyzingMsg} onCancel={() => { setIsAnalyzing(false); setS1File(null); setS2File(null); navigate('/scanner'); }} />;
+
+  if (showSkinOnboarding) return (
+    <AnimatePresence>
+      <SkincareMiniOnboarding onComplete={handleSkinOnboardingComplete} onSkip={handleSkinOnboardingSkip} />
+    </AnimatePresence>
+  );
 
   // ─── Results page ───────────────────────────────────────────────────────────
   if (result) {

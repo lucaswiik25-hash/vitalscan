@@ -30,6 +30,21 @@ export default function SupplementTracker() {
     queryFn: () => base44.entities.Meal.filter({ logged: true }),
   });
 
+  const { data: waterLogs = [] } = useQuery({
+    queryKey: ['allWaterLogs'],
+    queryFn: () => base44.entities.WaterLog.list(),
+  });
+
+  const { data: sleepLogs = [] } = useQuery({
+    queryKey: ['sleepLogs'],
+    queryFn: () => base44.entities.SleepLog.list(),
+  });
+
+  const { data: exerciseLogs = [] } = useQuery({
+    queryKey: ['allExercises'],
+    queryFn: () => base44.entities.Exercise.list(),
+  });
+
   const { profile } = useUserProfile();
 
   useEffect(() => {
@@ -122,47 +137,81 @@ export default function SupplementTracker() {
   const analyzeDeficiencies = async () => {
     setAnalyzing(true);
     setAiResult(null);
-    const mealSummary = meals.slice(0, 30).map(m =>
+
+    // Calculate nutrition averages from last 30 days of meals
+    const recentMeals = meals.slice(0, 90);
+    const daySet = new Set(recentMeals.map(m => m.date));
+    const numDays = Math.max(1, daySet.size);
+    const tot = recentMeals.reduce((a, m) => ({
+      calories: a.calories + (m.calories || 0), protein: a.protein + (m.protein || 0),
+      carbs: a.carbs + (m.carbs || 0), fat: a.fat + (m.fat || 0),
+      fiber: a.fiber + (m.fiber || 0), sugar: a.sugar + (m.sugar || 0), sodium: a.sodium + (m.sodium || 0),
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
+    const avgCal = Math.round(tot.calories / numDays);
+    const avgProtein = Math.round(tot.protein / numDays);
+    const avgFiber = Math.round(tot.fiber / numDays);
+
+    // Water average (last 30 days)
+    const recentWater = waterLogs.slice(0, 200).filter(w => w.amount_ml > 0);
+    const waterDaySet = new Set(recentWater.map(w => w.date));
+    const avgWaterMl = waterDaySet.size > 0
+      ? Math.round(recentWater.reduce((s, w) => s + w.amount_ml, 0) / Math.max(1, waterDaySet.size))
+      : 0;
+
+    // Sleep average
+    const recentSleep = sleepLogs.slice(0, 30);
+    const avgSleepMin = recentSleep.length > 0 ? Math.round(recentSleep.reduce((s, l) => s + (l.duration_minutes || 0), 0) / recentSleep.length) : 0;
+
+    // Exercise sessions per week
+    const exerciseDaySet = new Set(exerciseLogs.slice(0, 90).map(e => e.date));
+    const exerciseSessionsPerWeek = Math.round((exerciseDaySet.size / Math.max(7, numDays)) * 7 * 10) / 10;
+
+    const mealSummary = recentMeals.slice(0, 30).map(m =>
       `${m.name}: ${m.calories}cal, ${m.protein}g protein, ${m.fat}g fat, ${m.carbs}g carbs, ${m.fiber || 0}g fiber`
     ).join('\n');
 
     const isAppearance = profile.diet_mode === 'appearance_mode';
 
+    const dataBlock = `USER DATA (base your entire analysis on these specific numbers. Do not make assumptions. Do not use generic advice. Every recommendation must directly reference the actual data provided):
+- Calories avg/day: ${avgCal} kcal | Protein avg: ${avgProtein}g/day | Fiber avg: ${avgFiber}g/day
+- Water avg: ${avgWaterMl}ml/day (goal: ${profile.water_target_ml || 2000}ml)
+- Sleep avg: ${avgSleepMin > 0 ? (avgSleepMin / 60).toFixed(1) + 'h' : 'not logged'}
+- Exercise: ${exerciseSessionsPerWeek} sessions/week
+- Goal: ${profile.goal} | Diet: ${profile.diet_mode} | Age: ${profile.age} | Sex: ${profile.sex}
+- Health conditions: ${(profile.health_conditions || []).join(', ') || 'none reported'}`;
+
     const appearanceSupplementPrompt = `You are a supplement specialist focused on appearance optimization. Evaluate this user's current supplement stack specifically for appearance outcomes — facial clarity, reduced puffiness, hormonal balance, skin health, and collagen synthesis.
+
+Base your entire analysis on the specific numbers provided below. Do not make assumptions. Every recommendation must directly reference the actual data provided.
+
+${dataBlock}
 
 APPEARANCE SUPPLEMENT PRIORITIES (must-haves):
 1. Zinc — reduces acne, supports testosterone, regulates sebum production
 2. Vitamin D3 with K2 — hormonal balance and skin clarity
 3. Omega-3 fish oil — reduces facial inflammation, supports skin barrier
-4. Magnesium glycinate — reduces cortisol (shows on face), supports sleep quality
+4. Magnesium glycinate — reduces cortisol, supports sleep quality
 5. Collagen peptides — directly supports skin structure and elasticity
 6. Vitamin C — cofactor for collagen synthesis
-7. Beta carotene or Vitamin A — skin cell turnover
-8. B complex — skin cell renewal and stress response
-9. Biotin — hair and nail health if relevant
+7. B complex — skin cell renewal and stress response
 
-FLAGS TO LOOK FOR IN CURRENT STACK:
-- Supplements with artificial colors, titanium dioxide, or unnecessary fillers — flag as contradicting the clean appearance goal
-- Magnesium oxide — flag as poorly absorbed (only 4%), recommend switching to glycinate
-- Folic acid — flag as synthetic, recommend methylfolate instead
-- Vitamin D2 — flag as inferior, recommend D3
-- Any supplement high in fillers or artificial additives
-
-User: age ${profile.age}, sex ${profile.sex}.
 Current supplements: ${supplements.map(s => s.name).join(', ') || 'None'}.
-Recent diet summary: ${mealSummary || 'No meals logged yet'}.
+Recent diet: ${mealSummary || 'No meals logged yet'}.
 
-Identify the top 5 appearance gaps or stack issues. For each explain the appearance impact and what to do.`;
+Identify the top 5 appearance gaps or stack issues. For each explain the appearance impact citing actual data numbers and what to do.`;
 
-    const standardSupplementPrompt = `You are a nutritionist. Based on this user's recent food intake log and profile, analyze what supplements they may be deficient in.
+    const standardSupplementPrompt = `You are a nutritionist. Based on this user's actual logged data, analyze what supplements they may be deficient in.
 
-User profile: age ${profile.age}, sex ${profile.sex}, goal: ${profile.goal}, diet: ${profile.diet_mode}. Tailor all recommendations specifically to the ${profile.diet_mode} diet.
-Recent meals (last 30):
-${mealSummary || 'No meals logged yet'}
+Base your entire analysis on the specific numbers provided below. Do not make assumptions. Do not use generic advice. Every recommendation must directly reference the actual data provided.
 
-Current supplements they take: ${supplements.map(s => s.name).join(', ') || 'None'}
+${dataBlock}
 
-Identify the top 5 supplement deficiencies or gaps they likely have based on their diet pattern. For each, explain WHY they might be deficient and what health risks it poses. Be specific and medically accurate.`;
+Recent meals (last 30): ${mealSummary || 'No meals logged yet'}
+
+Current supplements: ${supplements.map(s => s.name).join(', ') || 'None'}
+${(profile.health_conditions || []).length > 0 ? `Health conditions to consider: ${profile.health_conditions.join(', ')}` : ''}
+
+Identify the top 5 supplement deficiencies or gaps based on their actual numbers above. For each, explain WHY they might be deficient (citing their specific intake numbers) and what health risks it poses.`;
 
     const { data: claudeRes } = await base44.functions.invoke('analyzeWithClaude', {
       prompt: isAppearance ? appearanceSupplementPrompt : standardSupplementPrompt,

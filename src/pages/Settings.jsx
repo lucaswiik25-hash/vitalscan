@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, User, Shield, Info, RefreshCw, Trash2, Pencil, Check, X } from 'lucide-react';
+import { LogOut, User, Shield, Info, RefreshCw, Trash2, Pencil, Check, X, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { calculateTargets } from '../lib/calculateTargets';
+import BodyProfileSection from '../components/settings/BodyProfileSection';
 
 const DIET_OPTIONS = [
   { id: 'none', label: 'No restrictions' },
@@ -266,6 +267,13 @@ export default function Settings() {
           </SettingRow>
           <div className="pb-1" />
         </div>
+
+        {/* Body Profile */}
+        <BodyProfileSection profile={profile} onSave={async (updates) => {
+          if (!profile.id) return;
+          await base44.entities.UserProfile.update(profile.id, updates);
+          queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        }} pageVisible={pageVisible} />
 
         {/* Redo Onboarding */}
         <button {...animCard(5, pageVisible)}

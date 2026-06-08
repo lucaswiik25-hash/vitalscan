@@ -2,8 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence } from 'framer-motion';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import SupplementVerdictPage from '../components/scanner/SupplementVerdictPage';
+import SupplementMiniOnboarding from '../components/onboarding/SupplementMiniOnboarding';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { parseApiResponse } from '../lib/parseApiResponse';
 
@@ -54,6 +57,7 @@ const bioColor = (b) => b === 'High' ? '#16a34a' : b === 'Medium' ? '#ca8a04' : 
 
 export default function SupplementScanner() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const cam1Ref = useRef(null);
   const up1Ref = useRef(null);
   const cam2Ref = useRef(null);
@@ -66,9 +70,33 @@ export default function SupplementScanner() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingMsg, setAnalyzingMsg] = useState('');
   const [result, setResult] = useState(null);
+  const [showSupOnboarding, setShowSupOnboarding] = useState(false);
 
   const { profile } = useUserProfile();
   const userName = profile.name || 'there';
+
+  // Show supplement mini-onboarding first time if health_conditions not set
+  useEffect(() => {
+    if (profile.id && !profile.supplement_onboarding_done) {
+      setShowSupOnboarding(true);
+    }
+  }, [profile.id, profile.supplement_onboarding_done]);
+
+  const handleSupOnboardingComplete = async (data) => {
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, { ...data, supplement_onboarding_done: true });
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
+    setShowSupOnboarding(false);
+  };
+
+  const handleSupOnboardingSkip = async () => {
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, { supplement_onboarding_done: true });
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
+    setShowSupOnboarding(false);
+  };
 
   const handleS1File = async (e) => {
     const file = e.target.files[0];
@@ -108,10 +136,17 @@ Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule
   const analyseStep2WithFile = async (file) => {
     setIsAnalyzing(true);
     setAnalyzingMsg('Analysing supplement facts...');
+    const healthConditions = (profile.health_conditions || []).join(', ');
+    const supplementPersonalisation = healthConditions
+      ? `User health context: ${healthConditions}. Flag any ingredients that may interact negatively with these conditions. If the supplement is irrelevant to the user's goal of ${profile.goal || 'general health'}, state this clearly.`
+      : `User goal: ${profile.goal || 'general health'}. Evaluate relevance to this goal.`;
+
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     const rraw = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
       prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel of: "${step1Data?.brand} ${step1Data?.product_name}" — primary ingredient: ${step1Data?.primary_ingredient}.
+
+${supplementPersonalisation}
 
 Read EVERY line of the supplement facts. Return JSON with: serving_size, servings_per_container, estimated_duration, quality_score (1-100), verdict ("YES"/"MAYBE"/"NO"), verdict_reason, best_time_to_take, food_note, absorption_tip, interactions, ingredients (array: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_quality, flag ("None"/"Underdosed"/"Correctly Dosed"/"Overdose Risk"/"Poor Form"/"Filler"), body_benefit (brief positive string), body_risk (brief risk or empty)), other_ingredients_flags (array of strings).
 Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 weeks off"), stack_with (e.g. "Stack with Vitamin D3 and Magnesium for best effect"), results_timeline (e.g. "2-4 weeks for initial effects, 8-12 weeks for full benefit"). NEVER fail.`,
@@ -167,6 +202,12 @@ Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 we
   };
 
   if (isAnalyzing) return <AnalyzingScreen type="supplement" message={analyzingMsg} onCancel={() => { setIsAnalyzing(false); setS1File(null); setS2File(null); navigate('/scanner'); }} />;
+
+  if (showSupOnboarding) return (
+    <AnimatePresence>
+      <SupplementMiniOnboarding onComplete={handleSupOnboardingComplete} onSkip={handleSupOnboardingSkip} />
+    </AnimatePresence>
+  );
 
   // ─── Results page ───────────────────────────────────────────────────────────
   if (result) {

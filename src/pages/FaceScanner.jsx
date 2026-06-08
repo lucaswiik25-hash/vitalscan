@@ -226,6 +226,14 @@ export default function FaceScanner() {
     queryKey: ['meals', format(new Date(), 'yyyy-MM-dd')],
     queryFn: () => base44.entities.Meal.filter({ date: format(new Date(), 'yyyy-MM-dd'), logged: true }),
   });
+  const { data: recentWaterLogs = [] } = useQuery({
+    queryKey: ['allWaterLogs'],
+    queryFn: () => base44.entities.WaterLog.list(),
+  });
+  const { data: recentSleepLogs = [] } = useQuery({
+    queryKey: ['sleepLogs'],
+    queryFn: () => base44.entities.SleepLog.list(),
+  });
   const isAppearanceMode = profile.diet_mode === 'appearance_mode';
 
   const handleFile = (e) => {
@@ -242,14 +250,33 @@ export default function FaceScanner() {
     setPreviewUrl(null);
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
+
+    // Build data context
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const todayCal = todayMeals.reduce((s, m) => s + (m.calories || 0), 0);
+    const todaySodium = todayMeals.reduce((s, m) => s + (m.sodium || 0), 0);
+    const todaySugar = todayMeals.reduce((s, m) => s + (m.sugar || 0), 0);
+    const todayWater = recentWaterLogs.filter(w => w.date === today && w.amount_ml > 0).reduce((s, w) => s + w.amount_ml, 0);
+    const last7Sleep = recentSleepLogs.slice(0, 7);
+    const avgSleepMin = last7Sleep.length > 0 ? Math.round(last7Sleep.reduce((s, l) => s + (l.duration_minutes || 0), 0) / last7Sleep.length) : 0;
+
     const todayFoodSummary = todayMeals.length > 0
       ? todayMeals.map(m => `${m.name}: ${m.calories}kcal, ${m.sodium || 0}mg sodium, ${m.sugar || 0}g sugar`).join('; ')
       : 'No food logged today';
 
+    const appearanceDataBlock = isAppearanceMode ? `
+USER DATA (base your analysis on these specific numbers. Do not make assumptions. Every finding must reference the actual data):
+- Today's calories: ${todayCal} kcal | Sodium: ${todaySodium}mg | Sugar: ${todaySugar}g
+- Today's hydration: ${todayWater}ml (goal: ${profile.water_target_ml || 2000}ml)
+- Avg sleep last 7 nights: ${avgSleepMin > 0 ? (avgSleepMin / 60).toFixed(1) + 'h' : 'not logged'}
+- Skin type (self-reported): ${profile.skin_type || 'not set'}
+- Skin concerns (self-reported): ${(profile.skin_concerns || []).join(', ') || 'none specified'}
+Today's food: ${todayFoodSummary}` : '';
+
     const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
       image_url: file_url,
       prompt: `You are a world-class dermatologist and facial analyst. Analyze this photo in exhaustive detail.
-${isAppearanceMode ? `APPEARANCE MODE ACTIVE. Today's food log: ${todayFoodSummary}. Connect skin findings to diet where relevant.` : ''}
+${isAppearanceMode ? `APPEARANCE MODE ACTIVE. Base your entire analysis on the specific numbers provided below. Do not make assumptions. Every diet connection must directly reference the actual data provided.\n${appearanceDataBlock}` : ''}
 Return JSON:
 - overall_skin_score: 1–100
 - potential_score: 1–100

@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
-import { useCountUp } from '../hooks/useCountUp';
 import { animCard, usePageVisible, pageRevealStyle } from '../lib/animHelpers';
+import ExerciseHeroModule from '../components/exercise/ExerciseHeroModule';
 
-const ACCENT = '#1A1814';
-const TRACK_COLOR = '#FFFFFF';
-const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-function getMondayIndex(date) { const d = date.getDay(); return d === 0 ? 6 : d - 1; }
+const GOAL_STORAGE_KEY = 'scanly_exercise_goal';
 
 const QUICK_EXERCISES = [
   { name: 'Running', icon: Activity, met: 9.8, category: 'cardio' },
@@ -44,6 +41,14 @@ export default function Exercise() {
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
   const [saving, setSaving] = useState(false);
+  const [exerciseTarget, setExerciseTarget] = useState(() => {
+    try {
+      const stored = localStorage.getItem(GOAL_STORAGE_KEY);
+      return stored ? parseInt(stored, 10) : 500;
+    } catch {
+      return 500;
+    }
+  });
 
   const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => base44.entities.UserProfile.list() });
   const profile = profiles[0] || {};
@@ -54,20 +59,15 @@ export default function Exercise() {
     queryFn: () => base44.entities.Exercise.filter({ date: selectedDate }),
   });
 
-  const totalBurned = exercises.reduce((s, e) => s + (e.calories_burned || 0), 0);
-  const exerciseTarget = 500;
-  const pct = totalBurned > 0 ? (totalBurned / exerciseTarget) * 100 : 0;
-  const goalCrushed = pct >= 100;
-  const displayPct = useCountUp(Math.min(100, Math.round(pct)), 800, [selectedDate, totalBurned]);
-  const [ringPct, setRingPct] = useState(0);
+  const { data: allExercises = [] } = useQuery({
+    queryKey: ['allExercises'],
+    queryFn: () => base44.entities.Exercise.list(),
+  });
 
-  useEffect(() => {
-    setRingPct(0);
-    const t = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setRingPct(Math.min(pct, 100)));
-    });
-    return () => cancelAnimationFrame(t);
-  }, [selectedDate, pct]);
+  const handleGoalChange = (goal) => {
+    setExerciseTarget(goal);
+    try { localStorage.setItem(GOAL_STORAGE_KEY, String(goal)); } catch { /* ignore */ }
+  };
 
   const openSheet = () => {
     setShowAdd(true);
@@ -119,7 +119,7 @@ export default function Exercise() {
   const pageVisible = usePageVisible();
 
   return (
-    <div className="min-h-screen pb-28" style={pageRevealStyle(pageVisible)}>
+    <div className="min-h-screen pb-28" style={{ ...pageRevealStyle(pageVisible), background: '#f5f5f7' }}>
       {/* Header */}
       <div className="px-5 pt-12 pb-4 flex items-center">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">
@@ -132,94 +132,16 @@ export default function Exercise() {
       </div>
 
       <div className="px-5 space-y-5">
-        {/* Today's Burn Hero Card */}
-        <div {...animCard(0, pageVisible, { background: '#F7F7F7' })} className="rounded-[28px] overflow-hidden -mx-1 border border-border glow-card">
-          <div className="px-5 pt-5 pb-8">
-
-            {/* Weekly day strip — interactive */}
-            {(() => {
-              const todayDate = new Date();
-              const mondayIdx = getMondayIndex(todayDate);
-              const weekDays = Array.from({ length: 7 }, (_, i) => {
-                const d = subDays(todayDate, mondayIdx - i);
-                const dateStr = format(d, 'yyyy-MM-dd');
-                return { label: DAY_LABELS[i], dateStr, isToday: dateStr === today };
-              });
-              return (
-                <div className="flex justify-between mb-4">
-                  {weekDays.map((d, i) => {
-                    const isSelected = d.dateStr === selectedDate;
-                    return (
-                      <button key={i} onClick={() => setSelectedDate(d.dateStr)}
-                        className={`day-pill flex flex-col items-center gap-1 press-scale ${isSelected ? 'is-selected' : ''}`}>
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center"
-                          style={isSelected
-                            ? { background: ACCENT }
-                            : { border: '2.5px solid #D1D5DB', background: 'transparent' }}>
-                          <span className="text-[11px] font-bold"
-                            style={{ color: isSelected ? '#FFFFFF' : '#9CA3AF' }}>{d.label}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-
-            {/* Main activity ring — 180px diameter */}
-            {(() => {
-              const SIZE = 180, R = 65, STROKE = 22, CX = 90, CY = 90;
-              // Note: ring progress uses CSS transition for smooth day-switch animation
-              const CIRC = 2 * Math.PI * R;
-              const clampedPct = Math.min(pct, 100);
-              const dash = (clampedPct / 100) * CIRC;
-              const ringColor = ACCENT;
-              return (
-                <div className={`relative flex justify-center mb-4 ${goalCrushed ? 'ring-goal-pulse' : ''}`}>
-                  <svg key={selectedDate} width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx={CX} cy={CY} r={R} fill="none" stroke={TRACK_COLOR} strokeWidth={STROKE} strokeLinecap="round" />
-                    {ringPct > 0 && (
-                      <circle cx={CX} cy={CY} r={R} fill="none"
-                        stroke={ringColor} strokeWidth={STROKE}
-                        strokeDasharray={CIRC}
-                        strokeDashoffset={CIRC - (ringPct / 100) * CIRC}
-                        strokeLinecap="round"
-                        className="ring-progress-arc" />
-                    )}
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    {goalCrushed ? (
-                      <>
-                        <span className="text-2xl font-black" style={{ color: ACCENT }}>{displayPct}%</span>
-                        <span className="text-[10px] font-semibold text-gray-400">Goal Crushed!</span>
-                      </>
-                    ) : pct === 0 ? (
-                      <span className="text-sm font-semibold text-gray-400">No data</span>
-                    ) : (
-                      <>
-                        <span className="text-2xl font-black" style={{ color: ACCENT }}>{displayPct}%</span>
-                        <span className="text-[10px] font-semibold text-gray-400">of goal</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Stats */}
-            <div key={selectedDate} className="mb-1 tab-content-enter">
-              <p className="text-base font-semibold mb-0.5" style={{ color: ACCENT }}>
-                Movement {selectedDate !== today && <span className="text-sm font-normal text-gray-400">· {format(new Date(selectedDate), 'MMM d')}</span>}
-              </p>
-              <p className="text-3xl font-bold tracking-tight" style={{ color: ACCENT }}>
-                {totalBurned}/{exerciseTarget} <span className="text-2xl font-medium">KCAL</span>
-              </p>
-            </div>
-            <div className="flex justify-between">
-              <span style={{ fontSize: 13, color: '#9CA3AF' }}>{totalBurned} kcal burned</span>
-              <span style={{ fontSize: 13, color: '#9CA3AF' }}>{exerciseTarget} kcal goal</span>
-            </div>
-          </div>
+        <div {...animCard(0, pageVisible)}>
+          <ExerciseHeroModule
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            exercises={exercises}
+            allExercises={allExercises}
+            goalValue={exerciseTarget}
+            onGoalChange={handleGoalChange}
+            onLogWorkout={openSheet}
+          />
         </div>
 
         {/* Add Exercise section */}

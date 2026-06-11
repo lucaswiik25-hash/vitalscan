@@ -1,0 +1,1221 @@
+.sleep-tracker {
+  --st-bg: #ffffff;
+  --st-card: #ffffff;
+  --st-dark: #1c1c1e;
+  --st-dark-card: #2c2c2e;
+  --st-accent: #6366f1;
+  --st-accent-soft: #818cf8;
+  --st-accent-glow: rgba(99, 102, 241, 0.15);
+  --st-text: #1c1c1e;
+  --st-text-secondary: #8e8e93;
+  --st-text-tertiary: #c7c7cc;
+  --st-success: #34c759;
+  --st-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --st-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --st-shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --st-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  background: var(--st-bg);
+  color: var(--st-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sleep-tracker .st-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  padding-bottom: 120px;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sleep-tracker .st-main.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sleep-tracker .st-page-header {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 16px;
+}
+
+.sleep-tracker .st-header-greeting {
+  font-size: 13px;
+  color: var(--st-text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.sleep-tracker .st-header-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--st-text);
+  margin-top: 2px;
+}
+
+.sleep-tracker .st-header-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--st-accent), var(--st-accent-soft));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-log-btn {
+  width: 100%;
+  max-width: 420px;
+  background: var(--st-card);
+  border: none;
+  border-radius: 24px;
+  padding: 28px 24px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 20px;
+  box-shadow: var(--st-shadow-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.sleep-tracker .st-log-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--st-accent), var(--st-accent-soft));
+  border-radius: 24px 24px 0 0;
+}
+
+.sleep-tracker .st-log-btn:active {
+  transform: scale(0.97) translateY(2px);
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-log-btn-label {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--st-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.sleep-tracker .st-log-btn-sub {
+  font-size: 13px;
+  color: var(--st-text-secondary);
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+.sleep-tracker .st-btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--st-accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.sleep-tracker .st-quick-stats {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.sleep-tracker .st-quick-stat {
+  flex: 1;
+  background: var(--st-card);
+  border-radius: 20px;
+  padding: 18px 14px;
+  text-align: center;
+  box-shadow: var(--st-shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.sleep-tracker .st-quick-stat:active {
+  transform: scale(0.95);
+}
+
+.sleep-tracker .st-quick-stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--st-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.sleep-tracker .st-quick-stat-label {
+  font-size: 11px;
+  color: var(--st-text-secondary);
+  margin-top: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sleep-tracker .st-quick-stat-delta {
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.sleep-tracker .st-delta-up { color: var(--st-success); }
+.sleep-tracker .st-delta-neutral { color: var(--st-text-tertiary); }
+
+.sleep-tracker .st-section {
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 20px;
+}
+
+.sleep-tracker .st-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.sleep-tracker .st-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--st-text);
+}
+
+.sleep-tracker .st-section-action {
+  font-size: 13px;
+  color: var(--st-accent);
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.sleep-tracker .st-section-action:active {
+  opacity: 0.6;
+}
+
+.sleep-tracker .st-chart-card {
+  background: var(--st-dark-card);
+  border-radius: 28px;
+  padding: 20px 16px 16px 44px;
+  position: relative;
+  height: 260px;
+  box-shadow: var(--st-shadow-lg);
+  overflow: hidden;
+}
+
+.sleep-tracker .st-chart-y-axis {
+  position: absolute;
+  left: 14px;
+  top: 24px;
+  bottom: 48px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.sleep-tracker .st-chart-area {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.sleep-tracker .st-chart-svg {
+  width: 100%;
+  height: calc(100% - 36px);
+  overflow: visible;
+}
+
+.sleep-tracker .st-chart-grid-line {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.sleep-tracker .st-chart-line {
+  fill: none;
+  stroke: url(#sleepLineGradient);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3));
+}
+
+.sleep-tracker .st-chart-area-fill {
+  fill: url(#sleepAreaGradient);
+  opacity: 0.25;
+}
+
+.sleep-tracker .st-chart-dot {
+  fill: var(--st-dark-card);
+  stroke: var(--st-accent-soft);
+  stroke-width: 2.5;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sleep-tracker .st-chart-dot:hover,
+.sleep-tracker .st-chart-dot:active {
+  r: 7;
+  stroke-width: 3;
+  fill: var(--st-accent);
+}
+
+.sleep-tracker .st-chart-x-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
+  margin-top: 8px;
+}
+
+.sleep-tracker .st-chart-x-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.sleep-tracker .st-chart-x-label.is-active {
+  color: var(--st-accent-soft);
+}
+
+.sleep-tracker .st-week-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sleep-tracker .st-day-pill {
+  background: var(--st-card);
+  border-radius: 20px;
+  padding: 14px 8px 12px;
+  min-width: 48px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  box-shadow: var(--st-shadow-sm);
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.sleep-tracker .st-day-pill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: var(--st-accent);
+  transition: height 0.3s ease;
+  border-radius: 20px 20px 0 0;
+}
+
+.sleep-tracker .st-day-pill.has-data::before {
+  height: 3px;
+}
+
+.sleep-tracker .st-day-pill:active {
+  transform: scale(0.93);
+}
+
+.sleep-tracker .st-day-pill.has-data {
+  background: linear-gradient(180deg, var(--st-card) 0%, rgba(99, 102, 241, 0.06) 100%);
+  border-color: rgba(99, 102, 241, 0.15);
+  box-shadow: var(--st-shadow-md), 0 0 20px var(--st-accent-glow);
+}
+
+.sleep-tracker .st-day-pill.is-today {
+  border-color: var(--st-accent);
+  box-shadow: 0 0 0 3px var(--st-accent-glow), var(--st-shadow-md);
+}
+
+.sleep-tracker .st-day-pill.is-today .st-day-letter {
+  color: var(--st-accent);
+}
+
+.sleep-tracker .st-day-letter {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--st-text);
+  position: relative;
+  z-index: 1;
+}
+
+.sleep-tracker .st-day-name {
+  font-size: 9px;
+  color: var(--st-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+
+.sleep-tracker .st-day-hours {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--st-accent);
+  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sleep-tracker .st-day-quality {
+  font-size: 16px;
+  margin-top: 1px;
+  position: relative;
+  z-index: 1;
+}
+
+.sleep-tracker .st-ai-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--st-card);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: var(--st-shadow-md);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.sleep-tracker .st-ai-card:active {
+  transform: scale(0.98);
+}
+
+.sleep-tracker .st-ai-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.sleep-tracker .st-ai-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--st-accent), var(--st-accent-soft));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  flex-shrink: 0;
+}
+
+.sleep-tracker .st-ai-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--st-text);
+}
+
+.sleep-tracker .st-ai-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--st-accent);
+  background: var(--st-accent-glow);
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.sleep-tracker .st-ai-desc {
+  font-size: 13px;
+  color: var(--st-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 18px;
+  padding-left: 58px;
+}
+
+.sleep-tracker .st-ai-btn {
+  width: 100%;
+  background: var(--st-dark);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sleep-tracker .st-ai-btn:active {
+  transform: scale(0.97);
+}
+
+/* Log overlay */
+.sleep-tracker .st-log-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sleep-tracker .st-log-overlay.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sleep-tracker .st-log-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--st-bg);
+  border-radius: 32px 32px 0 0;
+  z-index: 101;
+  transform: translateY(105%);
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--st-shadow-xl);
+}
+
+.sleep-tracker .st-log-sheet.is-active {
+  transform: translateY(0);
+}
+
+.sleep-tracker .st-log-sheet-handle {
+  width: 40px;
+  height: 5px;
+  background: var(--st-text-tertiary);
+  border-radius: 3px;
+  margin: 12px auto 8px;
+  opacity: 0.5;
+}
+
+.sleep-tracker .st-log-sheet-content {
+  padding: 8px 24px 48px;
+  min-height: 60vh;
+}
+
+.sleep-tracker .st-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-top: 4px;
+}
+
+.sleep-tracker .st-step-indicator {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sleep-tracker .st-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--st-text-tertiary);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sleep-tracker .st-step-dot.is-active {
+  background: var(--st-accent);
+  width: 28px;
+  border-radius: 4px;
+  box-shadow: 0 0 12px var(--st-accent-glow);
+}
+
+.sleep-tracker .st-step-dot.is-completed {
+  background: var(--st-accent);
+  box-shadow: 0 0 8px var(--st-accent-glow);
+}
+
+.sleep-tracker .st-log-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--st-card);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--st-text-secondary);
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-log-close:active {
+  transform: scale(0.9);
+}
+
+.sleep-tracker .st-log-page {
+  display: none;
+}
+
+.sleep-tracker .st-log-page.is-active {
+  display: block;
+  animation: stPageEnter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes stPageEnter {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.sleep-tracker .st-log-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--st-text);
+  margin-bottom: 8px;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+
+.sleep-tracker .st-log-subtitle {
+  font-size: 15px;
+  color: var(--st-text-secondary);
+  margin-bottom: 36px;
+  font-weight: 400;
+}
+
+.sleep-tracker .st-hours-display {
+  text-align: center;
+  margin: 32px 0;
+}
+
+.sleep-tracker .st-hours-ring {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.sleep-tracker .st-hours-ring svg {
+  transform: rotate(-90deg);
+}
+
+.sleep-tracker .st-hours-ring-bg {
+  fill: none;
+  stroke: var(--st-text-tertiary);
+  stroke-width: 8;
+  opacity: 0.2;
+}
+
+.sleep-tracker .st-hours-ring-fill {
+  fill: none;
+  stroke: url(#sleepRingGradient);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
+}
+
+.sleep-tracker .st-hours-number-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.sleep-tracker .st-hours-number {
+  font-size: 56px;
+  font-weight: 200;
+  color: var(--st-text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sleep-tracker .st-hours-label {
+  font-size: 14px;
+  color: var(--st-text-secondary);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.sleep-tracker .st-hours-slider-wrap {
+  margin: 28px 0;
+}
+
+.sleep-tracker .st-hours-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--st-accent) 0%, var(--st-accent) var(--progress, 50%), var(--st-text-tertiary) var(--progress, 50%));
+  outline: none;
+}
+
+.sleep-tracker .st-hours-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--st-card);
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 0 0 4px var(--st-accent-glow);
+  border: 2px solid var(--st-accent);
+}
+
+.sleep-tracker .st-hours-marks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--st-text-tertiary);
+  padding: 0 4px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.sleep-tracker .st-hours-presets {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.sleep-tracker .st-hours-preset {
+  background: var(--st-card);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--st-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-hours-preset.is-active,
+.sleep-tracker .st-hours-preset:active {
+  border-color: var(--st-accent);
+  color: var(--st-accent);
+  background: var(--st-accent-glow);
+  transform: scale(0.95);
+}
+
+.sleep-tracker .st-quality-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.sleep-tracker .st-quality-option {
+  background: var(--st-card);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--st-shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.sleep-tracker .st-quality-option.is-selected {
+  border-color: var(--st-accent);
+  background: linear-gradient(90deg, var(--st-accent-glow) 0%, var(--st-card) 30%);
+  box-shadow: var(--st-shadow-md), 0 0 20px var(--st-accent-glow);
+  transform: translateX(4px);
+}
+
+.sleep-tracker .st-quality-emoji {
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+.sleep-tracker .st-quality-option.is-selected .st-quality-emoji {
+  transform: scale(1.2);
+}
+
+.sleep-tracker .st-quality-label {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--st-text);
+}
+
+.sleep-tracker .st-quality-desc {
+  font-size: 13px;
+  color: var(--st-text-secondary);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.sleep-tracker .st-quality-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--st-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.sleep-tracker .st-quality-option.is-selected .st-quality-check {
+  opacity: 1;
+  background: var(--st-accent);
+  border-color: var(--st-accent);
+}
+
+.sleep-tracker .st-notes-textarea {
+  width: 100%;
+  min-height: 200px;
+  background: var(--st-card);
+  border: 2px solid var(--st-text-tertiary);
+  border-radius: 20px;
+  padding: 20px;
+  font-size: 16px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  color: var(--st-text);
+  transition: all 0.3s ease;
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-notes-textarea:focus {
+  border-color: var(--st-accent);
+  box-shadow: 0 0 0 4px var(--st-accent-glow), var(--st-shadow-md);
+}
+
+.sleep-tracker .st-notes-hint {
+  font-size: 12px;
+  color: var(--st-text-secondary);
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.sleep-tracker .st-notes-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.sleep-tracker .st-note-tag {
+  background: var(--st-card);
+  border: 1.5px solid var(--st-text-tertiary);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--st-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-note-tag.is-active,
+.sleep-tracker .st-note-tag:active {
+  background: var(--st-accent);
+  color: #fff;
+  border-color: var(--st-accent);
+  transform: scale(0.95);
+}
+
+.sleep-tracker .st-log-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 8px;
+}
+
+.sleep-tracker .st-btn-primary {
+  flex: 1;
+  background: var(--st-dark);
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 18px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--st-shadow-md);
+}
+
+.sleep-tracker .st-btn-primary:active {
+  transform: scale(0.96) translateY(2px);
+}
+
+.sleep-tracker .st-btn-secondary {
+  flex: 1;
+  background: var(--st-card);
+  color: var(--st-text);
+  border: 2px solid var(--st-text-tertiary);
+  border-radius: 18px;
+  padding: 18px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sleep-tracker .st-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Analysis page — slow swipe up */
+.sleep-tracker .st-analysis-slide {
+  background: var(--st-bg);
+  border-radius: 28px 28px 0 0;
+  transition: transform 650ms cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: var(--st-shadow-xl);
+}
+
+.sleep-tracker .st-analysis-slide.is-closing {
+  transition-duration: 500ms;
+}
+
+.sleep-tracker .st-analysis-sheet-handle {
+  width: 40px;
+  height: 5px;
+  background: var(--st-text-tertiary);
+  border-radius: 3px;
+  margin: 12px auto 0;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.sleep-tracker .st-analysis-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 24px 8px;
+  flex-shrink: 0;
+}
+
+.sleep-tracker .st-analysis-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--st-card);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--st-text-secondary);
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-analysis-close:active {
+  transform: scale(0.95);
+}
+
+.sleep-tracker .st-analysis-date {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--st-text);
+}
+
+.sleep-tracker .st-analysis-date-sub {
+  font-size: 14px;
+  color: var(--st-text-secondary);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.sleep-tracker .st-analysis-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sleep-tracker .st-analysis-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.sleep-tracker .st-analysis-hours {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--st-text);
+}
+
+.sleep-tracker .st-analysis-meta {
+  font-size: 13px;
+  color: var(--st-text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.sleep-tracker .st-analysis-body {
+  padding: 8px 24px 120px;
+}
+
+.sleep-tracker .st-analysis-card {
+  background: var(--st-card);
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--st-shadow-sm);
+}
+
+.sleep-tracker .st-verdict-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--st-text);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sleep-tracker .st-verdict-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--st-accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.sleep-tracker .st-verdict-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--st-accent-glow);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--st-accent);
+  margin-bottom: 14px;
+}
+
+.sleep-tracker .st-verdict-text {
+  font-size: 14px;
+  color: var(--st-text-secondary);
+  line-height: 1.75;
+}
+
+.sleep-tracker .st-verdict-text p {
+  margin-bottom: 12px;
+}
+
+.sleep-tracker .st-verdict-text p:last-child {
+  margin-bottom: 0;
+}
+
+.sleep-tracker .st-verdict-text strong {
+  color: var(--st-text);
+  font-weight: 700;
+}
+
+.sleep-tracker .st-improvement-list {
+  list-style: none;
+  margin-top: 12px;
+}
+
+.sleep-tracker .st-improvement-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  font-size: 14px;
+  color: var(--st-text-secondary);
+  line-height: 1.6;
+}
+
+.sleep-tracker .st-improvement-list li:last-child {
+  border-bottom: none;
+}
+
+.sleep-tracker .st-improvement-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--st-accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sleep-tracker .st-notes-display {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8fa 100%);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--st-text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+  border-left: 3px solid var(--st-accent-soft);
+}
+
+.sleep-tracker .st-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: var(--st-dark);
+  color: #fff;
+  padding: 16px 28px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  box-shadow: var(--st-shadow-xl);
+  text-align: center;
+  max-width: 300px;
+}
+
+.sleep-tracker .st-toast.is-show {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.sleep-tracker .st-ai-results {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sleep-tracker .st-ai-summary {
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.sleep-tracker .st-ai-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--st-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.sleep-tracker .st-ai-summary-text {
+  font-size: 13px;
+  color: var(--st-text-secondary);
+  line-height: 1.6;
+}
+
+.sleep-tracker .st-ai-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sleep-tracker .st-ai-insight-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sleep-tracker .st-ai-insight-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--st-text);
+  margin-bottom: 4px;
+}
+
+.sleep-tracker .st-ai-insight-desc {
+  font-size: 12px;
+  color: var(--st-text-secondary);
+  line-height: 1.55;
+}
+
+.sleep-tracker .st-ai-recommendation {
+  background: linear-gradient(135deg, var(--st-dark-card) 0%, var(--st-dark) 100%);
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-top: 4px;
+}
+
+.sleep-tracker .st-ai-recommendation-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.sleep-tracker .st-ai-recommendation-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+}
+
+.sleep-tracker .st-ai-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.sleep-tracker .st-ai-loading-sub {
+  color: rgba(255, 255, 255, 0.5);
+}

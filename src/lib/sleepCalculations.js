@@ -160,6 +160,170 @@ export function buildWeekDays(sleepLogs) {
   });
 }
 
+export const QUALITY_OPTIONS = [
+  { key: 'poor', emoji: '😥', label: 'Poor', desc: 'Woke up multiple times, feel exhausted' },
+  { key: 'fair', emoji: '😐', label: 'Fair', desc: 'Some interruptions, moderately rested' },
+  { key: 'good', emoji: '🙂', label: 'Good', desc: 'Solid sleep, feel reasonably refreshed' },
+  { key: 'excellent', emoji: '😴', label: 'Excellent', desc: 'Deep, uninterrupted, fully energized' },
+];
+
+export const QUALITY_EMOJI = {
+  poor: '😥',
+  fair: '😐',
+  good: '🙂',
+  excellent: '😴',
+  great: '😄',
+  okay: '😐',
+  tired: '😴',
+  bad: '😞',
+};
+
+export const NOTE_TAGS = [
+  { label: 'Late meal', emoji: '🍩' },
+  { label: 'Caffeine', emoji: '☕' },
+  { label: 'Stress', emoji: '😨' },
+  { label: 'Screen time', emoji: '📱' },
+  { label: 'Alcohol', emoji: '🍷' },
+  { label: 'Workout', emoji: '💪' },
+  { label: 'Vivid dream', emoji: '💭' },
+  { label: 'Woke up early', emoji: '🌅' },
+];
+
+const CALENDAR_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const CALENDAR_DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const CALENDAR_DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+export function getCalendarWeekStart(date = new Date()) {
+  const d = new Date(date);
+  const dayOfWeek = d.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  d.setDate(d.getDate() + mondayOffset);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function buildCalendarWeek(sleepLogs, referenceDate = new Date()) {
+  const monday = getCalendarWeekStart(referenceDate);
+  return CALENDAR_DAYS.map((label, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = format(d, 'yyyy-MM-dd');
+    const log = sleepLogs.find((l) => l.date === dateStr) || null;
+    const hours = log?.duration_minutes ? log.duration_minutes / 60 : 0;
+    const isToday = dateStr === format(referenceDate, 'yyyy-MM-dd');
+    return {
+      key: label,
+      label,
+      dayName: CALENDAR_DAY_NAMES[i],
+      dayShort: CALENDAR_DAY_SHORT[i],
+      dateStr,
+      log,
+      hours,
+      quality: log?.mood || null,
+      isToday,
+    };
+  });
+}
+
+export function calcWeekStreak(weekDays) {
+  const todayIdx = weekDays.findIndex((d) => d.isToday);
+  if (todayIdx < 0) return 0;
+  let streak = 0;
+  for (let i = todayIdx; i >= 0; i--) {
+    if (weekDays[i].log) streak++;
+    else break;
+  }
+  return streak;
+}
+
+export function calcWeekAvgHours(weekDays) {
+  const logged = weekDays.filter((d) => d.hours > 0);
+  if (!logged.length) return null;
+  return logged.reduce((s, d) => s + d.hours, 0) / logged.length;
+}
+
+export function calcBestNight(weekDays) {
+  const logged = weekDays.filter((d) => d.hours > 0);
+  if (!logged.length) return null;
+  return logged.reduce((best, d) => (d.hours > best.hours ? d : best), logged[0]);
+}
+
+export function hoursFromLog(log, defaultWake = '07:00') {
+  if (log?.duration_minutes) return log.duration_minutes / 60;
+  if (log?.sleep_time && log?.wake_time) return calcDurationMinutes(log.sleep_time, log.wake_time) / 60;
+  return 7.5;
+}
+
+export function deriveTimesFromHours(hours, wakeTime = '07:00') {
+  const wakeMins = timeToMinutes(wakeTime);
+  const sleepMins = wakeMins - Math.round(hours * 60);
+  return {
+    sleep_time: minutesToTime(sleepMins),
+    wake_time: wakeTime,
+    duration_minutes: Math.round(hours * 60),
+  };
+}
+
+export function calcQualityEfficiency(hours, quality) {
+  const hourScore = Math.min(hours / 8, 1) * 60;
+  const qualityScore = { poor: 20, fair: 40, good: 60, excellent: 80 }[quality] || 40;
+  return Math.round(hourScore + qualityScore * 0.4);
+}
+
+export function calcQualitySleepScore(hours, quality) {
+  const hourScore = Math.min(hours / 8, 1.2) * 50;
+  const qualityScore = { poor: 15, fair: 30, good: 45, excellent: 50 }[quality] || 30;
+  return Math.min(Math.round(hourScore + qualityScore), 100);
+}
+
+export function generateSleepVerdict(hours, quality) {
+  let verdict = '';
+  const improvements = [];
+
+  if (hours < 5) {
+    verdict += `<p><strong>Severely sleep deprived.</strong> You only slept ${hours} hours, which is far below the recommended 7-9 hours for adults. This level of sleep restriction can impair cognitive function, mood regulation, and immune response.</p>`;
+    improvements.push({ icon: '🕐', text: 'Aim for at least 7 hours - set a bedtime alarm 8 hours before your wake-up time' });
+    improvements.push({ icon: '📱', text: 'Avoid screens 1 hour before bed - blue light suppresses melatonin production' });
+  } else if (hours < 6) {
+    verdict += `<p><strong>Not enough rest.</strong> At ${hours} hours, you are in the "short sleep" zone. While some people tolerate 6 hours, most experience accumulated sleep debt that affects focus and energy.</p>`;
+    improvements.push({ icon: '🌿', text: 'Try a warm bath or shower 90 minutes before bed to lower core body temperature' });
+    improvements.push({ icon: '☕', text: 'Cut caffeine after 2pm - it has a 5-7 hour half-life in your system' });
+  } else if (hours < 7) {
+    verdict += `<p><strong>Slightly below optimal.</strong> ${hours} hours is borderline. You might feel functional, but reaction time and memory consolidation are likely compromised.</p>`;
+    improvements.push({ icon: '🌙', text: 'Create a consistent sleep schedule - even on weekends' });
+    improvements.push({ icon: '🌄', text: 'Get morning sunlight exposure to anchor your circadian rhythm' });
+  } else if (hours <= 9) {
+    verdict += `<p><strong>Good sleep duration.</strong> ${hours} hours falls in the optimal range for most adults. This supports memory consolidation, emotional regulation, and physical recovery.</p>`;
+    if (quality === 'poor' || quality === 'fair') {
+      verdict += `<p>However, your quality was rated as <strong>${quality}</strong>, suggesting fragmentation or insufficient deep sleep stages.</p>`;
+    }
+  } else {
+    verdict += `<p><strong>Extended sleep.</strong> ${hours} hours is above average. Occasional long sleep can indicate recovery from sleep debt, but frequent oversleeping may signal underlying issues.</p>`;
+    improvements.push({ icon: '⏰', text: 'If you consistently need 10+ hours, consider checking for sleep apnea or vitamin D levels' });
+  }
+
+  if (quality === 'poor') {
+    verdict += `<p><strong>Sleep quality was poor.</strong> Frequent wake-ups or difficulty maintaining sleep suggest possible stress, environmental disruptions, or sleep disorders.</p>`;
+    improvements.push({ icon: '🧘', text: 'Practice 4-7-8 breathing before bed: inhale 4s, hold 7s, exhale 8s' });
+    improvements.push({ icon: '🌡️', text: 'Keep bedroom temperature between 60-67°F (15-19°C)' });
+  } else if (quality === 'excellent') {
+    verdict += `<p><strong>Outstanding quality!</strong> You achieved restorative sleep with good sleep architecture. Keep doing what you are doing.</p>`;
+  }
+
+  if (improvements.length === 0) {
+    improvements.push({ icon: '✨', text: 'Your sleep habits look solid - maintain this routine!' });
+  }
+
+  return { verdict, improvements };
+}
+
+export function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export function generateInsights(sleepLogs, meals, waterLogs, exercises, waterTarget) {
   const count = sleepLogs.length;
   if (count < 5) return { ready: false, count, insights: [] };

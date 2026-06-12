@@ -29,6 +29,17 @@ VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
 
 Run the app: `npm run dev`
 
+**Deploy to Vercel**
+
+Vite embeds `VITE_*` variables at build time. In your Vercel project, add these environment variables before deploying:
+
+```
+VITE_SUPABASE_URL=https://your_project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+Without them, the production build cannot connect to Supabase and the app will show a configuration error instead of loading.
+
 **Publish your changes**
 
 Open [Base44.com](http://Base44.com) and click on Publish.

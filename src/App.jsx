@@ -4,6 +4,8 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { getSupabaseConfigError, isSupabaseConfigured } from '@/lib/supabase';
+import ConfigError from '@/components/ConfigError';
 import AppShell from './components/layout/AppShell';
 import Auth from './pages/Auth';
 import Home from './pages/Home';
@@ -68,6 +70,10 @@ const AuthenticatedApp = () => {
 };
 
 function App() {
+  if (!isSupabaseConfigured) {
+    return <ConfigError message={getSupabaseConfigError()} />;
+  }
+
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>

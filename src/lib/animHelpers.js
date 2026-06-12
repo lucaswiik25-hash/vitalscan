@@ -22,9 +22,9 @@ export function usePageVisible() {
 /** Full-page reveal style — apply to the page root wrapper */
 export function pageRevealStyle(pageVisible) {
   return {
-    opacity: pageVisible ? 1 : 0,
-    transform: pageVisible ? 'translateY(0)' : 'translateY(24px)',
-    transition: 'opacity 500ms cubic-bezier(0.22, 1, 0.36, 1), transform 500ms cubic-bezier(0.22, 1, 0.36, 1)',
+    opacity: 1,
+    transform: pageVisible ? 'translateY(0)' : 'translateY(12px)',
+    transition: 'transform 500ms cubic-bezier(0.22, 1, 0.36, 1)',
   };
 }
 
@@ -34,9 +34,9 @@ export function animCard(index = 0, pageVisible = false, extraStyle = {}) {
   return {
     style: {
       position: 'relative',
-      opacity: pageVisible ? 1 : 0,
-      transform: pageVisible ? 'translateY(0)' : 'translateY(20px)',
-      transition: `opacity ${CARD_DURATION}ms ${CARD_EASE} ${delay}ms, transform ${CARD_DURATION}ms ${CARD_EASE} ${delay}ms`,
+      opacity: 1,
+      transform: pageVisible ? 'translateY(0)' : 'translateY(12px)',
+      transition: `transform ${CARD_DURATION}ms ${CARD_EASE} ${delay}ms`,
       ...extraStyle,
     },
   };

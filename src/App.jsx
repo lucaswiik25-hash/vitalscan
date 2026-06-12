@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { getSupabaseConfigError, isSupabaseConfigured } from '@/lib/supabase';
@@ -27,47 +27,62 @@ import ExerciseFormScanner from './pages/ExerciseFormScanner';
 import SleepTracker from './pages/SleepTracker';
 import Tips from './pages/Tips.jsx';
 
-const AuthenticatedApp = () => {
+const LoadingScreen = () => (
+  <div className="fixed inset-0 flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+  </div>
+);
+
+function RequireAuth() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Outlet />;
+}
 
-  if (!user) {
-    return <Auth />;
-  }
+function RedirectIfAuth() {
+  const { user, loading } = useAuth();
 
+  if (loading) return <LoadingScreen />;
+  if (user) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
+function AppRoutes() {
   return (
     <Routes>
-      <Route element={<AppShell />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/scanner" element={<ScannerHub />} />
-        <Route path="/water" element={<WaterTracker />} />
-        <Route path="/supplements" element={<SupplementTracker />} />
-        <Route path="/meal-planner" element={<MealPlanner />} />
-        <Route path="/shopping" element={<ShoppingList />} />
-        <Route path="/health-risk" element={<HealthRisk />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/exercise" element={<Exercise />} />
-        <Route path="/sleep" element={<SleepTracker />} />
-        <Route path="/tips" element={<Tips />} />
+      <Route element={<RedirectIfAuth />}>
+        <Route path="/login" element={<Auth />} />
       </Route>
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route path="/food-scanner" element={<FoodScanner />} />
-      <Route path="/skincare-scanner" element={<SkincareScanner />} />
-      <Route path="/supplement-scanner" element={<SupplementScanner />} />
-      <Route path="/face-scanner" element={<FaceScanner />} />
-      <Route path="/body-scanner" element={<BodyScanner />} />
-      <Route path="/exercise-form-scanner" element={<ExerciseFormScanner />} />
+
+      <Route element={<RequireAuth />}>
+        <Route element={<AppShell />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/scanner" element={<ScannerHub />} />
+          <Route path="/water" element={<WaterTracker />} />
+          <Route path="/supplements" element={<SupplementTracker />} />
+          <Route path="/meal-planner" element={<MealPlanner />} />
+          <Route path="/shopping" element={<ShoppingList />} />
+          <Route path="/health-risk" element={<HealthRisk />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/exercise" element={<Exercise />} />
+          <Route path="/sleep" element={<SleepTracker />} />
+          <Route path="/tips" element={<Tips />} />
+        </Route>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/food-scanner" element={<FoodScanner />} />
+        <Route path="/skincare-scanner" element={<SkincareScanner />} />
+        <Route path="/supplement-scanner" element={<SupplementScanner />} />
+        <Route path="/face-scanner" element={<FaceScanner />} />
+        <Route path="/body-scanner" element={<BodyScanner />} />
+        <Route path="/exercise-form-scanner" element={<ExerciseFormScanner />} />
+      </Route>
+
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
-};
+}
 
 function App() {
   if (!isSupabaseConfigured) {
@@ -78,7 +93,7 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <AuthenticatedApp />
+          <AppRoutes />
         </Router>
         <Toaster />
       </QueryClientProvider>

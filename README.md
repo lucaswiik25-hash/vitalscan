@@ -18,8 +18,9 @@ Any change pushed to the repo will also be reflected in the Base44 Builder.
 4. Create an `.env.local` file and set the right environment variables
 
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
+VITE_SUPABASE_URL=https://your_project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
 
 e.g.
 VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6

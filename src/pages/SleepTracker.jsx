@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Loader2, Sparkles, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { listSleepLogs, createSleepLog, updateSleepLog, upsertProfile } from '@/lib/db';
+import { analyzeWithClaude } from '@/lib/ai';
 import {
   buildCalendarWeek,
   calcWeekStreak,
@@ -55,7 +56,7 @@ export default function SleepTracker() {
     queryKey: ['sleepLogs'],
     queryFn: async () => {
       try {
-        return await base44.entities.SleepLog.list();
+        return await listSleepLogs();
       } catch {
         return [];
       }
@@ -121,9 +122,9 @@ export default function SleepTracker() {
     try {
       let saved = localEntry;
       if (existingId) {
-        saved = await base44.entities.SleepLog.update(existingId, payload);
+        saved = await updateSleepLog(existingId, payload);
       } else {
-        saved = await base44.entities.SleepLog.create(payload);
+        saved = await createSleepLog(payload);
       }
       saveLocalSleepLog({ ...payload, id: saved.id });
       queryClient.setQueryData(['sleepLogs'], (old = []) => {
@@ -136,7 +137,7 @@ export default function SleepTracker() {
 
     try {
       if (profile?.id) {
-        await base44.entities.UserProfile.update(profile.id, {
+        await upsertProfile({
           last_sleep_hours: hours,
           last_sleep_date: TODAY,
         });
@@ -196,7 +197,7 @@ ${sleepSummary}
 Identify patterns (weekday vs weekend, quality vs duration mismatches, consistency issues). Return 3-4 specific insights with titles and descriptions citing their actual data.`;
 
     try {
-      const { data: claudeRes } = await base44.functions.invoke('analyzeWithClaude', {
+      const claudeRes = await analyzeWithClaude({
         prompt,
         response_json_schema: {
           type: 'object',
@@ -217,7 +218,7 @@ Identify patterns (weekday vs weekend, quality vs duration mismatches, consisten
           },
         },
       });
-      setAiResult(claudeRes?.result || claudeRes);
+      setAiResult(claudeRes?.result ?? claudeRes);
     } catch (err) {
       console.error(err);
       showToast('Analysis failed — try again');

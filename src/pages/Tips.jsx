@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import RecipesTab from '../components/tips/RecipesTab';
 import SkincareTab from '../components/tips/SkincareTab';
 import SupplementsTab from '../components/tips/SupplementsTab';
+import { getProfileList } from '@/lib/db';
 
 const TABS = [
   { key: 'recipes', label: 'Recipes', emoji: '🍽️' },
@@ -18,7 +18,7 @@ export default function Tips() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => getProfileList(),
   });
   const profile = profiles[0] || null;
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { listFoodLogs, listHydrationLogs, listExerciseLogs } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -38,9 +39,9 @@ export default function SleepReadinessModule() {
     let exercises = [];
     try {
       [meals, waterLogs, exercises] = await Promise.all([
-        base44.entities.Meal.filter({ date: TODAY, logged: true }),
-        base44.entities.WaterLog.filter({ date: TODAY }),
-        base44.entities.Exercise.filter({ date: TODAY }),
+        listFoodLogs({ date: TODAY, logged: true }),
+        listHydrationLogs({ date: TODAY }),
+        listExerciseLogs({ date: TODAY }),
       ]);
     } catch (_) {}
 
@@ -56,7 +57,7 @@ export default function SleepReadinessModule() {
     const exerciseMinutes = exercises.reduce((s, e) => s + (e.duration_minutes || 0), 0);
     const currentHour = new Date().getHours();
 
-    const res = await base44.integrations.Core.InvokeLLM({
+    const res = await invokeLLM({
       prompt: `You are a sleep science expert. Based on today's data, predict tonight's sleep readiness.
 
 Today's data:

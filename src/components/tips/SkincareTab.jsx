@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
 import UnsplashImage from './UnsplashImage';
 import { X, Loader2, ExternalLink } from 'lucide-react';
+import { invokeLLM } from '@/lib/ai';
 
 const CATS = ['All', 'Cleanser', 'Moisturiser', 'Serum', 'SPF', 'Eye Cream', 'Toner', 'Treatment'];
 const CACHE_KEY = 'tips_skincare_v2';
@@ -184,7 +184,7 @@ export default function SkincareTab({ profile }) {
     setLoading(true);
     setProducts([]);
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `Generate 12 real, purchasable skincare products personalised for this user:
 - Age: ${profile?.age || 'unknown'}
 - Diet mode: ${profile?.diet_mode || 'standard'}

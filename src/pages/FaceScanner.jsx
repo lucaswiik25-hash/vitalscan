@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { listFoodLogs, listHydrationLogs, listSleepLogs, uploadFile } from '@/lib/db';
+import { analyzeWithClaude } from '@/lib/ai';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -224,15 +225,15 @@ export default function FaceScanner() {
   const { profile } = useUserProfile();
   const { data: todayMeals = [] } = useQuery({
     queryKey: ['meals', format(new Date(), 'yyyy-MM-dd')],
-    queryFn: () => base44.entities.Meal.filter({ date: format(new Date(), 'yyyy-MM-dd'), logged: true }),
+    queryFn: () => listFoodLogs({ date: format(new Date(), 'yyyy-MM-dd'), logged: true }),
   });
   const { data: recentWaterLogs = [] } = useQuery({
     queryKey: ['allWaterLogs'],
-    queryFn: () => base44.entities.WaterLog.list(),
+    queryFn: () => listHydrationLogs(),
   });
   const { data: recentSleepLogs = [] } = useQuery({
     queryKey: ['sleepLogs'],
-    queryFn: () => base44.entities.SleepLog.list(),
+    queryFn: () => listSleepLogs(),
   });
   const isAppearanceMode = profile.diet_mode === 'appearance_mode';
 
@@ -249,7 +250,7 @@ export default function FaceScanner() {
     setIsAnalyzing(true);
     setPreviewUrl(null);
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
+    const { file_url } = await uploadFile({ file: capturedFile });
 
     // Build data context
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -273,7 +274,7 @@ USER DATA (base your analysis on these specific numbers. Do not make assumptions
 - Skin concerns (self-reported): ${(profile.skin_concerns || []).join(', ') || 'none specified'}
 Today's food: ${todayFoodSummary}` : '';
 
-    const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
+    const { result: r } = await analyzeWithClaude({
       image_url: file_url,
       prompt: `You are a world-class dermatologist and facial analyst. Analyze this photo in exhaustive detail.
 ${isAppearanceMode ? `APPEARANCE MODE ACTIVE. Base your entire analysis on the specific numbers provided below. Do not make assumptions. Every diet connection must directly reference the actual data provided.\n${appearanceDataBlock}` : ''}

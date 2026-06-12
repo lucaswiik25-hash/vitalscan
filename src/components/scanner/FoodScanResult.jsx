@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple, Pencil, Share2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
 import { parseApiResponse } from '@/lib/parseApiResponse';
 import { animCard, usePageVisible } from '@/lib/animHelpers';
+import { analyzeWithClaude, invokeLLM } from '@/lib/ai';
 
 // ─── Icon Module (replaces all emojis) ───────────────────────────────────────
 function IconModule({ icon: Icon, bg, color, size = 44 }) {
@@ -188,7 +188,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     if (!editNote.trim()) return;
     setEditLoading(true);
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `You are a nutritionist re-analyzing a scanned meal after user corrections.
 
 CURRENT SCAN DATA:
@@ -245,9 +245,8 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
           required: ['name', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'],
         },
       });
-      const parsed = parseApiResponse(res);
-      if (parsed && typeof parsed === 'object') {
-        applyUpdatedResult(parsed);
+      if (res && typeof res === 'object') {
+        applyUpdatedResult(res);
       }
       setEditNote('');
       setShowEditSheet(false);
@@ -295,7 +294,7 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
   const analyzeIngredients = async () => {
     if (ingredientResult || loadingIngredients) return;
     setLoadingIngredients(true);
-    const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
+    const response = await analyzeWithClaude({
       prompt: `Analyze every ingredient in: "${result.name}". Ingredients: "${result.ingredients_text || 'typical for this product type'}". For each: name, body_effect, safety_rating ("Green"/"Yellow"/"Red"), is_seed_oil, is_hidden_sugar, is_emulsifier, is_hormone_disruptor, is_allergen, allergen_name, is_artificial_sweetener, is_preservative, is_artificial_color, is_whole_food. Also: overall_verdict ("Clean"/"Mostly Clean"/"Mixed"/"Mostly Processed"/"Avoid"), verdict_reason. NEVER fail.`,
       response_json_schema: {
         type: 'object', properties: {
@@ -304,7 +303,7 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
         },
       },
     });
-    setIngredientResult(r?.result || r);
+    setIngredientResult(parseApiResponse(response));
     setLoadingIngredients(false);
   };
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
 import UnsplashImage from './UnsplashImage';
 import { X, Loader2, ExternalLink } from 'lucide-react';
 import { format, subDays } from 'date-fns';
+import { listFoodLogs } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const CATS = ['All', 'Protein', 'Creatine', 'Vitamins', 'Minerals', 'Pre-Workout', 'Recovery', 'Sleep', 'Focus'];
 const CACHE_KEY = 'tips_supplements_v2';
@@ -187,14 +188,14 @@ export default function SupplementsTab({ profile }) {
       const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
       let recentMeals = [];
       try {
-        recentMeals = await base44.entities.Meal.filter({ logged: true });
+        recentMeals = await listFoodLogs({ logged: true });
         recentMeals = recentMeals.filter(m => m.date >= sevenDaysAgo);
       } catch {}
 
       const avgProtein = recentMeals.length > 0 ? Math.round(recentMeals.reduce((s, m) => s + (m.protein || 0), 0) / 7) : 0;
       const avgCalories = recentMeals.length > 0 ? Math.round(recentMeals.reduce((s, m) => s + (m.calories || 0), 0) / 7) : 0;
 
-      const res = await base44.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `Generate 12 real, purchasable supplement products personalised for this user in Finland:
 - Goal: ${profile?.goal || 'maintain'}
 - Diet mode: ${profile?.diet_mode || 'standard'}

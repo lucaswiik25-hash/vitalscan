@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Pill, UtensilsCrossed, Moon, ChevronRight } from 'lucide-react';
 import { glassModuleStyle as glassStyle } from '@/lib/cardStyles';
+import { listSupplements, upsertProfile } from '@/lib/db';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -16,7 +16,7 @@ export default function DailyModules({ todayMeals = [], profile = {} }) {
 
   const { data: supplements = [] } = useQuery({
     queryKey: ['supplements'],
-    queryFn: () => base44.entities.Supplement.list(),
+    queryFn: () => listSupplements(),
   });
 
   const takenCount = supplements.filter(s => s.taken_today).length;
@@ -36,7 +36,7 @@ export default function DailyModules({ todayMeals = [], profile = {} }) {
     setSleepHours(h);
     if (!profile.id) return;
     setSavingSleep(true);
-    await base44.entities.UserProfile.update(profile.id, { last_sleep_hours: h, last_sleep_date: TODAY });
+    await upsertProfile({ last_sleep_hours: h, last_sleep_date: TODAY });
     queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     setSavingSleep(false);
   };

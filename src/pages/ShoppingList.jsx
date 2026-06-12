@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Loader2, ShoppingCart, Check, RefreshCw, X, Search } from 'lucide-react';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
+import { getProfileList } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const ALL_COUNTRIES = [
   { country: 'Afghanistan', currency: '؋', code: 'AFN' },
@@ -116,7 +117,7 @@ export default function ShoppingList() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => getProfileList(),
   });
   const profile = profiles[0] || {};
   const curr = ALL_COUNTRIES.find(c => c.country === country) || ALL_COUNTRIES.find(c => c.country === 'Finland');
@@ -157,7 +158,7 @@ User profile:
 Create a realistic, complete weekly shopping list. Group items by category. Prices must be accurate for ${country}. Stay within the ${curr.currency}${budget} budget.
 Include estimated cost per item and total cost. Make it practical — whole foods, easy to find in local supermarkets.`;
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const result = await invokeLLM({
       prompt: isAppearance ? appearanceShoppingPrompt : standardShoppingPrompt,
       response_json_schema: {
         type: 'object',

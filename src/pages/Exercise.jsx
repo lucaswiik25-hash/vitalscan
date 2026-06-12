@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
 import { animCard, usePageVisible, pageRevealStyle } from '../lib/animHelpers';
 import ExerciseHeroModule from '../components/exercise/ExerciseHeroModule';
+import { listExerciseLogs, createExerciseLog, deleteExerciseLog, getProfileList } from '@/lib/db';
 
 const GOAL_STORAGE_KEY = 'scanly_exercise_goal';
 
@@ -50,18 +50,18 @@ export default function Exercise() {
     }
   });
 
-  const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => base44.entities.UserProfile.list() });
+  const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => getProfileList() });
   const profile = profiles[0] || {};
   const weight = profile.weight || 70;
 
   const { data: exercises = [] } = useQuery({
     queryKey: ['exercises', selectedDate],
-    queryFn: () => base44.entities.Exercise.filter({ date: selectedDate }),
+    queryFn: () => listExerciseLogs({ date: selectedDate }),
   });
 
   const { data: allExercises = [] } = useQuery({
     queryKey: ['allExercises'],
-    queryFn: () => base44.entities.Exercise.list(),
+    queryFn: () => listExerciseLogs(),
   });
 
   const handleGoalChange = (goal) => {
@@ -98,7 +98,7 @@ export default function Exercise() {
     setSaving(true);
     const met = QUICK_EXERCISES.find(e => e.name === form.name)?.met || 5;
     const cal = form.calories_burned || calcCalories(met, weight, form.duration_minutes || 30);
-    await base44.entities.Exercise.create({ ...form, date: selectedDate, calories_burned: cal });
+    await createExerciseLog({ ...form, date: selectedDate, calories_burned: cal });
     queryClient.invalidateQueries({ queryKey: ['exercises', selectedDate] });
     queryClient.invalidateQueries({ queryKey: ['exercises', today] });
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
@@ -110,7 +110,7 @@ export default function Exercise() {
   };
 
   const handleDelete = async (id) => {
-    await base44.entities.Exercise.delete(id);
+    await deleteExerciseLog(id);
     queryClient.invalidateQueries({ queryKey: ['exercises', selectedDate] });
     queryClient.invalidateQueries({ queryKey: ['allExercises'] });
   };

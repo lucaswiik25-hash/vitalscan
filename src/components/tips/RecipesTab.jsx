@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import UnsplashImage from './UnsplashImage';
 import SuccessModal from '../shared/SuccessModal';
 import { animCard } from '@/lib/animHelpers';
 import { X, Loader2, Bookmark, Apple } from 'lucide-react';
+import { createFoodLog } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const SAVED_RECIPES_KEY = 'saved_recipes_v1';
 function getSavedRecipes() {
@@ -52,7 +53,7 @@ function RecipeFullPage({ item, onClose, profile }) {
     setLogging(true);
     const today = format(new Date(), 'yyyy-MM-dd');
     const meal_type = item.cat || 'lunch';
-    await base44.entities.Meal.create({
+    await createFoodLog({
       name: item.name,
       date: today,
       time: format(new Date(), 'h:mm a'),
@@ -239,7 +240,7 @@ export default function RecipesTab({ profile, pageVisible = true }) {
     setRecipes([]);
     const catLabel = CATS.find(c => c.key === cat)?.label || 'all';
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `Generate 6 ${catLabel === 'Special' ? 'personalised' : catLabel.toLowerCase()} recipes for this user:
 - Diet mode: ${profile?.diet_mode || 'standard'}
 - Goal: ${profile?.goal || 'maintain'}

@@ -1,22 +1,27 @@
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
+import { getProfile, upsertProfile } from '@/lib/db';
 
-// Returns { profile, isLoading } — always scoped to the currently logged-in user.
 export function useUserProfile() {
-  const [userEmail, setUserEmail] = useState(null);
+  const { user, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    base44.auth.me().then(u => {
-      if (u?.email) setUserEmail(u.email);
-    }).catch(() => {});
-  }, []);
-
-  const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ['userProfile', userEmail],
-    queryFn: () => base44.entities.UserProfile.filter({ created_by: userEmail }),
-    enabled: !!userEmail,
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: getProfile,
+    enabled: !!user?.id,
   });
 
-  return { profile: profiles[0] || {}, profiles, isLoading: isLoading || !userEmail };
+  const updateProfile = async (updates) => {
+    const updated = await upsertProfile(updates);
+    queryClient.setQueryData(['userProfile', user?.id], updated);
+    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    return updated;
+  };
+
+  return {
+    profile: profile || {},
+    loading: authLoading || isLoading,
+    updateProfile,
+  };
 }

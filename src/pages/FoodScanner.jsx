@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Sparkles, Plus, ArrowLeft, Camera, Barcode, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -14,6 +13,8 @@ import { buildCall2Prompt, call2Schema, dietPreamble } from '../lib/dietPrompts'
 import { useUserProfile } from '../hooks/useUserProfile';
 import { parseApiResponse } from '../lib/parseApiResponse';
 import { inferMealTypeFromTime, inferMealTypeFromFood, shouldAskMealSlot } from '../lib/mealClassification';
+import { listFoodLogs, createFoodLog, listHydrationLogs, listExerciseLogs, createScanHistory, prepareImageForAI } from '@/lib/db';
+import { analyzeWithClaude, invokeLLM } from '@/lib/ai';
 
 export default function FoodScanner() {
   const navigate = useNavigate();
@@ -80,9 +81,9 @@ export default function FoodScanner() {
     if (dietMode !== 'appearance_mode') return {};
     const today = format(new Date(), 'yyyy-MM-dd');
     const [meals, waterLogs, exercises] = await Promise.all([
-      base44.entities.Meal.filter({ date: today, logged: true }),
-      base44.entities.WaterLog.filter({ date: today }),
-      base44.entities.Exercise.filter({ date: today }),
+      listFoodLogs({ date: today, logged: true }),
+      listHydrationLogs({ date: today }),
+      listExerciseLogs({ date: today }),
     ]);
     return {
       sodiumToday: meals.reduce((s, m) => s + (m.sodium || 0), 0),
@@ -96,10 +97,12 @@ export default function FoodScanner() {
     setIsAnalyzing(true);
     setShowFullBackPrompt(false);
     setCapturedImage(null);
-    const { file_url: back_url } = await base44.integrations.Core.UploadFile({ file: backFile });
+    try {
+    const { file_url: back_url, image_base64, image_media_type } = await prepareImageForAI(backFile);
 
-    const r1raw = await base44.functions.invoke('analyzeWithClaude', {
-      image_url: back_url,
+    const r1raw = await analyzeWithClaude({
+      image_base64,
+      image_media_type,
       prompt: `You are a professional nutritionist. This is the FULL BACK of a food product package for: "${frontData.name || 'food product'}".
 Read EVERY visible item on this label: full ingredient list, all nutrition facts, allergens, serving info, additionals.
 Combine with and enhance this front-scan data: ${JSON.stringify(frontData)}.
@@ -108,7 +111,7 @@ Return JSON with: name, confidence ("high"), serving_size, calories, protein, ca
 NEVER fail.`,
       response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
     });
-    const enriched = { ...frontData, ...(r1raw.data?.result || r1raw.data || {}), confidence: 'high' };
+    const enriched = { ...frontData, ...parseApiResponse(r1raw), confidence: 'high' };
 
     const userProfile = profile;
     const dietMode = userProfile.diet_mode || 'standard';
@@ -116,18 +119,23 @@ NEVER fail.`,
     const pre = dietPreamble(dietMode);
     const todayContext = await getTodayContext(dietMode);
     const call2Prompt = buildCall2Prompt(dietMode, enriched, userProfile, todayContext);
-    const r2raw = await base44.functions.invoke('analyzeWithClaude', { prompt: call2Prompt, response_json_schema: call2Schema });
-    const r2result = r2raw.data?.result || r2raw.data || {};
+    const r2raw = await analyzeWithClaude({ prompt: call2Prompt, response_json_schema: call2Schema });
+    const r2result = parseApiResponse(r2raw);
     let vitamins = [];
     try {
-      const vitRes = await base44.integrations.Core.InvokeLLM({ prompt: `List key vitamins in: "${enriched.name}". Up to 8. Return JSON with vitamins array, each: name, amount, dv_percent.`, response_json_schema: { type: 'object', properties: { vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } } } } });
+      const vitRes = await invokeLLM({ prompt: `List key vitamins in: "${enriched.name}". Up to 8. Return JSON with vitamins array, each: name, amount, dv_percent.`, response_json_schema: { type: 'object', properties: { vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } } } } });
       vitamins = vitRes?.vitamins || [];
     } catch {}
     const finalResult = { ...enriched, ...r2result, vitamins, image_url: back_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode, scanned_full_back: true };
     setResult(finalResult);
-    base44.entities.ScanResult.create({ type: 'food', date: format(new Date(), 'yyyy-MM-dd'), image_url: back_url, product_name: enriched.name, brand: enriched.brand || null, safety_score: finalResult.health_score ? Math.round(finalResult.health_score * 10) : null, result_data: finalResult, verdict: finalResult.diet_compatibility || null }).catch(() => {});
+    createScanHistory({ type: 'food', date: format(new Date(), 'yyyy-MM-dd'), image_url: back_url, product_name: enriched.name, brand: enriched.brand || null, safety_score: finalResult.health_score ? Math.round(finalResult.health_score * 10) : null, result_data: finalResult, verdict: finalResult.diet_compatibility || null }).catch(() => {});
     setIsAnalyzing(false);
     setFrontScanData(null);
+    } catch (err) {
+      console.error(err);
+      setIsAnalyzing(false);
+      alert(err.message || 'Failed to analyze the back label. Please try again.');
+    }
   };
 
   const analyse = async () => {
@@ -135,7 +143,8 @@ NEVER fail.`,
     setIsAnalyzing(true);
     setCapturedImage(null);
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
+    try {
+    const { file_url, image_base64, image_media_type } = await prepareImageForAI(capturedFile);
 
     const userProfile = profile;
     const dietMode = userProfile.diet_mode || 'standard';
@@ -146,8 +155,9 @@ NEVER fail.`,
       ? `\n\nAdditional context from user: "${extraNotes.trim()}". Include this in your nutritional estimate.`
       : '';
 
-    const r1raw = await base44.functions.invoke('analyzeWithClaude', {
-      image_url: file_url,
+    const r1raw = await analyzeWithClaude({
+      image_base64,
+      image_media_type,
       prompt: `${pre}You are a professional nutritionist and food scientist. Analyze this image carefully.
 
 If you can see a BARCODE on the packaging, read and return the exact barcode number digits.
@@ -159,7 +169,7 @@ Return JSON with: name (exact product/food name including brand), confidence ("h
 NEVER fail. Always estimate from visual cues if exact values are not readable.${extraContext}`,
       response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
     });
-    const call1 = r1raw.data?.result || r1raw.data || {};
+    const call1 = parseApiResponse(r1raw);
 
     let enriched = { ...call1 };
     if (call1.has_barcode && call1.barcode_number) {
@@ -193,16 +203,16 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     const todayContext = await getTodayContext(dietMode);
     const call2Prompt = buildCall2Prompt(dietMode, enriched, userProfile, todayContext);
 
-    const r2raw = await base44.functions.invoke('analyzeWithClaude', {
+    const r2raw = await analyzeWithClaude({
       prompt: call2Prompt,
       response_json_schema: call2Schema,
     });
-    const r2result = r2raw.data?.result || r2raw.data || {};
+    const r2result = parseApiResponse(r2raw);
 
     // Vitamin extraction (parallel, non-blocking)
     let vitamins = [];
     try {
-      const vitRes = await base44.integrations.Core.InvokeLLM({
+      const vitRes = await invokeLLM({
         prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name (e.g. "Vitamin C"), amount (e.g. "15mg" or "estimated"), dv_percent (approximate % daily value as a number, 0 if unknown). NEVER fail.`,
         response_json_schema: {
           type: 'object',
@@ -216,7 +226,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
 
     const finalResult = { ...enriched, ...r2result, vitamins, image_url: file_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
     setResult(finalResult);
-    base44.entities.ScanResult.create({
+    createScanHistory({
       type: 'food',
       date: format(new Date(), 'yyyy-MM-dd'),
       image_url: file_url,
@@ -232,6 +242,11 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       setFrontScanData(finalResult);
       setShowFullBackPrompt(true);
     }
+    } catch (err) {
+      console.error(err);
+      setIsAnalyzing(false);
+      alert(err.message || 'Food analysis failed. Check your connection and try again.');
+    }
   };
 
   const analyseBarcodeManual = async (barcode) => {
@@ -239,42 +254,43 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     setIsAnalyzing(true);
     let enriched = { name: `Product ${barcode}`, barcode, has_barcode: true, barcode_number: barcode, confidence: 'medium' };
     try {
-      const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-      const offData = await offRes.json();
-      if (offData.status === 1 && offData.product) {
-        const p = offData.product;
-        const n = p.nutriments || {};
-        enriched = {
-          name: p.product_name || enriched.name,
-          brand: p.brands || '',
-          serving_size: p.serving_size || '100g',
-          calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || 0),
-          protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || 0) * 10) / 10,
-          carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || 0) * 10) / 10,
-          fat: Math.round((n['fat_serving'] || n['fat_100g'] || 0) * 10) / 10,
-          fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || 0) * 10) / 10,
-          sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || 0) * 10) / 10,
-          sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
-          allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
-          ingredients_text: p.ingredients_text || '',
-          confidence: 'high',
-          source: 'openfoodfacts',
-          has_barcode: true,
-          barcode_number: barcode,
-        };
-      }
-    } catch (_) {}
+      try {
+        const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+        const offData = await offRes.json();
+        if (offData.status === 1 && offData.product) {
+          const p = offData.product;
+          const n = p.nutriments || {};
+          enriched = {
+            name: p.product_name || enriched.name,
+            brand: p.brands || '',
+            serving_size: p.serving_size || '100g',
+            calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || 0),
+            protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || 0) * 10) / 10,
+            carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || 0) * 10) / 10,
+            fat: Math.round((n['fat_serving'] || n['fat_100g'] || 0) * 10) / 10,
+            fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || 0) * 10) / 10,
+            sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || 0) * 10) / 10,
+            sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
+            allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
+            ingredients_text: p.ingredients_text || '',
+            confidence: 'high',
+            source: 'openfoodfacts',
+            has_barcode: true,
+            barcode_number: barcode,
+          };
+        }
+      } catch (_) {}
     const userProfile = profile;
     const dietMode = userProfile.diet_mode || 'standard';
     const isAppearance = dietMode === 'appearance_mode';
     const todayCtx = await getTodayContext(dietMode);
-    const r2braw = await base44.functions.invoke('analyzeWithClaude', {
+    const r2braw = await analyzeWithClaude({
       prompt: buildCall2Prompt(dietMode, enriched, userProfile, todayCtx),
       response_json_schema: call2Schema,
     });
     let vitaminsB = [];
     try {
-      const vitResB = await base44.integrations.Core.InvokeLLM({
+      const vitResB = await invokeLLM({
         prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name, amount (e.g. "15mg"), dv_percent (% daily value as number). NEVER fail.`,
         response_json_schema: { type: 'object', properties: { vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } } } }
       });
@@ -288,7 +304,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     }
     const finalResult = { ...enriched, ...analysis, vitamins: vitaminsB, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
     setResult(finalResult);
-    base44.entities.ScanResult.create({
+    createScanHistory({
       type: 'food',
       date: format(new Date(), 'yyyy-MM-dd'),
       product_name: enriched.name,
@@ -297,13 +313,18 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
       verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null,
     }).catch(() => {});
     setIsAnalyzing(false);
+    } catch (err) {
+      console.error(err);
+      setIsAnalyzing(false);
+      alert(err.message || 'Barcode analysis failed. Please try again.');
+    }
   };
 
   const classifyMealType = async (foodName, timeStr) => {
     const timeInference = inferMealTypeFromTime();
     const foodInference = inferMealTypeFromFood(foodName);
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `A user logged "${foodName}" at ${timeStr}. Classify into: breakfast, lunch, dinner, or snack. Also return confidence (0-1) for how certain you are.`,
         response_json_schema: {
           type: 'object',
@@ -313,9 +334,8 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
           },
         },
       });
-      const parsed = parseApiResponse(res);
-      const llmType = parsed.meal_type || 'snack';
-      const llmConfidence = parsed.confidence ?? 0.5;
+      const llmType = res?.meal_type || 'snack';
+      const llmConfidence = res?.confidence ?? 0.5;
       if (shouldAskMealSlot({ foodInference, timeInference, llmConfidence })) {
         return { needsPicker: true, meal_type: llmType };
       }
@@ -362,7 +382,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
     if (result.glycemic_reason) mealData.glycemic_reason = result.glycemic_reason;
     if (result.health_score) mealData.health_score = result.health_score;
     if (result.vitamins?.length) mealData.vitamins = result.vitamins;
-    await base44.entities.Meal.create(mealData);
+    await createFoodLog(mealData);
     queryClient.invalidateQueries({ queryKey: ['meals'] });
     queryClient.invalidateQueries({ queryKey: ['allMeals'] });
     queryClient.invalidateQueries({ queryKey: ['todayMeals'] });
@@ -483,18 +503,26 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
         e.target.value = '';
         setShowBarcodeInput(false);
         setIsAnalyzing(true);
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        const r = await base44.functions.invoke('analyzeWithClaude', {
-          image_url: file_url,
-          prompt: 'This image contains a barcode. Read the exact numeric barcode digits printed under the bars. Return ONLY the barcode number digits as a string, nothing else.',
-          response_json_schema: { type: 'object', properties: { barcode_number: { type: 'string' } } },
-        });
-        const barcodeNumber = (parseApiResponse(r).barcode_number || '').replace(/\D/g, '');
-        if (barcodeNumber) {
-          await analyseBarcodeManual(barcodeNumber);
-        } else {
+        try {
+          const { image_base64, image_media_type } = await prepareImageForAI(file);
+          const r = await analyzeWithClaude({
+            image_base64,
+            image_media_type,
+            prompt: 'This image contains a barcode. Read the exact numeric barcode digits printed under the bars. Return JSON with barcode_number as a string of digits only.',
+            response_json_schema: { type: 'object', properties: { barcode_number: { type: 'string' } } },
+          });
+          const barcodeNumber = (parseApiResponse(r).barcode_number || '').replace(/\D/g, '');
+          if (barcodeNumber) {
+            await analyseBarcodeManual(barcodeNumber);
+          } else {
+            setIsAnalyzing(false);
+            setShowBarcodeInput(true);
+          }
+        } catch (err) {
+          console.error(err);
           setIsAnalyzing(false);
           setShowBarcodeInput(true);
+          alert(err.message || 'Could not read barcode. Try again or enter it manually.');
         }
       }}
     />

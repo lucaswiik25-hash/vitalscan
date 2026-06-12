@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, User, Shield, Info, RefreshCw, Trash2, Pencil, Check, X, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useUserProfile } from '../hooks/useUserProfile';
 import { calculateTargets } from '../lib/calculateTargets';
 import BodyProfileSection from '../components/settings/BodyProfileSection';
+import { upsertProfile } from '@/lib/db';
+import { signOut } from '@/lib/auth';
 
 const DIET_OPTIONS = [
   { id: 'none', label: 'No restrictions' },
@@ -64,7 +65,7 @@ export default function Settings() {
   const recalculateAndSave = async (updates) => {
     const merged = { ...profile, ...updates };
     const targets = calculateTargets(merged);
-    await base44.entities.UserProfile.update(profile.id, { ...updates, ...targets });
+    await upsertProfile({ ...updates, ...targets });
     queryClient.invalidateQueries({ queryKey: ['userProfile'] });
   };
 
@@ -88,7 +89,7 @@ export default function Settings() {
     if (needsRecalc) {
       await recalculateAndSave({ [field]: value });
     } else {
-      await base44.entities.UserProfile.update(profile.id, { [field]: value });
+      await upsertProfile({ [field]: value });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     }
     setSaving(false);
@@ -120,7 +121,7 @@ export default function Settings() {
                 className="flex-1 h-12 rounded-2xl bg-secondary text-sm font-semibold text-foreground">
                 Cancel
               </button>
-              <button onClick={async () => { await base44.auth.logout(); }}
+              <button onClick={async () => { await signOut(); }}
                 className="flex-1 h-12 rounded-2xl bg-destructive text-sm font-semibold text-white">
                 Delete
               </button>
@@ -271,7 +272,7 @@ export default function Settings() {
         {/* Body Profile */}
         <BodyProfileSection profile={profile} onSave={async (updates) => {
           if (!profile.id) return;
-          await base44.entities.UserProfile.update(profile.id, updates);
+          await upsertProfile(updates);
           queryClient.invalidateQueries({ queryKey: ['userProfile'] });
         }} pageVisible={pageVisible} />
 
@@ -285,7 +286,7 @@ export default function Settings() {
 
         {/* Logout */}
         <button {...animCard(6, pageVisible)}
-          onClick={() => base44.auth.logout()}
+          onClick={() => signOut()}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <LogOut className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Log Out</span>

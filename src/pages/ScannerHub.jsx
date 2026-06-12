@@ -1,16 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
+import { createFoodLog, listScanHistory, createScanHistory } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 async function registerScan(type, productName, brand, imageUrl, safetyScore, qualityScore, verdict) {
   try {
-    await base44.entities.ScanResult.create({
+    await createScanHistory({
       type,
       date: format(new Date(), 'yyyy-MM-dd'),
       image_url: imageUrl || null,
@@ -48,7 +49,7 @@ function FoodSearch() {
     setLoading(true);
     setResults(null);
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `Provide nutrition info for: "${query}". Return an array of 3 serving size options (e.g. 100g, 1 cup, 1 piece). For each: name (string, include query + serving size label), serving_label (e.g. "100g" / "1 cup"), calories, protein, carbs, fat, fiber, sugar, sodium. NEVER fail.`,
         response_json_schema: { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, serving_label: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, fiber: { type: 'number' }, sugar: { type: 'number' }, sodium: { type: 'number' } } } } } },
       });
@@ -61,7 +62,7 @@ function FoodSearch() {
   };
 
   const addMeal = async (item) => {
-    await base44.entities.Meal.create({
+    await createFoodLog({
       name: item.name,
       date: format(new Date(), 'yyyy-MM-dd'),
       time: format(new Date(), 'h:mm a'),
@@ -235,7 +236,7 @@ function RecentScans() {
 
   const { data: scans = [] } = useQuery({
     queryKey: ['scanResults'],
-    queryFn: () => base44.entities.ScanResult.list('-created_date', 50),
+    queryFn: () => listScanHistory({}, { sort: '-created_at', limit: 50 }),
   });
 
   const handleTouchStart = (e) => {
@@ -366,7 +367,7 @@ function RecentScans() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground truncate">{scan.product_name || 'Unknown'}</p>
                     {scan.brand && <p className="text-xs text-muted-foreground">{scan.brand}</p>}
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(scan.created_date), 'MMM d, h:mm a')}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(scan.created_at), 'MMM d, h:mm a')}</p>
                   </div>
                   <div className="text-right shrink-0">
                     {score !== null && (

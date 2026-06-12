@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { getProfileList, uploadFile } from '@/lib/db';
+import { analyzeWithClaude } from '@/lib/ai';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -268,7 +269,7 @@ export default function BodyScanner() {
   const [result, setResult] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => base44.entities.UserProfile.list() });
+  const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => getProfileList() });
   const profile = profiles[0] || {};
 
   const handleFile = (e) => {
@@ -284,8 +285,8 @@ export default function BodyScanner() {
     setIsAnalyzing(true);
     setPreviewUrl(null);
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: capturedFile });
-    const { data: r } = await base44.functions.invoke('analyzeWithClaude', {
+    const { file_url } = await uploadFile({ file: capturedFile });
+    const { result: r } = await analyzeWithClaude({
       image_url: file_url,
       prompt: `You are a world-class certified personal trainer, body composition specialist, and physique coach. Analyze this full-body photo in exhaustive detail.
 

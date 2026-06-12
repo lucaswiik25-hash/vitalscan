@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, Sparkles, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { motion } from 'framer-motion';
+import { getProfileList, upsertProfile, deleteProfile } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const DIET_OPTIONS = [
   {
@@ -177,7 +178,7 @@ export default function Onboarding() {
     setIsAnalyzing(true);
     setStep('analyzing');
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const result = await invokeLLM({
       prompt: `Analyze the following user description and extract their profile data for a nutrition/health tracking app. The user wrote:
 
 "${text}"
@@ -222,14 +223,11 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
   const saveProfile = async () => {
     setIsAnalyzing(true);
     // Delete only the current user's existing profiles before creating a new one
-    const me = await base44.auth.me();
-    const existing = me?.email
-      ? await base44.entities.UserProfile.filter({ created_by: me.email })
-      : [];
+    const existing = await getProfileList();
     for (const p of existing) {
-      await base44.entities.UserProfile.delete(p.id);
+      await deleteProfile(p.id);
     }
-    await base44.entities.UserProfile.create({
+    await upsertProfile({
       ...parsedProfile,
       diet_mode: selectedDiet,
       allergens: selectedAllergens,

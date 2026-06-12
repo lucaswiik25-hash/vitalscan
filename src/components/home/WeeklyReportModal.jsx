@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns';
 import { motion } from 'framer-motion';
 import { X, Trophy, TrendingDown, Droplets, Moon } from 'lucide-react';
+import { listFoodLogs, listHydrationLogs, listSleepLogs } from '@/lib/db';
 
 const REPORT_KEY = 'weekly_report_shown';
 
@@ -18,9 +18,9 @@ export default function WeeklyReportModal({ profile, onClose }) {
       const days = Array.from({ length: 7 }, (_, i) => format(subDays(today, i), 'yyyy-MM-dd'));
 
       const [meals, waterLogs, sleepLogs] = await Promise.all([
-        base44.entities.Meal.filter({ logged: true }),
-        base44.entities.WaterLog.list(),
-        base44.entities.SleepLog.list(),
+        listFoodLogs({ logged: true }),
+        listHydrationLogs(),
+        listSleepLogs(),
       ]);
 
       const weekMeals = meals.filter(m => m.date >= weekStart && m.date <= weekEnd);

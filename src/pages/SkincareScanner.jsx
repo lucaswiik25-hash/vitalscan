@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
@@ -8,6 +7,8 @@ import SkincareVerdictPage from '../components/scanner/SkincareVerdictPage';
 import SkincareMiniOnboarding from '../components/onboarding/SkincareMiniOnboarding';
 import { parseApiResponse } from '../lib/parseApiResponse';
 import { AnimatePresence } from 'framer-motion';
+import { createScanHistory, getProfileList, upsertProfile, uploadFile } from '@/lib/db';
+import { analyzeWithClaude } from '@/lib/ai';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -70,7 +71,7 @@ export default function SkincareScanner() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => getProfileList(),
   });
   const profile = profiles[0] || {};
   const userName = profile.name || 'there';
@@ -84,7 +85,7 @@ export default function SkincareScanner() {
 
   const handleSkinOnboardingComplete = async (data) => {
     if (profile.id) {
-      await base44.entities.UserProfile.update(profile.id, { ...data, skincare_onboarding_done: true });
+      await upsertProfile({ ...data, skincare_onboarding_done: true });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     }
     setShowSkinOnboarding(false);
@@ -92,7 +93,7 @@ export default function SkincareScanner() {
 
   const handleSkinOnboardingSkip = async () => {
     if (profile.id) {
-      await base44.entities.UserProfile.update(profile.id, { skincare_onboarding_done: true });
+      await upsertProfile({ skincare_onboarding_done: true });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     }
     setShowSkinOnboarding(false);
@@ -107,8 +108,8 @@ export default function SkincareScanner() {
     setIsAnalyzing(true);
     setAnalyzingMsg('Identifying product...');
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const rraw = await base44.functions.invoke('analyzeWithClaude', {
+      const { file_url } = await uploadFile({ file });
+      const rraw = await analyzeWithClaude({
         image_url: file_url,
         prompt: `You are a cosmetic dermatologist. Look at this FRONT image of a skincare/cosmetic product. Read ALL visible text.
 Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moisturiser", "serum", "cleanser", "sunscreen"), marketing_claims (array), confidence ("high"/"medium"/"low"). NEVER fail.`,
@@ -152,8 +153,8 @@ If it contains ingredients known to worsen ${skinConcerns || 'the user\'s skin c
       : 'No skin type data available — provide general analysis.';
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const rraw = await base44.functions.invoke('analyzeWithClaude', {
+      const { file_url } = await uploadFile({ file });
+      const rraw = await analyzeWithClaude({
         image_url: file_url,
         prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type || 'skincare product'}).
 
@@ -188,7 +189,7 @@ NEVER fail. Always return at least 3 ingredients if any are visible.`,
       const combined = { ...step1Data, ...analysis, ingredients: analysis.ingredients || [], label_image_url: file_url, _loadingDetails: false };
       setResult(combined);
       setIsAnalyzing(false);
-      base44.entities.ScanResult.create({
+      createScanHistory({
         type: 'skincare',
         date: new Date().toISOString().split('T')[0],
         image_url: step1Data?.image_url || null,

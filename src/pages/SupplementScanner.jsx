@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
@@ -9,6 +8,8 @@ import SupplementVerdictPage from '../components/scanner/SupplementVerdictPage';
 import SupplementMiniOnboarding from '../components/onboarding/SupplementMiniOnboarding';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { parseApiResponse } from '../lib/parseApiResponse';
+import { createScanHistory, upsertProfile, uploadFile } from '@/lib/db';
+import { analyzeWithClaude } from '@/lib/ai';
 
 function useTypingEffect(lines, speed = 28) {
   const linesRef = useRef(lines);
@@ -84,7 +85,7 @@ export default function SupplementScanner() {
 
   const handleSupOnboardingComplete = async (data) => {
     if (profile.id) {
-      await base44.entities.UserProfile.update(profile.id, { ...data, supplement_onboarding_done: true });
+      await upsertProfile({ ...data, supplement_onboarding_done: true });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     }
     setShowSupOnboarding(false);
@@ -92,7 +93,7 @@ export default function SupplementScanner() {
 
   const handleSupOnboardingSkip = async () => {
     if (profile.id) {
-      await base44.entities.UserProfile.update(profile.id, { supplement_onboarding_done: true });
+      await upsertProfile({ supplement_onboarding_done: true });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     }
     setShowSupOnboarding(false);
@@ -105,8 +106,8 @@ export default function SupplementScanner() {
     setS1File(file);
     setIsAnalyzing(true);
     setAnalyzingMsg('Identifying your supplement...');
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const rraw = await base44.functions.invoke('analyzeWithClaude', {
+    const { file_url } = await uploadFile({ file });
+    const rraw = await analyzeWithClaude({
       image_url: file_url,
       prompt: `You are a supplement and nutraceutical expert. Look at the FRONT of this supplement bottle. Read ALL visible text.
 Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule"/"softgel"/"powder"/"gummy"/"liquid"/"other"), primary_ingredient (main active), secondary_ingredients (array of strings), marketing_claims (array of strings), confidence ("high"/"medium"/"low"). NEVER fail.`,
@@ -141,8 +142,8 @@ Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule
       ? `User health context: ${healthConditions}. Flag any ingredients that may interact negatively with these conditions. If the supplement is irrelevant to the user's goal of ${profile.goal || 'general health'}, state this clearly.`
       : `User goal: ${profile.goal || 'general health'}. Evaluate relevance to this goal.`;
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const rraw = await base44.functions.invoke('analyzeWithClaude', {
+    const { file_url } = await uploadFile({ file });
+    const rraw = await analyzeWithClaude({
       image_url: file_url,
       prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel of: "${step1Data?.brand} ${step1Data?.product_name}" — primary ingredient: ${step1Data?.primary_ingredient}.
 
@@ -167,7 +168,7 @@ Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 we
     });
     const combined = { ...step1Data, ...parseApiResponse(rraw) };
     setResult(combined);
-    base44.entities.ScanResult.create({
+    createScanHistory({
       type: 'supplement',
       date: new Date().toISOString().split('T')[0],
       image_url: step1Data?.image_url || null,

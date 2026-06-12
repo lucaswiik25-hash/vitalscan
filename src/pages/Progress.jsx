@@ -1,13 +1,13 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { BarChart, Bar, XAxis, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { listFoodLogs } from '@/lib/db';
 
 export default function Progress() {
   const { data: meals = [] } = useQuery({
     queryKey: ['allMeals'],
-    queryFn: () => base44.entities.Meal.filter({ logged: true }),
+    queryFn: () => listFoodLogs({ logged: true }),
   });
 
   // Build last 7 days data

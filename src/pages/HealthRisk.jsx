@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { subDays, format } from 'date-fns';
 import { Sparkles, Loader2, ShieldAlert, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { listFoodLogs, listHydrationLogs, listSleepLogs, listExerciseLogs, getProfileList } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const SEV_STYLES = {
   critical: { bg: '#fee2e2', text: '#dc2626', border: '#fca5a5' },
@@ -18,28 +19,28 @@ export default function HealthRisk() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => getProfileList(),
   });
   const profile = profiles[0] || {};
 
   const { data: meals = [] } = useQuery({
     queryKey: ['allMeals'],
-    queryFn: () => base44.entities.Meal.filter({ logged: true }),
+    queryFn: () => listFoodLogs({ logged: true }),
   });
 
   const { data: waterLogs = [] } = useQuery({
     queryKey: ['allWaterLogs'],
-    queryFn: () => base44.entities.WaterLog.list(),
+    queryFn: () => listHydrationLogs(),
   });
 
   const { data: exerciseLogs = [] } = useQuery({
     queryKey: ['allExercises'],
-    queryFn: () => base44.entities.Exercise.list(),
+    queryFn: () => listExerciseLogs(),
   });
 
   const { data: sleepLogs = [] } = useQuery({
     queryKey: ['sleepLogs'],
-    queryFn: () => base44.entities.SleepLog.list(),
+    queryFn: () => listSleepLogs(),
   });
 
   const analyze = async () => {
@@ -150,7 +151,7 @@ Identify ALL health risks based on the actual numbers above. For each risk:
       },
     };
 
-    const res = await base44.integrations.Core.InvokeLLM({
+    const res = await invokeLLM({
       prompt: isAppearance ? appearancePrompt : standardPrompt,
       response_json_schema: isAppearance ? appearanceSchema : {
         type: 'object',

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Loader2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
+import { getProfileList } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const MEAL_COUNTS = [2, 3, 4, 5, 6];
 const STORAGE_KEY = 'scanly_meal_plan';
@@ -26,7 +27,7 @@ export default function MealPlanner() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => getProfileList(),
   });
   const profile = profiles[0] || {};
   const pageVisible = usePageVisible();
@@ -97,7 +98,7 @@ User profile:
 Generate ${mealCount} meals. Make meals realistic, delicious, and achievable at home.
 For each meal provide: name, description (1-2 sentences), ingredients (list), calories, protein, carbs, fat, prep_time.`;
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const result = await invokeLLM({
       prompt: isAppearance ? appearanceMealPrompt : standardMealPrompt,
       response_json_schema: {
         type: 'object',

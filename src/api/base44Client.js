@@ -1,14 +1,7 @@
-import { createClient } from '@base44/sdk';
-import { appParams } from '@/lib/app-params';
-
-const { appId, token, functionsVersion, appBaseUrl } = appParams;
-
-//Create a client with authentication required
-export const base44 = createClient({
-  appId,
-  token,
-  functionsVersion,
-  serverUrl: '',
-  requiresAuth: false,
-  appBaseUrl
-});
+/**
+ * @deprecated Legacy shim — import from @/lib/db and @/lib/ai instead.
+ */
+export { supabase } from '@/lib/supabase';
+export * from '@/lib/auth';
+export * from '@/lib/db';
+export * from '@/lib/ai';

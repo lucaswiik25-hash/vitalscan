@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format } from 'date-fns';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import { Plus, Check, Trash2, Sparkles, Loader2, Pill, X } from 'lucide-react';
+import { listFoodLogs, listHydrationLogs, listSleepLogs, listExerciseLogs, listSupplements, createSupplement, updateSupplement, deleteSupplement } from '@/lib/db';
+import { analyzeWithClaude } from '@/lib/ai';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -22,27 +23,27 @@ export default function SupplementTracker() {
 
   const { data: supplements = [] } = useQuery({
     queryKey: ['supplements'],
-    queryFn: () => base44.entities.Supplement.list(),
+    queryFn: () => listSupplements(),
   });
 
   const { data: meals = [] } = useQuery({
     queryKey: ['allMeals'],
-    queryFn: () => base44.entities.Meal.filter({ logged: true }),
+    queryFn: () => listFoodLogs({ logged: true }),
   });
 
   const { data: waterLogs = [] } = useQuery({
     queryKey: ['allWaterLogs'],
-    queryFn: () => base44.entities.WaterLog.list(),
+    queryFn: () => listHydrationLogs(),
   });
 
   const { data: sleepLogs = [] } = useQuery({
     queryKey: ['sleepLogs'],
-    queryFn: () => base44.entities.SleepLog.list(),
+    queryFn: () => listSleepLogs(),
   });
 
   const { data: exerciseLogs = [] } = useQuery({
     queryKey: ['allExercises'],
-    queryFn: () => base44.entities.Exercise.list(),
+    queryFn: () => listExerciseLogs(),
   });
 
   const { profile } = useUserProfile();
@@ -51,7 +52,7 @@ export default function SupplementTracker() {
     const resetStale = async () => {
       const stale = supplements.filter(s => s.last_taken_date && s.last_taken_date !== TODAY && (s.taken_today || (s.doses_taken_today || 0) > 0));
       for (const s of stale) {
-        await base44.entities.Supplement.update(s.id, { taken_today: false, doses_taken_today: 0 });
+        await updateSupplement(s.id, { taken_today: false, doses_taken_today: 0 });
       }
       if (stale.length) queryClient.invalidateQueries({ queryKey: ['supplements'] });
     };
@@ -83,7 +84,7 @@ export default function SupplementTracker() {
     const timesPerDay = newTimesPerDay;
     const isMedication = newIsMedication;
     resetAddForm();
-    await base44.entities.Supplement.create({
+    await createSupplement({
       name,
       dose,
       time_of_day: time,
@@ -100,7 +101,7 @@ export default function SupplementTracker() {
       const timesPerDay = sup.times_per_day || 1;
       const currentDoses = sup.doses_taken_today || 0;
       const nextDoses = currentDoses >= timesPerDay ? 0 : currentDoses + 1;
-      return base44.entities.Supplement.update(sup.id, {
+      return updateSupplement(sup.id, {
         doses_taken_today: nextDoses,
         taken_today: nextDoses >= timesPerDay,
         last_taken_date: nextDoses > 0 ? TODAY : sup.last_taken_date,
@@ -130,7 +131,7 @@ export default function SupplementTracker() {
   const toggleTaken = (sup) => toggleMutation.mutate(sup);
 
   const deleteSup = async (id) => {
-    await base44.entities.Supplement.delete(id);
+    await deleteSupplement(id);
     queryClient.invalidateQueries({ queryKey: ['supplements'] });
   };
 
@@ -213,7 +214,7 @@ ${(profile.health_conditions || []).length > 0 ? `Health conditions to consider:
 
 Identify the top 5 supplement deficiencies or gaps based on their actual numbers above. For each, explain WHY they might be deficient (citing their specific intake numbers) and what health risks it poses.`;
 
-    const { data: claudeRes } = await base44.functions.invoke('analyzeWithClaude', {
+    const claudeRes = await analyzeWithClaude({
       prompt: isAppearance ? appearanceSupplementPrompt : standardSupplementPrompt,
       response_json_schema: { type: 'object', properties: { deficiencies: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } } },
     });

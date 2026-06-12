@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { X, Sparkles, ArrowLeft, CheckCircle, AlertTriangle, XCircle, Zap, Search, Camera, ImageIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getProfileList, uploadFile } from '@/lib/db';
+import { analyzeWithClaude } from '@/lib/ai';
 
 const ALL_EXERCISES = [
   // A
@@ -199,7 +200,7 @@ export default function ExerciseFormScanner() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => getProfileList(),
   });
   const userName = profiles[0]?.name || 'there';
 
@@ -221,9 +222,9 @@ export default function ExerciseFormScanner() {
     setIsAnalyzing(true);
     setPreview(null);
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile({ file });
 
-    const raw = await base44.functions.invoke('analyzeWithClaude', {
+    const raw = await analyzeWithClaude({
       image_url: file_url,
       prompt: `You are an elite strength and conditioning coach with expertise in biomechanics. The user is performing a ${selectedExercise}.
 

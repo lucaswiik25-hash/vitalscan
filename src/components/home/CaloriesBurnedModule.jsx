@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { format, subDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { listExerciseLogs } from '@/lib/db';
 
 function calcBMR(profile) {
   const w = profile.weight || 70, h = profile.height || 170, a = profile.age || 25;
@@ -28,12 +28,12 @@ export default function CaloriesBurnedModule({ profile = {} }) {
 
   const { data: allExercises = [] } = useQuery({
     queryKey: ['allExercises'],
-    queryFn: () => base44.entities.Exercise.list(),
+    queryFn: () => listExerciseLogs(),
   });
 
   const { data: todayExercises = [] } = useQuery({
     queryKey: ['exercises', today],
-    queryFn: () => base44.entities.Exercise.filter({ date: today }),
+    queryFn: () => listExerciseLogs({ date: today }),
   });
 
   const todayBurned = todayExercises.reduce((s, e) => s + (e.calories_burned || 0), 0);
@@ -59,8 +59,8 @@ export default function CaloriesBurnedModule({ profile = {} }) {
   const hourlyBars = useMemo(() => {
     const buckets = Array(24).fill(0);
     todayExercises.forEach(e => {
-      if (e.created_date) {
-        const hr = new Date(e.created_date).getHours();
+      if (e.created_at) {
+        const hr = new Date(e.created_at).getHours();
         buckets[hr] += e.calories_burned || 0;
       }
     });

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getProfileList, upsertProfile } from '@/lib/db';
+import { signOut } from '@/lib/auth';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function Profile() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => getProfileList(),
   });
 
   const profile = profiles[0] || {};
@@ -21,7 +22,7 @@ export default function Profile() {
   const updateField = async (field, value) => {
     if (!profile.id) return;
     setSaving(true);
-    await base44.entities.UserProfile.update(profile.id, { [field]: value });
+    await upsertProfile({ [field]: value });
     queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     setSaving(false);
   };
@@ -132,7 +133,7 @@ export default function Profile() {
         <Button
           variant="ghost"
           className="w-full justify-between text-destructive h-12 rounded-xl"
-          onClick={() => base44.auth.logout()}
+          onClick={() => signOut()}
         >
           <span>Log out</span>
           <LogOut className="w-4 h-4" />

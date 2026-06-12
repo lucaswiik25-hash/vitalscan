@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { Pill, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { listSupplements } from '@/lib/db';
 
 const TIME_WINDOWS = {
   morning: { start: 5, end: 11, label: 'morning' },
@@ -19,7 +19,7 @@ export default function SupplementReminderBanner({ dismissed, onDismiss }) {
 
   const { data: supplements = [] } = useQuery({
     queryKey: ['supplements'],
-    queryFn: () => base44.entities.Supplement.list(),
+    queryFn: () => listSupplements(),
   });
 
   if (dismissed) return null;

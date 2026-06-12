@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { format, subDays } from 'date-fns';
@@ -10,6 +9,8 @@ import WaterStatsScreen from '../components/water/WaterStatsScreen';
 import WaterStreakScreen from '../components/water/WaterStreakScreen';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
+import { listHydrationLogs, createHydrationLog, deleteHydrationLog } from '@/lib/db';
+import { invokeLLM } from '@/lib/ai';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -126,12 +127,12 @@ export default function WaterTracker() {
 
   const { data: todayLogs = [] } = useQuery({
     queryKey: ['waterLogs', TODAY],
-    queryFn: () => base44.entities.WaterLog.filter({ date: TODAY }),
+    queryFn: () => listHydrationLogs({ date: TODAY }),
   });
 
   const { data: allLogs = [] } = useQuery({
     queryKey: ['allWaterLogs'],
-    queryFn: () => base44.entities.WaterLog.list(),
+    queryFn: () => listHydrationLogs(),
   });
 
   const consumed = todayLogs.filter(l => l.amount_ml > 0).reduce((s, l) => s + l.amount_ml, 0);
@@ -155,11 +156,11 @@ export default function WaterTracker() {
   }, [filledGlasses]);
 
   const logMutation = useMutation({
-    mutationFn: ({ ml, slot }) => base44.entities.WaterLog.create({ date: TODAY, amount_ml: ml, type: 'water', slot }),
+    mutationFn: ({ ml, slot }) => createHydrationLog({ date: TODAY, amount_ml: ml, type: 'water', slot }),
     onMutate: async ({ ml, slot }) => {
       await queryClient.cancelQueries({ queryKey: ['waterLogs', TODAY] });
       const prev = queryClient.getQueryData(['waterLogs', TODAY]);
-      const optimistic = { id: `opt-${Date.now()}`, date: TODAY, amount_ml: ml, type: 'water', slot, created_date: new Date().toISOString() };
+      const optimistic = { id: `opt-${Date.now()}`, date: TODAY, amount_ml: ml, type: 'water', slot, created_at: new Date().toISOString() };
       queryClient.setQueryData(['waterLogs', TODAY], (old = []) => [...old, optimistic]);
       return { prev };
     },
@@ -175,7 +176,7 @@ export default function WaterTracker() {
   const logSlot = (ml, slot) => logMutation.mutate({ ml, slot });
 
   const removeMutation = useMutation({
-    mutationFn: (id) => base44.entities.WaterLog.delete(id),
+    mutationFn: (id) => deleteHydrationLog(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['waterLogs', TODAY] });
       const prev = queryClient.getQueryData(['waterLogs', TODAY]);
@@ -194,7 +195,7 @@ export default function WaterTracker() {
   // Remove last log entry (undo)
   const removeLastLog = () => {
     if (todayLogs.length === 0) return;
-    const sorted = [...todayLogs].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    const sorted = [...todayLogs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     removeMutation.mutate(sorted[0].id);
   };
 
@@ -208,7 +209,7 @@ export default function WaterTracker() {
       return { date: format(d, 'EEE MMM d'), ml: total };
     });
 
-    const res = await base44.integrations.Core.InvokeLLM({
+    const res = await invokeLLM({
       prompt: `You are a hydration coach. Analyze the user's last 14 days of water consumption and give 3 specific, actionable insights.
 
 Data (daily ml consumed):

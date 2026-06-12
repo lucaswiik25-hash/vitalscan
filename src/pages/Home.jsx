@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { format, subDays, differenceInCalendarDays } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
+import { listFoodLogs, listHydrationLogs } from '@/lib/db';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import Header from '../components/home/Header';
 import WeekCalendar from '../components/home/WeekCalendar';
 import NutriCarousel from '../components/home/NutriCarousel';
@@ -12,7 +13,6 @@ import DayVerdictPage from '../components/home/DayVerdictPage';
 import AllergyBanner from '../components/home/AllergyBanner';
 import SupplementReminderBanner from '../components/home/SupplementReminderBanner';
 import WeeklyReportModal, { useWeeklyReportGate } from '../components/home/WeeklyReportModal';
-import { useUserProfile } from '../hooks/useUserProfile';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -23,9 +23,10 @@ export default function Home() {
   const [pullY, setPullY] = useState(0);
   const [reminderDismissed, setReminderDismissed] = useState(false);
   const touchStartY = useRef(0);
-  const containerRef = useRef(null);
-  const { showWeeklyReport, dismissWeeklyReport } = useWeeklyReportGate();
   const pageVisible = usePageVisible();
+  const { showWeeklyReport, dismissWeeklyReport } = useWeeklyReportGate();
+
+  const { profile, loading: profileLoading, updateProfile } = useUserProfile();
 
   const handleTouchStart = (e) => {
     if (window.scrollY === 0) touchStartY.current = e.touches[0].clientY;
@@ -44,47 +45,40 @@ export default function Home() {
     setPullY(0);
   };
 
-  const { profile, profiles, isLoading: isLoadingProfiles } = useUserProfile();
-
   useEffect(() => {
-    if (!isLoadingProfiles && profiles.length > 0 && !profile.onboarding_complete) {
+    if (profileLoading) return;
+    if (!profile?.id || !profile.onboarding_complete) {
       navigate('/onboarding');
     }
-    if (!isLoadingProfiles && profiles.length === 0) {
-      navigate('/onboarding');
-    }
-  }, [isLoadingProfiles, profiles.length, profile.onboarding_complete]);
+  }, [profileLoading, profile?.id, profile?.onboarding_complete, navigate]);
 
-  // Trigger auto passive burn on load
   useEffect(() => {
-    base44.functions.invoke('autoBurnCalories', {}).catch(() => {});
-  }, []);
-
-  // Calculate and update streak
-  useEffect(() => {
-    if (!profile.id || isLoadingProfiles) return;
+    if (!profile?.id || profileLoading) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const lastActive = profile.last_active_date;
-    if (lastActive === todayStr) return; // already updated today
-    const daysSince = lastActive ? differenceInCalendarDays(new Date(todayStr), new Date(lastActive)) : null;
+    if (lastActive === todayStr) return;
+
+    const daysSince = lastActive
+      ? differenceInCalendarDays(new Date(todayStr), new Date(lastActive))
+      : null;
     const newStreak = daysSince === 1 ? (profile.streak || 0) + 1 : 1;
-    base44.entities.UserProfile.update(profile.id, { streak: newStreak, last_active_date: todayStr });
-    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-  }, [profile.id, isLoadingProfiles]);
+
+    updateProfile({ streak: newStreak, last_active_date: todayStr }).catch(() => {});
+  }, [profile?.id, profileLoading, profile.last_active_date, profile.streak, updateProfile]);
 
   const { data: todayMeals = [] } = useQuery({
     queryKey: ['meals', today],
-    queryFn: () => base44.entities.Meal.filter({ date: today, logged: true }),
+    queryFn: () => listFoodLogs({ date: today, logged: true }),
   });
 
   const { data: allMeals = [] } = useQuery({
     queryKey: ['allMeals'],
-    queryFn: () => base44.entities.Meal.filter({ logged: true }),
+    queryFn: () => listFoodLogs({ logged: true }),
   });
 
   const { data: allWaterLogs = [] } = useQuery({
     queryKey: ['allWaterLogs'],
-    queryFn: () => base44.entities.WaterLog.list(),
+    queryFn: () => listHydrationLogs(),
   });
 
   const consumed = todayMeals.reduce((acc, meal) => ({
@@ -98,11 +92,19 @@ export default function Home() {
   }), {});
 
   return (
-    <div className="min-h-screen pb-24" style={pageRevealStyle(pageVisible)} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-      {/* Pull-to-refresh indicator */}
+    <div
+      className="min-h-screen pb-24"
+      style={pageRevealStyle(pageVisible)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {(pullY > 0 || refreshing) && (
         <div className="flex justify-center items-center transition-all" style={{ height: refreshing ? 40 : pullY }}>
-          <div className={`w-6 h-6 border-2 border-gray-300 border-t-gray-800 rounded-full ${refreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullY * 4}deg)` }} />
+          <div
+            className={`w-6 h-6 border-2 border-gray-300 border-t-gray-800 rounded-full ${refreshing ? 'animate-spin' : ''}`}
+            style={{ transform: `rotate(${pullY * 4}deg)` }}
+          />
         </div>
       )}
       <div {...animCard(0, pageVisible)}><Header streak={profile.streak || 0} /></div>

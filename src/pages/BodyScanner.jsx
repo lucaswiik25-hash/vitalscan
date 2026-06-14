@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useScanJob, loadScanResult } from '@/lib/ScanJobContext';
 import { getProfileList, uploadFile } from '@/lib/db';
 import { analyzeWithClaude } from '@/lib/ai';
 
@@ -261,6 +261,7 @@ function DetailPage({ result, onBack }) {
 
 export default function BodyScanner() {
   const navigate = useNavigate();
+  const { runBackgroundAnalysis } = useScanJob();
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const [capturedFile, setCapturedFile] = useState(null);
@@ -282,15 +283,23 @@ export default function BodyScanner() {
 
   const analyse = async () => {
     if (!capturedFile) return;
-    setIsAnalyzing(true);
+    const file = capturedFile;
     setPreviewUrl(null);
+    setCapturedFile(null);
+    const profileSnapshot = { ...profile };
 
-    const { file_url } = await uploadFile({ file: capturedFile });
-    const { result: r } = await analyzeWithClaude({
-      image_url: file_url,
-      prompt: `You are a world-class certified personal trainer, body composition specialist, and physique coach. Analyze this full-body photo in exhaustive detail.
+    runBackgroundAnalysis({
+      label: 'Analyzing your body…',
+      resultKey: 'bgScan_body',
+      viewPath: '/body-scanner',
+      navigateAway: () => navigate('/scanner'),
+      task: async () => {
+        const { file_url } = await uploadFile({ file });
+        const { result: r } = await analyzeWithClaude({
+          image_url: file_url,
+          prompt: `You are a world-class certified personal trainer, body composition specialist, and physique coach. Analyze this full-body photo in exhaustive detail.
 
-User: Goal: ${profile.goal || 'maintain'}, Diet: ${profile.diet_mode || 'standard'}, Sex: ${profile.sex || 'unknown'}, Weight: ${profile.weight || '?'}kg.
+User: Goal: ${profileSnapshot.goal || 'maintain'}, Diet: ${profileSnapshot.diet_mode || 'standard'}, Sex: ${profileSnapshot.sex || 'unknown'}, Weight: ${profileSnapshot.weight || '?'}kg.
 
 Return JSON:
 - overall_score: 1–100, potential_score: 1–100, muscle_score: 1–100, body_fat_score: 1–100, posture_score: 1–100, frame_score: 1–100
@@ -309,33 +318,38 @@ Return JSON:
 - appearance_diet_connection: string or null
 
 NEVER fail.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          overall_score: { type: 'number' }, potential_score: { type: 'number' },
-          muscle_score: { type: 'number' }, body_fat_score: { type: 'number' },
-          posture_score: { type: 'number' }, frame_score: { type: 'number' },
-          body_type: { type: 'string' }, muscle_mass_level: { type: 'string' },
-          estimated_body_fat_range: { type: 'string' }, overall_summary: { type: 'string' },
-          posture: { type: 'object' }, frame: { type: 'object' },
-          priority_muscle_groups: { type: 'array', items: { type: 'object' } },
-          areas_to_improve: { type: 'array', items: { type: 'object' } },
-          strengths: { type: 'array', items: { type: 'string' } },
-          priority_actions: { type: 'array', items: { type: 'string' } },
-          personalised_plan: { type: 'array', items: { type: 'string' } },
-          body_type_recommendations: { type: 'string' },
-          appearance_diet_connection: { type: 'string' },
-        },
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              overall_score: { type: 'number' }, potential_score: { type: 'number' },
+              muscle_score: { type: 'number' }, body_fat_score: { type: 'number' },
+              posture_score: { type: 'number' }, frame_score: { type: 'number' },
+              body_type: { type: 'string' }, muscle_mass_level: { type: 'string' },
+              estimated_body_fat_range: { type: 'string' }, overall_summary: { type: 'string' },
+              posture: { type: 'object' }, frame: { type: 'object' },
+              priority_muscle_groups: { type: 'array', items: { type: 'object' } },
+              areas_to_improve: { type: 'array', items: { type: 'object' } },
+              strengths: { type: 'array', items: { type: 'string' } },
+              priority_actions: { type: 'array', items: { type: 'string' } },
+              personalised_plan: { type: 'array', items: { type: 'string' } },
+              body_type_recommendations: { type: 'string' },
+              appearance_diet_connection: { type: 'string' },
+            },
+          },
+        });
+        return { ...(r?.result || r || {}), image_url: file_url };
       },
     });
-
-    setResult({ ...(r?.result || r || {}), image_url: file_url });
-    setIsAnalyzing(false);
   };
 
   // Handle replay from scan history
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1') {
+      const data = loadScanResult('bgScan_body');
+      if (data) setResult(data);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (urlParams.get('replay') === '1') {
       const stored = sessionStorage.getItem('replayScan');
       if (stored) {
@@ -350,7 +364,6 @@ NEVER fail.`,
 
   const reset = () => { setResult(null); setCapturedFile(null); setPreviewUrl(null); setShowDetail(false); };
 
-  if (isAnalyzing) return <AnalyzingScreen type="food" message="Analysing your body..." />;
   if (result && showDetail) return <DetailPage result={result} onBack={() => setShowDetail(false)} />;
 
   if (result) {

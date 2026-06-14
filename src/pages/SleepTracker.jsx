@@ -238,7 +238,7 @@ Identify patterns (weekday vs weekend, quality vs duration mismatches, consisten
   const handleCloseAnalysis = () => setAnalysisDay(null);
 
   return (
-    <div className="sleep-tracker min-h-screen bg-background" style={pageRevealStyle(pageVisible)}>
+    <div className="sleep-tracker min-h-screen" style={pageRevealStyle(pageVisible)}>
       <div className={`st-main${analysisDay ? ' is-hidden' : ''}`}>
         {/* Header */}
         <div className="st-page-header">

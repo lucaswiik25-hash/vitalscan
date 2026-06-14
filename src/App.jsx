@@ -28,6 +28,7 @@ import Exercise from './pages/Exercise';
 import ExerciseFormScanner from './pages/ExerciseFormScanner';
 import SleepTracker from './pages/SleepTracker';
 import Tips from './pages/Tips.jsx';
+import { ScanJobProvider } from '@/lib/ScanJobContext';
 
 function AppShellRoutes() {
   return (
@@ -105,7 +106,9 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <AppRoutes />
+          <ScanJobProvider>
+            <AppRoutes />
+          </ScanJobProvider>
         </Router>
         <Toaster />
       </QueryClientProvider>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useScanJob, loadScanResult } from '@/lib/ScanJobContext';
 import SupplementVerdictPage from '../components/scanner/SupplementVerdictPage';
 import SupplementMiniOnboarding from '../components/onboarding/SupplementMiniOnboarding';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -59,6 +59,7 @@ const bioColor = (b) => b === 'High' ? '#16a34a' : b === 'Medium' ? '#ca8a04' : 
 export default function SupplementScanner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { runBackgroundAnalysis } = useScanJob();
   const cam1Ref = useRef(null);
   const up1Ref = useRef(null);
   const cam2Ref = useRef(null);
@@ -135,55 +136,67 @@ Return JSON with: brand (exact), product_name (exact), format ("tablet"/"capsule
   };
 
   const analyseStep2WithFile = async (file) => {
-    setIsAnalyzing(true);
-    setAnalyzingMsg('Analysing supplement facts...');
     const healthConditions = (profile.health_conditions || []).join(', ');
     const supplementPersonalisation = healthConditions
       ? `User health context: ${healthConditions}. Flag any ingredients that may interact negatively with these conditions. If the supplement is irrelevant to the user's goal of ${profile.goal || 'general health'}, state this clearly.`
       : `User goal: ${profile.goal || 'general health'}. Evaluate relevance to this goal.`;
+    const step1Snapshot = step1Data;
 
-    const { file_url } = await uploadFile({ file });
-    const rraw = await analyzeWithClaude({
-      image_url: file_url,
-      prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel of: "${step1Data?.brand} ${step1Data?.product_name}" — primary ingredient: ${step1Data?.primary_ingredient}.
+    runBackgroundAnalysis({
+      label: 'Analyzing supplement…',
+      resultKey: 'bgScan_supplement',
+      viewPath: '/supplement-scanner',
+      navigateAway: () => navigate('/scanner'),
+      task: async () => {
+        const { file_url } = await uploadFile({ file });
+        const rraw = await analyzeWithClaude({
+          image_url: file_url,
+          prompt: `You are a clinical supplement expert and pharmacologist. This is the SUPPLEMENT FACTS panel of: "${step1Snapshot?.brand} ${step1Snapshot?.product_name}" — primary ingredient: ${step1Snapshot?.primary_ingredient}.
 
 ${supplementPersonalisation}
 
 Read EVERY line of the supplement facts. Return JSON with: serving_size, servings_per_container, estimated_duration, quality_score (1-100), verdict ("YES"/"MAYBE"/"NO"), verdict_reason, best_time_to_take, food_note, absorption_tip, interactions, ingredients (array: name, amount, dri_percent, bioavailability ("High"/"Medium"/"Low"), form_quality, flag ("None"/"Underdosed"/"Correctly Dosed"/"Overdose Risk"/"Poor Form"/"Filler"), body_benefit (brief positive string), body_risk (brief risk or empty)), other_ingredients_flags (array of strings).
 Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 weeks off"), stack_with (e.g. "Stack with Vitamin D3 and Magnesium for best effect"), results_timeline (e.g. "2-4 weeks for initial effects, 8-12 weeks for full benefit"). NEVER fail.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          serving_size: { type: 'string' }, servings_per_container: { type: 'number' },
-          estimated_duration: { type: 'string' }, quality_score: { type: 'number' },
-          verdict: { type: 'string' }, verdict_reason: { type: 'string' },
-          best_time_to_take: { type: 'string' }, food_note: { type: 'string' },
-          absorption_tip: { type: 'string' }, interactions: { type: 'string' },
-          ingredients: { type: 'array', items: { type: 'object' } },
-          other_ingredients_flags: { type: 'array', items: { type: 'string' } },
-          cycle_recommendation: { type: 'string' }, stack_with: { type: 'string' },
-          results_timeline: { type: 'string' },
-        },
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              serving_size: { type: 'string' }, servings_per_container: { type: 'number' },
+              estimated_duration: { type: 'string' }, quality_score: { type: 'number' },
+              verdict: { type: 'string' }, verdict_reason: { type: 'string' },
+              best_time_to_take: { type: 'string' }, food_note: { type: 'string' },
+              absorption_tip: { type: 'string' }, interactions: { type: 'string' },
+              ingredients: { type: 'array', items: { type: 'object' } },
+              other_ingredients_flags: { type: 'array', items: { type: 'string' } },
+              cycle_recommendation: { type: 'string' }, stack_with: { type: 'string' },
+              results_timeline: { type: 'string' },
+            },
+          },
+        });
+        const combined = { ...step1Snapshot, ...parseApiResponse(rraw) };
+        createScanHistory({
+          type: 'supplement',
+          date: new Date().toISOString().split('T')[0],
+          image_url: step1Snapshot?.image_url || null,
+          product_name: combined.product_name,
+          brand: combined.brand || null,
+          quality_score: combined.quality_score || null,
+          verdict: combined.verdict || null,
+          result_data: combined,
+        }).catch(() => {});
+        return combined;
       },
     });
-    const combined = { ...step1Data, ...parseApiResponse(rraw) };
-    setResult(combined);
-    createScanHistory({
-      type: 'supplement',
-      date: new Date().toISOString().split('T')[0],
-      image_url: step1Data?.image_url || null,
-      product_name: combined.product_name,
-      brand: combined.brand || null,
-      quality_score: combined.quality_score || null,
-      verdict: combined.verdict || null,
-      result_data: combined,
-    }).catch(() => {});
-    setIsAnalyzing(false);
+    setS2File(null);
   };
 
   // Handle replay from scan history
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1') {
+      const data = loadScanResult('bgScan_supplement');
+      if (data) setResult(data);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (urlParams.get('replay') === '1') {
       const stored = sessionStorage.getItem('replayScan');
       if (stored) {
@@ -201,8 +214,6 @@ Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 we
     setResult(null); setStep1Data(null); setStep(1);
     setS1File(null); setS2File(null);
   };
-
-  if (isAnalyzing) return <AnalyzingScreen type="supplement" message={analyzingMsg} onCancel={() => { setIsAnalyzing(false); setS1File(null); setS2File(null); navigate('/scanner'); }} />;
 
   if (showSupOnboarding) return (
     <AnimatePresence>
@@ -249,10 +260,10 @@ Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 we
   }
 
   // ─── Step 1: landing ───────────────────────────────────────────────────────
-  return <SupplementLanding userName={userName} cam1Ref={cam1Ref} up1Ref={up1Ref} onS1File={handleS1File} onBack={() => navigate(-1)} />;
+  return <SupplementLanding userName={userName} cam1Ref={cam1Ref} up1Ref={up1Ref} onS1File={handleS1File} onBack={() => navigate(-1)} isLoading={isAnalyzing} loadingMessage={analyzingMsg} />;
 }
 
-function SupplementLanding({ userName, cam1Ref, up1Ref, onS1File, onBack }) {
+function SupplementLanding({ userName, cam1Ref, up1Ref, onS1File, onBack, isLoading, loadingMessage }) {
   const lines = [
     `Hi ${userName}.`,
     `Here you can [Scan Supplement] by photographing the front of the bottle.`,
@@ -291,6 +302,9 @@ function SupplementLanding({ userName, cam1Ref, up1Ref, onS1File, onBack }) {
         <ArrowLeft className="w-5 h-5 text-gray-900" />
       </button>
       <div className="space-y-6">
+        {isLoading && (
+          <p className="text-sm text-gray-500 font-medium">{loadingMessage || 'Identifying supplement…'}</p>
+        )}
         {lines.map((_, idx) => renderLine(displayed[idx] || '', idx))}
       </div>
     </div>

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useScanJob, loadScanResult } from '@/lib/ScanJobContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { listFoodLogs, listHydrationLogs, listSleepLogs, uploadFile } from '@/lib/db';
 import { analyzeWithClaude } from '@/lib/ai';
@@ -214,6 +214,7 @@ function DetailPage({ result, onBack }) {
 
 export default function FaceScanner() {
   const navigate = useNavigate();
+  const { runBackgroundAnalysis } = useScanJob();
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const [capturedFile, setCapturedFile] = useState(null);
@@ -247,12 +248,10 @@ export default function FaceScanner() {
 
   const analyse = async () => {
     if (!capturedFile) return;
-    setIsAnalyzing(true);
+    const file = capturedFile;
     setPreviewUrl(null);
+    setCapturedFile(null);
 
-    const { file_url } = await uploadFile({ file: capturedFile });
-
-    // Build data context
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayCal = todayMeals.reduce((s, m) => s + (m.calories || 0), 0);
     const todaySodium = todayMeals.reduce((s, m) => s + (m.sodium || 0), 0);
@@ -260,11 +259,9 @@ export default function FaceScanner() {
     const todayWater = recentWaterLogs.filter(w => w.date === today && w.amount_ml > 0).reduce((s, w) => s + w.amount_ml, 0);
     const last7Sleep = recentSleepLogs.slice(0, 7);
     const avgSleepMin = last7Sleep.length > 0 ? Math.round(last7Sleep.reduce((s, l) => s + (l.duration_minutes || 0), 0) / last7Sleep.length) : 0;
-
     const todayFoodSummary = todayMeals.length > 0
       ? todayMeals.map(m => `${m.name}: ${m.calories}kcal, ${m.sodium || 0}mg sodium, ${m.sugar || 0}g sugar`).join('; ')
       : 'No food logged today';
-
     const appearanceDataBlock = isAppearanceMode ? `
 USER DATA (base your analysis on these specific numbers. Do not make assumptions. Every finding must reference the actual data):
 - Today's calories: ${todayCal} kcal | Sodium: ${todaySodium}mg | Sugar: ${todaySugar}g
@@ -274,9 +271,16 @@ USER DATA (base your analysis on these specific numbers. Do not make assumptions
 - Skin concerns (self-reported): ${(profile.skin_concerns || []).join(', ') || 'none specified'}
 Today's food: ${todayFoodSummary}` : '';
 
-    const { result: r } = await analyzeWithClaude({
-      image_url: file_url,
-      prompt: `You are a world-class dermatologist and facial analyst. Analyze this photo in exhaustive detail.
+    runBackgroundAnalysis({
+      label: 'Analyzing your face…',
+      resultKey: 'bgScan_face',
+      viewPath: '/face-scanner',
+      navigateAway: () => navigate('/scanner'),
+      task: async () => {
+        const { file_url } = await uploadFile({ file });
+        const { result: r } = await analyzeWithClaude({
+          image_url: file_url,
+          prompt: `You are a world-class dermatologist and facial analyst. Analyze this photo in exhaustive detail.
 ${isAppearanceMode ? `APPEARANCE MODE ACTIVE. Base your entire analysis on the specific numbers provided below. Do not make assumptions. Every diet connection must directly reference the actual data provided.\n${appearanceDataBlock}` : ''}
 Return JSON:
 - overall_skin_score: 1–100
@@ -295,30 +299,35 @@ Return JSON:
 - genetic: array of strings
 - food_connection: string (only if appearance mode, else null)
 NEVER fail.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          overall_skin_score: { type: 'number' }, potential_score: { type: 'number' },
-          skin_quality_score: { type: 'number' }, skin_clarity_score: { type: 'number' },
-          jawline_score: { type: 'number' }, cheekbone_score: { type: 'number' },
-          facial_definition_score: { type: 'number' }, skin_type: { type: 'string' },
-          overall_summary: { type: 'string' }, facial_structure: { type: 'object' },
-          detected_concerns: { type: 'array', items: { type: 'object' } },
-          priority_actions: { type: 'array', items: { type: 'string' } },
-          improvable: { type: 'array', items: { type: 'string' } },
-          genetic: { type: 'array', items: { type: 'string' } },
-          food_connection: { type: 'string' },
-        },
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              overall_skin_score: { type: 'number' }, potential_score: { type: 'number' },
+              skin_quality_score: { type: 'number' }, skin_clarity_score: { type: 'number' },
+              jawline_score: { type: 'number' }, cheekbone_score: { type: 'number' },
+              facial_definition_score: { type: 'number' }, skin_type: { type: 'string' },
+              overall_summary: { type: 'string' }, facial_structure: { type: 'object' },
+              detected_concerns: { type: 'array', items: { type: 'object' } },
+              priority_actions: { type: 'array', items: { type: 'string' } },
+              improvable: { type: 'array', items: { type: 'string' } },
+              genetic: { type: 'array', items: { type: 'string' } },
+              food_connection: { type: 'string' },
+            },
+          },
+        });
+        return { ...(r?.result || r || {}), image_url: file_url };
       },
     });
-
-    setResult({ ...(r?.result || r || {}), image_url: file_url });
-    setIsAnalyzing(false);
   };
 
   // Handle replay from scan history
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1') {
+      const data = loadScanResult('bgScan_face');
+      if (data) setResult(data);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (urlParams.get('replay') === '1') {
       const stored = sessionStorage.getItem('replayScan');
       if (stored) {
@@ -333,7 +342,6 @@ NEVER fail.`,
 
   const reset = () => { setResult(null); setCapturedFile(null); setPreviewUrl(null); setShowDetail(false); };
 
-  if (isAnalyzing) return <AnalyzingScreen type="skincare" message="Analysing your face..." />;
   if (result && showDetail) return <DetailPage result={result} onBack={() => setShowDetail(false)} />;
 
   if (result) {

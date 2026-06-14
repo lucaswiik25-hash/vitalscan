@@ -1,9 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import { ArrowLeft, Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, ShoppingCart, BarChart2, FlaskConical, Apple, Pencil, Share2 } from 'lucide-react';
+import { Loader2, Plus, X, Flame, Droplets, Wheat, Bean, Zap, Dna, Wind, Activity, Leaf, BarChart2, FlaskConical, Apple, Pencil, Share2 } from 'lucide-react';
 import { parseApiResponse } from '@/lib/parseApiResponse';
-import { animCard, usePageVisible } from '@/lib/animHelpers';
 import { analyzeWithClaude, invokeLLM } from '@/lib/ai';
+import ProductVerdictLayout, {
+  THEME,
+  SectionHeading,
+  DetailRows,
+  IngredientListItem,
+  IngredientDetailModal,
+} from './ProductVerdictLayout';
+
+const TABS = [
+  { id: 'details', label: 'Details' },
+  { id: 'analysis', label: 'Analysis' },
+  { id: 'ingredients', label: 'Ingredients' },
+  { id: 'other', label: 'Other' },
+];
 
 // ─── Icon Module (replaces all emojis) ───────────────────────────────────────
 function IconModule({ icon: Icon, bg, color, size = 44 }) {
@@ -153,9 +166,10 @@ function MacroRing({ icon: Icon, iconBg, iconColor, label, value, max, color }) 
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onScanAnother, onBack, onResultChange }) {
-  const [slide, setSlide] = useState(0);
+  const [activeTab, setActiveTab] = useState('details');
   const [ingredientResult, setIngredientResult] = useState(null);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState(null);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [editSheetVisible, setEditSheetVisible] = useState(false);
 
@@ -170,9 +184,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
   const [editLoading, setEditLoading] = useState(false);
   const [editedResult, setEditedResult] = useState(null);
   const [sharing, setSharing] = useState(false);
-  const touchStartX = useRef(null);
   const shareRef = useRef(null);
-  const pageVisible = usePageVisible();
 
   const currentResult = editedResult || result;
 
@@ -181,7 +193,7 @@ export default function FoodScanResult({ result, onLog, onLogAnalysisOnly, onSca
     setEditedResult(merged);
     onResultChange?.(merged);
     setIngredientResult(null);
-    setSlide(0);
+    setActiveTab('details');
   };
 
   const handleEdit = async () => {
@@ -611,78 +623,90 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
   );
 
   const allSlides = [slide0, slide1, slideVitamins, slide2, slide3, slide4];
-  const slideLabels = result.is_appearance_mode
-    ? ['Calories', 'Macros', 'Vitamins', 'Appearance', 'Detail', 'Ingredients']
-    : ['Calories', 'Macros', 'Vitamins', 'Body', 'Appearance', 'Ingredients'];
 
-  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const onTouchEnd = (e) => {
-    if (touchStartX.current === null) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 50 && slide < allSlides.length - 1) setSlide(s => s + 1);
-    if (diff < -50 && slide > 0) setSlide(s => s - 1);
-    touchStartX.current = null;
-  };
+  const verdictRaw = (currentResult.diet_compatibility || currentResult.appearance_impact || currentResult.verdict || '').toLowerCase();
+  const verdictLabel = ['yes', 'excellent', 'good', 'clean', 'recommended'].some(k => verdictRaw.includes(k))
+    ? 'Recommended'
+    : ['limit', 'moderate', 'mixed', 'neutral', 'maybe', 'caution'].some(k => verdictRaw.includes(k))
+      ? 'Use with Caution'
+      : 'Avoid';
+  const verdictAccent = verdictLabel === 'Recommended' ? THEME.successColor : verdictLabel === 'Use with Caution' ? '#e65100' : THEME.dangerColor;
+
+  const detailItems = [
+    { label: 'Verdict', value: verdictLabel, color: verdictAccent },
+    { label: 'Calories', value: `${cal} kcal` },
+    { label: 'Serving', value: currentResult.serving_size || '—' },
+    { label: 'Protein', value: `${prot}g` },
+    { label: 'Carbs', value: `${carbs}g` },
+    { label: 'Fat', value: `${fat}g` },
+    { label: 'Sugar', value: `${sugar}g` },
+    { label: 'Fiber', value: `${fiber}g` },
+    { label: 'Sodium', value: `${sodium}mg` },
+    currentResult.health_score != null && { label: 'Health Score', value: `${Math.round(currentResult.health_score)}/10` },
+  ].filter(Boolean);
+
+  const description = currentResult.diet_reason || currentResult.appearance_reason || currentResult.verdict_reason || null;
 
   return (
-    <div
-      ref={shareRef}
-      className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden"
-      style={{ maxWidth: 480, margin: '0 auto' }}
-    >
-
-      {/* ── 1. Product image — white card, image covers full area ── */}
-      <div {...animCard(0, pageVisible, { height: 170, boxShadow: '0 4px 24px rgba(0,0,0,0.10)' })} className="shrink-0 mx-4 mt-12 mb-0 relative bg-white rounded-[20px] overflow-hidden">
-        {result.image_url ? (
-        <img src={result.image_url} alt={result.name}
-          className="w-full h-full object-cover" />
-        ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <IconModule icon={ShoppingCart} bg="#f3f4f6" color="#9ca3af" size={72} />
-        </div>
-        )}
-        <button onClick={onBack}
-        className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center"
-        style={{ background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(8px)' }}>
-        <ArrowLeft style={{ width: 16, height: 16, color: 'white', strokeWidth: 2.5 }} />
-        </button>
-        </div>
-
-        {/* ── 2. Name + verdict badge ── */}
-        <div {...animCard(1, pageVisible)} className="shrink-0 px-5 pt-4 pb-2">
-        <div className="flex items-start gap-2">
-          <h1 className="text-[22px] font-black text-gray-900 leading-tight flex-1" style={{ letterSpacing: '-0.02em' }}>
-            {currentResult.name?.length > 40 ? currentResult.name.slice(0, 40).trim() + '…' : currentResult.name}
-          </h1>
-          <div {...animCard(2, pageVisible)} className="shrink-0 mt-0.5">
-            <VerdictBadge result={currentResult} />
+    <>
+      <div ref={shareRef}>
+        <ProductVerdictLayout
+          imageUrl={currentResult.image_url}
+          onBack={onBack}
+          brand={currentResult.brand}
+          productName={currentResult.name || 'Food Item'}
+          description={description}
+          tabs={TABS}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          footer={
+            <div className="shrink-0 px-4 pb-6 pt-2 border-t border-gray-100 bg-white">
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={onLog} className="h-11 rounded-xl bg-gray-900 text-white text-sm font-semibold">Log as Meal</button>
+                <button type="button" onClick={onLogAnalysisOnly} className="h-11 rounded-xl border border-black text-sm font-semibold">Analysis Only</button>
+                <button type="button" onClick={onScanAnother} className="h-11 rounded-xl border border-black text-sm font-semibold">Rescan</button>
+                <button type="button" onClick={() => setShowEditSheet(true)} className="h-11 rounded-xl border border-black text-sm font-semibold">Edit</button>
+              </div>
+              <button type="button" onClick={handleShare} disabled={sharing} className="w-full h-11 mt-2 rounded-xl border border-black text-sm font-semibold disabled:opacity-50">
+                {sharing ? 'Sharing…' : 'Share'}
+              </button>
+            </div>
+          }
+        >
+          <div key={activeTab} className="tab-content-enter">
+            {activeTab === 'details' && (
+              <div>
+                {currentResult.health_score != null && (
+                  <div className="flex items-center gap-4 mb-5" style={{ background: '#f8f8f8', borderRadius: 16, padding: 16 }}>
+                    <p style={{ fontFamily: THEME.fontHeading, fontSize: 36, fontWeight: 700, color: THEME.textColor }}>
+                      {Math.round(currentResult.health_score * 10)}
+                    </p>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: verdictAccent }}>{verdictLabel}</p>
+                      <p style={{ fontSize: 12, color: THEME.secondaryTextColor }}>Health score out of 100</p>
+                    </div>
+                  </div>
+                )}
+                <DetailRows items={detailItems} />
+              </div>
+            )}
+            {activeTab === 'analysis' && slide2}
+            {activeTab === 'ingredients' && slide4}
+            {activeTab === 'other' && (
+              <div className="space-y-4">
+                {slideVitamins}
+                {slide3}
+              </div>
+            )}
           </div>
-        </div>
-        </div>
-
-        {/* ── 3. Dot page indicators — centered above content ── */}
-        <div {...animCard(3, pageVisible)} className="shrink-0 flex items-center justify-center gap-1.5 pb-3">
-        {allSlides.map((_, i) => (
-          <button key={i} onClick={() => setSlide(i)}
-            className="rounded-full transition-all duration-200"
-            style={{ width: i === slide ? 22 : 7, height: 7, background: i === slide ? '#1a1a1a' : '#d1d5db' }} />
-        ))}
-        </div>
-
-        {/* ── 5. Swipeable content (no scroll on the container itself) ── */}
-      <div className="flex-1 overflow-hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        <div className="flex h-full transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${slide * 100}%)` }}>
-          {allSlides.map((s, i) => (
-            <div key={i} className="min-w-full h-full overflow-y-auto px-4 pt-2 pb-4">{s}</div>
-          ))}
-        </div>
+        </ProductVerdictLayout>
       </div>
 
-      {/* ── FAB ── */}
-      <ActionFAB onLog={onLog} onLogAnalysisOnly={onLogAnalysisOnly} onScanAnother={onScanAnother} onEdit={() => setShowEditSheet(true)} onShare={handleShare} />
-
       {/* ── Edit bottom sheet ── */}
+      {selectedIngredient && (
+        <IngredientDetailModal ingredient={selectedIngredient} onClose={() => setSelectedIngredient(null)} benefitsLabel="Notes" />
+      )}
+
       {showEditSheet && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div
@@ -715,6 +739,6 @@ Re-analyze the ENTIRE meal based on the correction. If user says an ingredient i
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

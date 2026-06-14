@@ -200,7 +200,7 @@ Include estimated cost per item and total cost. Make it practical — whole food
   const checkedCount = Object.values(checked).filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-background pb-10" style={pageRevealStyle(pageVisible)}>
+    <div className="min-h-screen pb-10" style={pageRevealStyle(pageVisible)}>
       <div {...animCard(0, pageVisible)} className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Shopping List</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised groceries' : 'AI-generated based on your diet & budget'}</p>

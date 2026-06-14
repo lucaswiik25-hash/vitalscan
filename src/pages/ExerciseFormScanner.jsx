@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, ArrowLeft, CheckCircle, AlertTriangle, XCircle, Zap, Search, Camera, ImageIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useScanJob, loadScanResult } from '@/lib/ScanJobContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfileList, uploadFile } from '@/lib/db';
 import { analyzeWithClaude } from '@/lib/ai';
@@ -189,6 +189,7 @@ function ExerciseLanding({ userName, selectedExercise, onSelectExercise, onStart
 
 export default function ExerciseFormScanner() {
   const navigate = useNavigate();
+  const { runBackgroundAnalysis } = useScanJob();
   const camRef = useRef(null);
   const upRef = useRef(null);
 
@@ -219,14 +220,20 @@ export default function ExerciseFormScanner() {
 
   const analyse = async () => {
     if (!file || !selectedExercise) return;
-    setIsAnalyzing(true);
+    const snapshot = { file, exercise: selectedExercise };
     setPreview(null);
+    setFile(null);
 
-    const { file_url } = await uploadFile({ file });
-
-    const raw = await analyzeWithClaude({
-      image_url: file_url,
-      prompt: `You are an elite strength and conditioning coach with expertise in biomechanics. The user is performing a ${selectedExercise}.
+    runBackgroundAnalysis({
+      label: 'Analyzing your form…',
+      resultKey: 'bgScan_exercise_form',
+      viewPath: '/exercise-form-scanner',
+      navigateAway: () => navigate('/scanner'),
+      task: async () => {
+        const { file_url } = await uploadFile({ file: snapshot.file });
+        const raw = await analyzeWithClaude({
+          image_url: file_url,
+          prompt: `You are an elite strength and conditioning coach with expertise in biomechanics. The user is performing a ${snapshot.exercise}.
 
 Analyze this image of their form carefully. Look at joint alignment, spine position, foot placement, depth, bar path (if applicable), and any compensation patterns.
 
@@ -241,25 +248,34 @@ Return JSON with:
 - injury_risk_note: brief note on injury risk if medium or high
 
 NEVER fail. If form is not clearly visible, make your best assessment and note low confidence.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          form_score: { type: 'number' },
-          verdict: { type: 'string' },
-          what_is_correct: { type: 'array', items: { type: 'string' } },
-          what_needs_fixing: { type: 'array', items: { type: 'string' } },
-          top_cue: { type: 'string' },
-          top_cue_why: { type: 'string' },
-          injury_risk: { type: 'string' },
-          injury_risk_note: { type: 'string' },
-        },
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              form_score: { type: 'number' },
+              verdict: { type: 'string' },
+              what_is_correct: { type: 'array', items: { type: 'string' } },
+              what_needs_fixing: { type: 'array', items: { type: 'string' } },
+              top_cue: { type: 'string' },
+              top_cue_why: { type: 'string' },
+              injury_risk: { type: 'string' },
+              injury_risk_note: { type: 'string' },
+            },
+          },
+        });
+        const res = raw.data?.result || raw.data || {};
+        return { ...res, image_url: file_url, exercise: snapshot.exercise };
       },
     });
-
-    const res = raw.data?.result || raw.data || {};
-    setResult({ ...res, image_url: file_url, exercise: selectedExercise });
-    setIsAnalyzing(false);
   };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1') {
+      const data = loadScanResult('bgScan_exercise_form');
+      if (data) setResult(data);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const reset = () => {
     setResult(null);
@@ -267,8 +283,6 @@ NEVER fail. If form is not clearly visible, make your best assessment and note l
     setFile(null);
     setSelectedExercise(null);
   };
-
-  if (isAnalyzing) return <AnalyzingScreen type="supplement" message="Analyzing your form..." />;
 
   if (result) {
     const score = result.form_score || 0;

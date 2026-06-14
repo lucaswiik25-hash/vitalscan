@@ -1,5 +1,5 @@
 .sleep-tracker {
-  --st-bg: #ffffff;
+  --st-bg: transparent;
   --st-card: #ffffff;
   --st-dark: #1c1c1e;
   --st-dark-card: #2c2c2e;
@@ -15,7 +15,7 @@
   --st-shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
   --st-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
 
-  background: var(--st-bg);
+  background: transparent;
   color: var(--st-text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;

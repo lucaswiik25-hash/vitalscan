@@ -33,73 +33,58 @@ const BLACK = '#1a1a1a';
 const BLACK_MED = '#374151';
 const SURFACE_CARD = { background: SURFACE, boxShadow: NM, border: MODULE_BORDER };
 
-// Log Water panel (full-screen slide-up)
-function LogWaterPanel({ onClose, slotLabel, onAdd }) {
+// Custom ml popup at top of screen (replaces full log water page)
+function WaterMlPopup({ slotLabel, onClose, onAdd }) {
   const [customVal, setCustomVal] = useState('');
   const [visible, setVisible] = useState(false);
-  const QUICK = [150, 200, 250, 300, 400, 500, 750, 1000];
 
   useEffect(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
   }, []);
 
-  const handleAdd = (ml) => { onAdd(ml); onClose(); };
-  const handleCustom = () => { const ml = parseInt(customVal); if (ml > 0) handleAdd(ml); };
+  const submit = () => {
+    const ml = parseInt(customVal, 10);
+    if (ml > 0) onAdd(ml);
+  };
 
   return (
-    <div className="fixed inset-0 z-50">
+    <>
+      <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
       <div
-        className={`bottom-sheet-backdrop absolute inset-0 bg-black/30 backdrop-blur-sm ${visible ? 'is-visible' : ''}`}
-        onClick={onClose}
-      />
-      <div
-        className={`bottom-sheet-panel absolute left-0 right-0 bottom-0 flex flex-col overflow-hidden ${visible ? 'is-visible' : ''}`}
-        style={{ background: BG, borderRadius: '28px 28px 0 0' }}
+        className={`fixed inset-x-0 top-0 z-50 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] transition-all duration-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}
       >
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(174,174,192,0.5)' }} />
-        </div>
-        <div className="flex items-start justify-between px-6 pt-3 pb-4" style={{ borderBottom: '1px solid rgba(174,174,192,0.2)' }}>
-          <div>
-            <h2 className="text-xl font-bold" style={{ color: '#1f2937' }}>Log Water</h2>
-            <p className="text-sm mt-0.5" style={{ color: '#9ca3af' }}>{slotLabel}</p>
-          </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-2xl flex items-center justify-center"
-            style={{ background: SURFACE, boxShadow: NM_SM }}>
-            <X className="w-4 h-4" style={{ color: '#6b7280' }} />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Quick Add</p>
-            <div className="grid grid-cols-4 gap-3">
-              {QUICK.map(ml => (
-                <button key={ml} onClick={() => handleAdd(ml)}
-                  className="h-14 rounded-[18px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
-                  style={{ background: SURFACE, boxShadow: NM_SM }}>
-                  <span className="text-base font-bold" style={{ color: '#1f2937' }}>{ml >= 1000 ? `${ml/1000}L` : ml}</span>
-                  <span className="text-[10px]" style={{ color: '#9ca3af' }}>{ml >= 1000 ? '' : 'ml'}</span>
-                </button>
-              ))}
+        <div className="mx-auto max-w-lg rounded-2xl bg-white p-4 shadow-xl glow-card">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Log water</p>
+              <p className="text-xs text-gray-400">{slotLabel}</p>
             </div>
+            <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
           </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Custom</p>
-            <div className="flex gap-2">
-              <input type="number" inputMode="numeric" value={customVal} onChange={e => setCustomVal(e.target.value)}
-                placeholder="Enter ml..." autoFocus
-                className="flex-1 rounded-2xl px-4 py-3 text-sm focus:outline-none"
-                style={{ background: SURFACE, boxShadow: NM_INSET, border: 'none', color: '#1f2937' }} />
-              <button onClick={handleCustom}
-                className="px-5 py-3 rounded-2xl text-white text-sm font-semibold"
-                style={{ background: BLACK, boxShadow: BLK_SM }}>
-                Add
-              </button>
-            </div>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              value={customVal}
+              onChange={(e) => setCustomVal(e.target.value)}
+              placeholder="ml"
+              autoFocus
+              className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none border border-black"
+            />
+            <button
+              type="button"
+              onClick={submit}
+              className="px-5 py-3 rounded-xl text-white text-sm font-semibold"
+              style={{ background: BLACK }}
+            >
+              Add
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -376,7 +361,12 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
                 background: `linear-gradient(180deg, #555 0%, #1a1a1a 100%)`
               }} />
             {/* Add button */}
-            <button onClick={() => setOpenSlot({ label: 'Quick Add', key: null })}
+            <button
+              onClick={() => {
+                const hour = new Date().getHours();
+                const autoSlot = hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night';
+                logSlot(100, autoSlot);
+              }}
               className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center mb-3 active:scale-95 transition-transform"
               style={{ background: BLACK, boxShadow: BLK_SM }}>
               <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -425,13 +415,11 @@ Return exactly 3 insights. Each must have: title (5-8 words), description (1-2 s
 
       {/* Log Water Panel */}
       {openSlot && (
-        <LogWaterPanel
+        <WaterMlPopup
           slotLabel={openSlot.label}
           onClose={() => setOpenSlot(null)}
           onAdd={(ml) => {
-            const hour = new Date().getHours();
-            const autoSlot = openSlot.key || (hour < 11 ? 'morning' : hour < 14 ? 'lunch' : hour < 19 ? 'dinner' : 'night');
-            logSlot(ml, autoSlot);
+            logSlot(ml, openSlot.key);
             setOpenSlot(null);
           }}
         />

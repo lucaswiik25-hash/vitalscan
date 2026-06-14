@@ -1,5 +1,5 @@
 /** Thin black stroke for cards/modules app-wide */
-export const MODULE_BORDER = '1px solid rgba(0, 0, 0, 0.13)';
+export const MODULE_BORDER = '1px solid #000000';
 
 export const moduleCardShadow = '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)';
 

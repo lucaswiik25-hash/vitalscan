@@ -5,7 +5,7 @@ import { X, Sparkles, Plus, ArrowLeft, Camera, Barcode, FileText } from 'lucide-
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import FoodScanResult from '../components/scanner/FoodScanResult';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useScanJob, loadScanResult } from '@/lib/ScanJobContext';
 import BarcodeInput from '../components/scanner/BarcodeInput';
 import MealSlotPicker from '../components/shared/MealSlotPicker';
 import SuccessModal from '../components/shared/SuccessModal';
@@ -19,6 +19,7 @@ import { analyzeWithClaude, invokeLLM } from '@/lib/ai';
 export default function FoodScanner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { runBackgroundAnalysis } = useScanJob();
   const cameraInputRef = useRef(null);
   const labelInputRef = useRef(null);
   const uploadInputRef = useRef(null);
@@ -46,6 +47,11 @@ export default function FoodScanner() {
   // Handle replay from scan history
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1') {
+      const data = loadScanResult('bgScan_food');
+      if (data) setResult(data);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (urlParams.get('replay') === '1') {
       const stored = sessionStorage.getItem('replayScan');
       if (stored) {
@@ -140,25 +146,32 @@ NEVER fail.`,
 
   const analyse = async () => {
     if (!capturedFile) return;
-    setIsAnalyzing(true);
+    const file = capturedFile;
+    const notes = extraNotes.trim();
+    setShowAddSheet(false);
     setCapturedImage(null);
+    setCapturedFile(null);
+    setExtraNotes('');
 
-    try {
-    const { file_url, image_base64, image_media_type } = await prepareImageForAI(capturedFile);
+    runBackgroundAnalysis({
+      label: 'Analyzing your food…',
+      resultKey: 'bgScan_food',
+      viewPath: '/food-scanner',
+      navigateAway: () => navigate('/scanner'),
+      task: async () => {
+        const { file_url, image_base64, image_media_type } = await prepareImageForAI(file);
+        const userProfile = profile;
+        const dietMode = userProfile.diet_mode || 'standard';
+        const isAppearance = dietMode === 'appearance_mode';
+        const pre = dietPreamble(dietMode);
+        const extraContext = notes
+          ? `\n\nAdditional context from user: "${notes}". Include this in your nutritional estimate.`
+          : '';
 
-    const userProfile = profile;
-    const dietMode = userProfile.diet_mode || 'standard';
-    const isAppearance = dietMode === 'appearance_mode';
-    const pre = dietPreamble(dietMode);
-
-    const extraContext = extraNotes.trim()
-      ? `\n\nAdditional context from user: "${extraNotes.trim()}". Include this in your nutritional estimate.`
-      : '';
-
-    const r1raw = await analyzeWithClaude({
-      image_base64,
-      image_media_type,
-      prompt: `${pre}You are a professional nutritionist and food scientist. Analyze this image carefully.
+        const r1raw = await analyzeWithClaude({
+          image_base64,
+          image_media_type,
+          prompt: `${pre}You are a professional nutritionist and food scientist. Analyze this image carefully.
 
 If you can see a BARCODE on the packaging, read and return the exact barcode number digits.
 If this is a NUTRITION LABEL, extract every value precisely from the label.
@@ -167,157 +180,141 @@ If this is a FOOD PHOTO, identify the food and estimate all values accurately.
 Return JSON with: name (exact product/food name including brand), confidence ("high"/"medium"/"low"), serving_size, calories (kcal), protein (g), carbs (g), fat (g), saturated_fat (g), sugar (g), fiber (g), sodium (mg), potassium (mg), cholesterol (mg), allergens (array from: milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame), has_barcode (boolean), barcode_number (string), ingredients_text (full ingredient list if visible).
 
 NEVER fail. Always estimate from visual cues if exact values are not readable.${extraContext}`,
-      response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
-    });
-    const call1 = parseApiResponse(r1raw);
+          response_json_schema: { type: 'object', properties: { name: { type: 'string' }, confidence: { type: 'string' }, serving_size: { type: 'string' }, calories: { type: 'number' }, protein: { type: 'number' }, carbs: { type: 'number' }, fat: { type: 'number' }, saturated_fat: { type: 'number' }, sugar: { type: 'number' }, fiber: { type: 'number' }, sodium: { type: 'number' }, potassium: { type: 'number' }, cholesterol: { type: 'number' }, allergens: { type: 'array', items: { type: 'string' } }, has_barcode: { type: 'boolean' }, barcode_number: { type: 'string' }, ingredients_text: { type: 'string' } } },
+        });
+        const call1 = parseApiResponse(r1raw);
 
-    let enriched = { ...call1 };
-    if (call1.has_barcode && call1.barcode_number) {
-      try {
-        const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${call1.barcode_number}.json`);
-        const offData = await offRes.json();
-        if (offData.status === 1 && offData.product) {
-          const p = offData.product;
-          const n = p.nutriments || {};
-          enriched = {
-            ...enriched,
-            name: p.product_name || enriched.name,
-            brand: p.brands || '',
-            serving_size: p.serving_size || enriched.serving_size,
-            calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || enriched.calories),
-            protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || enriched.protein) * 10) / 10,
-            carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || enriched.carbs) * 10) / 10,
-            fat: Math.round((n['fat_serving'] || n['fat_100g'] || enriched.fat) * 10) / 10,
-            fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || enriched.fiber || 0) * 10) / 10,
-            sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || enriched.sugar || 0) * 10) / 10,
-            sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
-            allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
-            ingredients_text: p.ingredients_text || enriched.ingredients_text,
-            confidence: 'high',
-            source: 'openfoodfacts',
-          };
+        let enriched = { ...call1 };
+        if (call1.has_barcode && call1.barcode_number) {
+          try {
+            const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${call1.barcode_number}.json`);
+            const offData = await offRes.json();
+            if (offData.status === 1 && offData.product) {
+              const p = offData.product;
+              const n = p.nutriments || {};
+              enriched = {
+                ...enriched,
+                name: p.product_name || enriched.name,
+                brand: p.brands || '',
+                serving_size: p.serving_size || enriched.serving_size,
+                calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || enriched.calories),
+                protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || enriched.protein) * 10) / 10,
+                carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || enriched.carbs) * 10) / 10,
+                fat: Math.round((n['fat_serving'] || n['fat_100g'] || enriched.fat) * 10) / 10,
+                fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || enriched.fiber || 0) * 10) / 10,
+                sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || enriched.sugar || 0) * 10) / 10,
+                sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
+                allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
+                ingredients_text: p.ingredients_text || enriched.ingredients_text,
+                confidence: 'high',
+                source: 'openfoodfacts',
+              };
+            }
+          } catch (_) { }
         }
-      } catch (_) { }
-    }
 
-    const todayContext = await getTodayContext(dietMode);
-    const call2Prompt = buildCall2Prompt(dietMode, enriched, userProfile, todayContext);
+        const todayContext = await getTodayContext(dietMode);
+        const call2Prompt = buildCall2Prompt(dietMode, enriched, userProfile, todayContext);
+        const r2raw = await analyzeWithClaude({ prompt: call2Prompt, response_json_schema: call2Schema });
+        const r2result = parseApiResponse(r2raw);
 
-    const r2raw = await analyzeWithClaude({
-      prompt: call2Prompt,
-      response_json_schema: call2Schema,
+        let vitamins = [];
+        try {
+          const vitRes = await invokeLLM({
+            prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name (e.g. "Vitamin C"), amount (e.g. "15mg" or "estimated"), dv_percent (approximate % daily value as a number, 0 if unknown). NEVER fail.`,
+            response_json_schema: {
+              type: 'object',
+              properties: {
+                vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } }
+              }
+            }
+          });
+          vitamins = vitRes?.vitamins || [];
+        } catch (_) {}
+
+        const finalResult = { ...enriched, ...r2result, vitamins, image_url: file_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
+        createScanHistory({
+          type: 'food',
+          date: format(new Date(), 'yyyy-MM-dd'),
+          image_url: file_url,
+          product_name: enriched.name,
+          brand: enriched.brand || null,
+          safety_score: finalResult.health_score ? Math.round(finalResult.health_score * 10) : null,
+          result_data: finalResult,
+          verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null,
+        }).catch(() => {});
+        return finalResult;
+      },
     });
-    const r2result = parseApiResponse(r2raw);
-
-    // Vitamin extraction (parallel, non-blocking)
-    let vitamins = [];
-    try {
-      const vitRes = await invokeLLM({
-        prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name (e.g. "Vitamin C"), amount (e.g. "15mg" or "estimated"), dv_percent (approximate % daily value as a number, 0 if unknown). NEVER fail.`,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } }
-          }
-        }
-      });
-      vitamins = vitRes?.vitamins || [];
-    } catch (_) {}
-
-    const finalResult = { ...enriched, ...r2result, vitamins, image_url: file_url, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
-    setResult(finalResult);
-    createScanHistory({
-      type: 'food',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      image_url: file_url,
-      product_name: enriched.name,
-      brand: enriched.brand || null,
-      safety_score: finalResult.health_score ? Math.round(finalResult.health_score * 10) : null,
-      result_data: finalResult,
-      verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null,
-    }).catch(() => {});
-    setIsAnalyzing(false);
-    // Offer full-back scan for packaged products
-    if (enriched.has_barcode || enriched.ingredients_text) {
-      setFrontScanData(finalResult);
-      setShowFullBackPrompt(true);
-    }
-    } catch (err) {
-      console.error(err);
-      setIsAnalyzing(false);
-      alert(err.message || 'Food analysis failed. Check your connection and try again.');
-    }
   };
 
   const analyseBarcodeManual = async (barcode) => {
     setShowBarcodeInput(false);
-    setIsAnalyzing(true);
-    let enriched = { name: `Product ${barcode}`, barcode, has_barcode: true, barcode_number: barcode, confidence: 'medium' };
-    try {
-      try {
-        const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-        const offData = await offRes.json();
-        if (offData.status === 1 && offData.product) {
-          const p = offData.product;
-          const n = p.nutriments || {};
-          enriched = {
-            name: p.product_name || enriched.name,
-            brand: p.brands || '',
-            serving_size: p.serving_size || '100g',
-            calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || 0),
-            protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || 0) * 10) / 10,
-            carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || 0) * 10) / 10,
-            fat: Math.round((n['fat_serving'] || n['fat_100g'] || 0) * 10) / 10,
-            fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || 0) * 10) / 10,
-            sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || 0) * 10) / 10,
-            sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
-            allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
-            ingredients_text: p.ingredients_text || '',
-            confidence: 'high',
-            source: 'openfoodfacts',
-            has_barcode: true,
-            barcode_number: barcode,
-          };
+    runBackgroundAnalysis({
+      label: 'Analyzing product…',
+      resultKey: 'bgScan_food',
+      viewPath: '/food-scanner',
+      navigateAway: () => navigate('/scanner'),
+      task: async () => {
+        let enriched = { name: `Product ${barcode}`, barcode, has_barcode: true, barcode_number: barcode, confidence: 'medium' };
+        try {
+          const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+          const offData = await offRes.json();
+          if (offData.status === 1 && offData.product) {
+            const p = offData.product;
+            const n = p.nutriments || {};
+            enriched = {
+              name: p.product_name || enriched.name,
+              brand: p.brands || '',
+              serving_size: p.serving_size || '100g',
+              calories: Math.round(n['energy-kcal_serving'] || n['energy-kcal_100g'] || 0),
+              protein: Math.round((n['proteins_serving'] || n['proteins_100g'] || 0) * 10) / 10,
+              carbs: Math.round((n['carbohydrates_serving'] || n['carbohydrates_100g'] || 0) * 10) / 10,
+              fat: Math.round((n['fat_serving'] || n['fat_100g'] || 0) * 10) / 10,
+              fiber: Math.round((n['fiber_serving'] || n['fiber_100g'] || 0) * 10) / 10,
+              sugar: Math.round((n['sugars_serving'] || n['sugars_100g'] || 0) * 10) / 10,
+              sodium: Math.round((n['sodium_serving'] || n['sodium_100g'] || 0) * 1000),
+              allergens: (p.allergens_tags || []).map(a => a.replace('en:', '')),
+              ingredients_text: p.ingredients_text || '',
+              confidence: 'high',
+              source: 'openfoodfacts',
+              has_barcode: true,
+              barcode_number: barcode,
+            };
+          }
+        } catch (_) {}
+        const userProfile = profile;
+        const dietMode = userProfile.diet_mode || 'standard';
+        const isAppearance = dietMode === 'appearance_mode';
+        const todayCtx = await getTodayContext(dietMode);
+        const r2braw = await analyzeWithClaude({
+          prompt: buildCall2Prompt(dietMode, enriched, userProfile, todayCtx),
+          response_json_schema: call2Schema,
+        });
+        let vitaminsB = [];
+        try {
+          const vitResB = await invokeLLM({
+            prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name, amount (e.g. "15mg"), dv_percent (% daily value as number). NEVER fail.`,
+            response_json_schema: { type: 'object', properties: { vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } } } }
+          });
+          vitaminsB = vitResB?.vitamins || [];
+        } catch (_) {}
+        const analysis = parseApiResponse(r2braw);
+        if (!analysis.diet_compatibility && !analysis.appearance_impact && enriched.name?.startsWith('Product ')) {
+          throw new Error('Product not found in barcode database. Try scanning the nutrition label instead.');
         }
-      } catch (_) {}
-    const userProfile = profile;
-    const dietMode = userProfile.diet_mode || 'standard';
-    const isAppearance = dietMode === 'appearance_mode';
-    const todayCtx = await getTodayContext(dietMode);
-    const r2braw = await analyzeWithClaude({
-      prompt: buildCall2Prompt(dietMode, enriched, userProfile, todayCtx),
-      response_json_schema: call2Schema,
+        const finalResult = { ...enriched, ...analysis, vitamins: vitaminsB, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
+        createScanHistory({
+          type: 'food',
+          date: format(new Date(), 'yyyy-MM-dd'),
+          product_name: enriched.name,
+          brand: enriched.brand || null,
+          result_data: finalResult,
+          verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null,
+        }).catch(() => {});
+        return finalResult;
+      },
     });
-    let vitaminsB = [];
-    try {
-      const vitResB = await invokeLLM({
-        prompt: `List the key vitamins and minerals found in: "${enriched.name}". Return up to 8 most notable ones. For each: name, amount (e.g. "15mg"), dv_percent (% daily value as number). NEVER fail.`,
-        response_json_schema: { type: 'object', properties: { vitamins: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'string' }, dv_percent: { type: 'number' } } } } } }
-      });
-      vitaminsB = vitResB?.vitamins || [];
-    } catch (_) {}
-    const analysis = parseApiResponse(r2braw);
-    if (!analysis.diet_compatibility && !analysis.appearance_impact && enriched.name?.startsWith('Product ')) {
-      setIsAnalyzing(false);
-      alert('Product not found in barcode database. Try scanning the nutrition label instead.');
-      return;
-    }
-    const finalResult = { ...enriched, ...analysis, vitamins: vitaminsB, step: 2, is_appearance_mode: isAppearance, diet_mode: dietMode };
-    setResult(finalResult);
-    createScanHistory({
-      type: 'food',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      product_name: enriched.name,
-      brand: enriched.brand || null,
-      result_data: finalResult,
-      verdict: finalResult.diet_compatibility || finalResult.appearance_impact || null,
-    }).catch(() => {});
-    setIsAnalyzing(false);
-    } catch (err) {
-      console.error(err);
-      setIsAnalyzing(false);
-      alert(err.message || 'Barcode analysis failed. Please try again.');
-    }
   };
 
   const classifyMealType = async (foodName, timeStr) => {
@@ -416,7 +413,7 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
   };
 
   // "Anything to add" popup — shown right after photo is taken, before analyzing
-  if (showAddSheet && capturedFile && !isAnalyzing) {
+  if (showAddSheet && capturedFile) {
     return (
       <div className="fixed inset-0 bg-black/60 flex flex-col justify-end z-50">
         <motion.div
@@ -450,11 +447,6 @@ NEVER fail. Always estimate from visual cues if exact values are not readable.${
         </motion.div>
       </div>
     );
-  }
-
-  // Analyzing screen
-  if (isAnalyzing) {
-    return <AnalyzingScreen type="food" message="Analysing your food..." onCancel={() => { setIsAnalyzing(false); setCapturedFile(null); setCapturedImage(null); navigate('/scanner'); }} />;
   }
 
   // Result screen

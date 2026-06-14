@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import AnalyzingScreen from '../components/scanner/AnalyzingScreen';
+import { useScanJob, loadScanResult } from '@/lib/ScanJobContext';
 import SkincareVerdictPage from '../components/scanner/SkincareVerdictPage';
 import SkincareMiniOnboarding from '../components/onboarding/SkincareMiniOnboarding';
 import { parseApiResponse } from '../lib/parseApiResponse';
@@ -55,6 +55,7 @@ const safetyColor = (r) => {
 export default function SkincareScanner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { runBackgroundAnalysis } = useScanJob();
   const cam1Ref = useRef(null);
   const up1Ref = useRef(null);
   const cam2Ref = useRef(null);
@@ -142,8 +143,6 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
   };
 
   const analyseStep2WithFile = async (file) => {
-    setIsAnalyzing(true);
-    setAnalyzingMsg('Analyzing ingredients & safety...');
     const skinType = profile.skin_type;
     const skinConcerns = (profile.skin_concerns || []).join(', ');
     const skinPersonalisation = skinType
@@ -151,12 +150,18 @@ Return JSON with: brand (exact), product_name (exact), product_type (e.g. "moist
 Evaluate this product specifically for ${skinType} skin. If the product is formulated for a different skin type, state this clearly as the FIRST LINE of the verdict with a warning.
 If it contains ingredients known to worsen ${skinConcerns || 'the user\'s skin concerns'}, flag each one explicitly in the verdict_reason.`
       : 'No skin type data available — provide general analysis.';
+    const step1Snapshot = step1Data;
 
-    try {
-      const { file_url } = await uploadFile({ file });
-      const rraw = await analyzeWithClaude({
-        image_url: file_url,
-        prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze the INGREDIENT LIST of "${step1Data?.brand} ${step1Data?.product_name}" (${step1Data?.product_type || 'skincare product'}).
+    runBackgroundAnalysis({
+      label: 'Analyzing skincare product…',
+      resultKey: 'bgScan_skincare',
+      viewPath: '/skincare-scanner',
+      navigateAway: () => navigate('/scanner'),
+      task: async () => {
+        const { file_url } = await uploadFile({ file });
+        const rraw = await analyzeWithClaude({
+          image_url: file_url,
+          prompt: `You are a cosmetic dermatologist and ingredient toxicologist. Analyze the INGREDIENT LIST of "${step1Snapshot?.brand} ${step1Snapshot?.product_name}" (${step1Snapshot?.product_type || 'skincare product'}).
 
 ${skinPersonalisation}
 
@@ -169,45 +174,48 @@ SAFETY: safety_score (1-100), verdict ("recommended"/"use with caution"/"avoid")
 USAGE: routine_step, application_method (how much and how to apply), frequency, apply_after, do_not_combine, results_timeline, routine_steps (4-5 numbered steps like "1. Cleanse: Start with a clean face").
 
 NEVER fail. Always return at least 3 ingredients if any are visible.`,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            ingredients: { type: 'array', items: { type: 'object' } },
-            safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' },
-            skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' },
-            pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' },
-            top_beneficial: { type: 'array', items: { type: 'string' } },
-            top_concerning: { type: 'array', items: { type: 'string' } },
-            routine_step: { type: 'string' }, application_method: { type: 'string' },
-            frequency: { type: 'string' }, apply_after: { type: 'string' },
-            do_not_combine: { type: 'string' }, results_timeline: { type: 'string' },
-            routine_steps: { type: 'array', items: { type: 'string' } },
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              ingredients: { type: 'array', items: { type: 'object' } },
+              safety_score: { type: 'number' }, verdict: { type: 'string' }, verdict_reason: { type: 'string' },
+              skin_type_suitability: { type: 'string' }, eye_area_safe: { type: 'boolean' }, pregnancy_safe: { type: 'boolean' },
+              pregnancy_note: { type: 'string' }, long_term_summary: { type: 'string' },
+              top_beneficial: { type: 'array', items: { type: 'string' } },
+              top_concerning: { type: 'array', items: { type: 'string' } },
+              routine_step: { type: 'string' }, application_method: { type: 'string' },
+              frequency: { type: 'string' }, apply_after: { type: 'string' },
+              do_not_combine: { type: 'string' }, results_timeline: { type: 'string' },
+              routine_steps: { type: 'array', items: { type: 'string' } },
+            },
           },
-        },
-      });
-      const analysis = parseApiResponse(rraw);
-      const combined = { ...step1Data, ...analysis, ingredients: analysis.ingredients || [], label_image_url: file_url, _loadingDetails: false };
-      setResult(combined);
-      setIsAnalyzing(false);
-      createScanHistory({
-        type: 'skincare',
-        date: new Date().toISOString().split('T')[0],
-        image_url: step1Data?.image_url || null,
-        product_name: combined.product_name,
-        brand: combined.brand || null,
-        safety_score: combined.safety_score || null,
-        verdict: combined.verdict || null,
-        result_data: combined,
-      }).catch(() => {});
-    } catch (err) {
-      alert('Analysis failed: ' + (err?.message || 'Unknown error'));
-      setIsAnalyzing(false);
-    }
+        });
+        const analysis = parseApiResponse(rraw);
+        const combined = { ...step1Snapshot, ...analysis, ingredients: analysis.ingredients || [], label_image_url: file_url, _loadingDetails: false };
+        createScanHistory({
+          type: 'skincare',
+          date: new Date().toISOString().split('T')[0],
+          image_url: step1Snapshot?.image_url || null,
+          product_name: combined.product_name,
+          brand: combined.brand || null,
+          safety_score: combined.safety_score || null,
+          verdict: combined.verdict || null,
+          result_data: combined,
+        }).catch(() => {});
+        return combined;
+      },
+    });
+    setS2File(null);
   };
 
   // Handle replay from scan history
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1') {
+      const data = loadScanResult('bgScan_skincare');
+      if (data) setResult(data);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (urlParams.get('replay') === '1') {
       const stored = sessionStorage.getItem('replayScan');
       if (stored) {
@@ -225,8 +233,6 @@ NEVER fail. Always return at least 3 ingredients if any are visible.`,
     setResult(null); setStep1Data(null); setStep(1);
     setS1File(null); setS2File(null);
   };
-
-  if (isAnalyzing) return <AnalyzingScreen type="skincare" message={analyzingMsg} onCancel={() => { setIsAnalyzing(false); setS1File(null); setS2File(null); navigate('/scanner'); }} />;
 
   if (showSkinOnboarding) return (
     <AnimatePresence>
@@ -275,10 +281,10 @@ NEVER fail. Always return at least 3 ingredients if any are visible.`,
   }
 
   // ─── Step 1: landing ───────────────────────────────────────────────────────
-  return <SkincareLanding userName={userName} cam1Ref={cam1Ref} up1Ref={up1Ref} onS1File={handleS1File} onBack={() => navigate(-1)} />;
+  return <SkincareLanding userName={userName} cam1Ref={cam1Ref} up1Ref={up1Ref} onS1File={handleS1File} onBack={() => navigate(-1)} isLoading={isAnalyzing} loadingMessage={analyzingMsg} />;
 }
 
-function SkincareLanding({ userName, cam1Ref, up1Ref, onS1File, onBack }) {
+function SkincareLanding({ userName, cam1Ref, up1Ref, onS1File, onBack, isLoading, loadingMessage }) {
   const lines = [
     `Hi ${userName}.`,
     `Here you can [Scan Product] by photographing the front of the product.`,
@@ -317,6 +323,9 @@ function SkincareLanding({ userName, cam1Ref, up1Ref, onS1File, onBack }) {
         <ArrowLeft className="w-5 h-5 text-gray-900" />
       </button>
       <div className="space-y-6">
+        {isLoading && (
+          <p className="text-sm text-gray-500 font-medium">{loadingMessage || 'Identifying product…'}</p>
+        )}
         {lines.map((_, idx) => renderLine(displayed[idx] || '', idx))}
       </div>
     </div>

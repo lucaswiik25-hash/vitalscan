@@ -294,22 +294,6 @@ export default function ExerciseHeroModule({
       <div className="shadow-sm" style={{ background: SURFACE, borderRadius: 24, padding: 24 }}>
         <div className="flex items-center justify-between mb-2">
           <h2 style={{ fontSize: 17, fontWeight: 700, color: PRIMARY }}>Calories Burned</h2>
-          <button
-            type="button"
-            onClick={() => setShowEditGoal(true)}
-            className="press-scale"
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: SECONDARY,
-              background: SURFACE_TERTIARY,
-              borderRadius: 12,
-              padding: '8px 16px',
-              border: 'none',
-            }}
-          >
-            Edit
-          </button>
         </div>
 
         <div className="flex flex-col items-center">

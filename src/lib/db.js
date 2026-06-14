@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { fileToBase64 } from './imageUtils';
+import { isDemoMode } from './demoMode';
+import * as guestDb from './guestDb';
 
 async function getUserId() {
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -28,6 +30,7 @@ function applySortAndLimit(query, { sort = '-created_at', limit } = {}) {
 // ── Profiles ──────────────────────────────────────────────────────────────────
 
 export async function getProfile() {
+  if (isDemoMode) return guestDb.getProfile();
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('profiles')
@@ -40,11 +43,13 @@ export async function getProfile() {
 
 /** Legacy compat — returns 0 or 1 profile in an array. */
 export async function getProfileList() {
+  if (isDemoMode) return guestDb.getProfileList();
   const profile = await getProfile();
   return profile?.id ? [profile] : [];
 }
 
 export async function upsertProfile(updates) {
+  if (isDemoMode) return guestDb.upsertProfile(updates);
   const userId = await getUserId();
   const existing = await getProfile();
 
@@ -70,6 +75,7 @@ export async function upsertProfile(updates) {
 }
 
 export async function deleteProfile(id) {
+  if (isDemoMode) return guestDb.deleteProfile(id);
   const userId = await getUserId();
   const { error } = await supabase
     .from('profiles')
@@ -82,6 +88,7 @@ export async function deleteProfile(id) {
 // ── Food logs ─────────────────────────────────────────────────────────────────
 
 export async function listFoodLogs(filters = {}, options = {}) {
+  if (isDemoMode) return guestDb.listFoodLogs(filters, options);
   const userId = await getUserId();
   let query = supabase.from('food_logs').select('*').eq('user_id', userId);
   query = applyFilters(query, filters);
@@ -92,6 +99,7 @@ export async function listFoodLogs(filters = {}, options = {}) {
 }
 
 export async function createFoodLog(record) {
+  if (isDemoMode) return guestDb.createFoodLog(record);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('food_logs')
@@ -103,6 +111,7 @@ export async function createFoodLog(record) {
 }
 
 export async function updateFoodLog(id, updates) {
+  if (isDemoMode) return guestDb.updateFoodLog(id, updates);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('food_logs')
@@ -116,6 +125,7 @@ export async function updateFoodLog(id, updates) {
 }
 
 export async function deleteFoodLog(id) {
+  if (isDemoMode) return guestDb.deleteFoodLog(id);
   const userId = await getUserId();
   const { error } = await supabase
     .from('food_logs')
@@ -128,6 +138,7 @@ export async function deleteFoodLog(id) {
 // ── Hydration logs ────────────────────────────────────────────────────────────
 
 export async function listHydrationLogs(filters = {}, options = {}) {
+  if (isDemoMode) return guestDb.listHydrationLogs(filters, options);
   const userId = await getUserId();
   let query = supabase.from('hydration_logs').select('*').eq('user_id', userId);
   query = applyFilters(query, filters);
@@ -138,6 +149,7 @@ export async function listHydrationLogs(filters = {}, options = {}) {
 }
 
 export async function createHydrationLog(record) {
+  if (isDemoMode) return guestDb.createHydrationLog(record);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('hydration_logs')
@@ -149,6 +161,7 @@ export async function createHydrationLog(record) {
 }
 
 export async function deleteHydrationLog(id) {
+  if (isDemoMode) return guestDb.deleteHydrationLog(id);
   const userId = await getUserId();
   const { error } = await supabase
     .from('hydration_logs')
@@ -161,6 +174,7 @@ export async function deleteHydrationLog(id) {
 // ── Sleep logs ────────────────────────────────────────────────────────────────
 
 export async function listSleepLogs(filters = {}, options = {}) {
+  if (isDemoMode) return guestDb.listSleepLogs(filters, options);
   const userId = await getUserId();
   let query = supabase.from('sleep_logs').select('*').eq('user_id', userId);
   query = applyFilters(query, filters);
@@ -171,6 +185,7 @@ export async function listSleepLogs(filters = {}, options = {}) {
 }
 
 export async function createSleepLog(record) {
+  if (isDemoMode) return guestDb.createSleepLog(record);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('sleep_logs')
@@ -182,6 +197,7 @@ export async function createSleepLog(record) {
 }
 
 export async function updateSleepLog(id, updates) {
+  if (isDemoMode) return guestDb.updateSleepLog(id, updates);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('sleep_logs')
@@ -195,6 +211,7 @@ export async function updateSleepLog(id, updates) {
 }
 
 export async function deleteSleepLog(id) {
+  if (isDemoMode) return guestDb.deleteSleepLog(id);
   const userId = await getUserId();
   const { error } = await supabase
     .from('sleep_logs')
@@ -207,6 +224,7 @@ export async function deleteSleepLog(id) {
 // ── Exercise logs ─────────────────────────────────────────────────────────────
 
 export async function listExerciseLogs(filters = {}, options = {}) {
+  if (isDemoMode) return guestDb.listExerciseLogs(filters, options);
   const userId = await getUserId();
   let query = supabase.from('exercise_logs').select('*').eq('user_id', userId);
   query = applyFilters(query, filters);
@@ -217,6 +235,7 @@ export async function listExerciseLogs(filters = {}, options = {}) {
 }
 
 export async function createExerciseLog(record) {
+  if (isDemoMode) return guestDb.createExerciseLog(record);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('exercise_logs')
@@ -228,6 +247,7 @@ export async function createExerciseLog(record) {
 }
 
 export async function updateExerciseLog(id, updates) {
+  if (isDemoMode) return guestDb.updateExerciseLog(id, updates);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('exercise_logs')
@@ -241,6 +261,7 @@ export async function updateExerciseLog(id, updates) {
 }
 
 export async function deleteExerciseLog(id) {
+  if (isDemoMode) return guestDb.deleteExerciseLog(id);
   const userId = await getUserId();
   const { error } = await supabase
     .from('exercise_logs')
@@ -253,6 +274,7 @@ export async function deleteExerciseLog(id) {
 // ── Supplements ───────────────────────────────────────────────────────────────
 
 export async function listSupplements(filters = {}, options = {}) {
+  if (isDemoMode) return guestDb.listSupplements(filters, options);
   const userId = await getUserId();
   let query = supabase.from('supplements').select('*').eq('user_id', userId);
   query = applyFilters(query, filters);
@@ -263,6 +285,7 @@ export async function listSupplements(filters = {}, options = {}) {
 }
 
 export async function createSupplement(record) {
+  if (isDemoMode) return guestDb.createSupplement(record);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('supplements')
@@ -274,6 +297,7 @@ export async function createSupplement(record) {
 }
 
 export async function updateSupplement(id, updates) {
+  if (isDemoMode) return guestDb.updateSupplement(id, updates);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('supplements')
@@ -287,6 +311,7 @@ export async function updateSupplement(id, updates) {
 }
 
 export async function deleteSupplement(id) {
+  if (isDemoMode) return guestDb.deleteSupplement(id);
   const userId = await getUserId();
   const { error } = await supabase
     .from('supplements')
@@ -299,6 +324,7 @@ export async function deleteSupplement(id) {
 // ── Scan history ──────────────────────────────────────────────────────────────
 
 export async function listScanHistory(filters = {}, options = {}) {
+  if (isDemoMode) return guestDb.listScanHistory(filters, options);
   const userId = await getUserId();
   let query = supabase.from('scan_history').select('*').eq('user_id', userId);
   query = applyFilters(query, filters);
@@ -309,6 +335,7 @@ export async function listScanHistory(filters = {}, options = {}) {
 }
 
 export async function createScanHistory(record) {
+  if (isDemoMode) return guestDb.createScanHistory(record);
   const userId = await getUserId();
   const { data, error } = await supabase
     .from('scan_history')
@@ -320,6 +347,7 @@ export async function createScanHistory(record) {
 }
 
 export async function deleteScanHistory(id) {
+  if (isDemoMode) return guestDb.deleteScanHistory(id);
   const userId = await getUserId();
   const { error } = await supabase
     .from('scan_history')
@@ -332,6 +360,7 @@ export async function deleteScanHistory(id) {
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 export async function uploadFile(fileOrOpts, bucket = 'uploads') {
+  if (isDemoMode) return guestDb.uploadFile(fileOrOpts);
   const file = fileOrOpts?.file ?? fileOrOpts;
   const userId = await getUserId();
   const ext = file.name?.split('.').pop() || 'jpg';
@@ -347,6 +376,7 @@ export async function uploadFile(fileOrOpts, bucket = 'uploads') {
 
 /** Prepare a file for Claude — always sends base64; uploads to storage when possible. */
 export async function prepareImageForAI(file) {
+  if (isDemoMode) return guestDb.prepareImageForAI(file);
   const { base64, mediaType, dataUrl } = await fileToBase64(file);
   let file_url = dataUrl;
 

@@ -9,6 +9,7 @@ import { calculateTargets } from '../lib/calculateTargets';
 import BodyProfileSection from '../components/settings/BodyProfileSection';
 import { upsertProfile } from '@/lib/db';
 import { signOut } from '@/lib/auth';
+import { isDemoMode } from '@/lib/demoMode';
 
 const DIET_OPTIONS = [
   { id: 'none', label: 'No restrictions' },
@@ -277,28 +278,34 @@ export default function Settings() {
         }} pageVisible={pageVisible} />
 
         {/* Redo Onboarding */}
+        {!isDemoMode && (
         <button {...animCard(5, pageVisible)}
           onClick={() => navigate('/onboarding')}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <RefreshCw className="w-4 h-4 text-foreground" />
           <span className="text-sm font-semibold text-foreground">Redo Onboarding</span>
         </button>
+        )}
 
         {/* Logout */}
+        {!isDemoMode && (
         <button {...animCard(6, pageVisible)}
           onClick={() => signOut()}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <LogOut className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Log Out</span>
         </button>
+        )}
 
         {/* Delete Account */}
+        {!isDemoMode && (
         <button {...animCard(7, pageVisible)}
           onClick={() => setShowDeleteConfirm(true)}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <Trash2 className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Delete Account</span>
         </button>
+        )}
       </div>
     </div>
   );

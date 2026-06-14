@@ -18,8 +18,11 @@ export function getAuthErrorMessage(error) {
   if (msg.includes('password should be at least')) {
     return 'Password must be at least 6 characters.';
   }
-  if (msg.includes('unable to validate email')) {
-    return 'Please enter a valid email address.';
+  if (msg.includes('unable to validate email') || msg.includes('email_address_invalid')) {
+    return 'Please enter a valid email address (test addresses like @example.com are not allowed).';
+  }
+  if (msg.includes('email rate limit')) {
+    return 'Too many sign-up attempts. Please wait a few minutes and try again.';
   }
   if (msg.includes('signup is disabled')) {
     return 'New sign ups are currently disabled.';

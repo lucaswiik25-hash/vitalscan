@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import { listFoodLogs, listHydrationLogs } from '@/lib/db';
@@ -15,7 +14,6 @@ import SupplementReminderBanner from '../components/home/SupplementReminderBanne
 import WeeklyReportModal, { useWeeklyReportGate } from '../components/home/WeeklyReportModal';
 
 export default function Home() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDay, setSelectedDay] = useState(null);
@@ -44,13 +42,6 @@ export default function Home() {
     }
     setPullY(0);
   };
-
-  useEffect(() => {
-    if (profileLoading) return;
-    if (!profile?.id || !profile.onboarding_complete) {
-      navigate('/onboarding');
-    }
-  }, [profileLoading, profile?.id, profile?.onboarding_complete, navigate]);
 
   useEffect(() => {
     if (!profile?.id || profileLoading) return;

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isDemoMode } from './demoMode';
 
 export async function getSession() {
   if (!supabase) return null;
@@ -8,6 +9,7 @@ export async function getSession() {
 }
 
 export async function signOut() {
+  if (isDemoMode) return { error: null };
   if (!supabase) return { error: new Error('Supabase is not configured') };
   return supabase.auth.signOut();
 }

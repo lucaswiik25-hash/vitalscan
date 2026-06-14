@@ -40,6 +40,19 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Without them, the production build cannot connect to Supabase and the app will show a configuration error instead of loading.
 
+**Supabase auth setup**
+
+In the [Supabase dashboard](https://supabase.com/dashboard) → Authentication → URL Configuration, add these **Redirect URLs**:
+
+```
+http://localhost:5173/login
+https://your-production-domain.com/login
+```
+
+For Google sign-in: Authentication → Providers → Google (enable it and add your Google OAuth client ID/secret).
+
+Email sign-up sends a confirmation email by default. Either confirm via the email link, or disable **Confirm email** under Authentication → Providers → Email for easier local testing.
+
 **Publish your changes**
 
 Open [Base44.com](http://Base44.com) and click on Publish.

@@ -1,11 +1,13 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { AuthProvider } from '@/lib/AuthContext';
 import { getSupabaseConfigError, isSupabaseConfigured } from '@/lib/supabase';
+import { isDemoMode } from '@/lib/demoMode';
 import ConfigError from '@/components/ConfigError';
+import { RequireAuth, RedirectIfAuth, RequireOnboardingComplete } from '@/components/AuthRoutes';
 import AppShell from './components/layout/AppShell';
 import Auth from './pages/Auth';
 import Home from './pages/Home';
@@ -27,29 +29,50 @@ import ExerciseFormScanner from './pages/ExerciseFormScanner';
 import SleepTracker from './pages/SleepTracker';
 import Tips from './pages/Tips.jsx';
 
-const LoadingScreen = () => (
-  <div className="fixed inset-0 flex items-center justify-center">
-    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
-  </div>
-);
-
-function RequireAuth() {
-  const { user, loading } = useAuth();
-
-  if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/login" replace />;
-  return <Outlet />;
+function AppShellRoutes() {
+  return (
+    <Route element={<AppShell />}>
+      <Route path="/" element={<Home />} />
+      <Route path="/scanner" element={<ScannerHub />} />
+      <Route path="/water" element={<WaterTracker />} />
+      <Route path="/supplements" element={<SupplementTracker />} />
+      <Route path="/meal-planner" element={<MealPlanner />} />
+      <Route path="/shopping" element={<ShoppingList />} />
+      <Route path="/health-risk" element={<HealthRisk />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/exercise" element={<Exercise />} />
+      <Route path="/sleep" element={<SleepTracker />} />
+      <Route path="/tips" element={<Tips />} />
+    </Route>
+  );
 }
 
-function RedirectIfAuth() {
-  const { user, loading } = useAuth();
-
-  if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to="/" replace />;
-  return <Outlet />;
+function ScannerRoutes() {
+  return (
+    <>
+      <Route path="/food-scanner" element={<FoodScanner />} />
+      <Route path="/skincare-scanner" element={<SkincareScanner />} />
+      <Route path="/supplement-scanner" element={<SupplementScanner />} />
+      <Route path="/face-scanner" element={<FaceScanner />} />
+      <Route path="/body-scanner" element={<BodyScanner />} />
+      <Route path="/exercise-form-scanner" element={<ExerciseFormScanner />} />
+    </>
+  );
 }
 
-function AppRoutes() {
+function DemoRoutes() {
+  return (
+    <Routes>
+      {AppShellRoutes()}
+      {ScannerRoutes()}
+      <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route path="/onboarding" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<PageNotFound />} />
+    </Routes>
+  );
+}
+
+function AuthRoutes() {
   return (
     <Routes>
       <Route element={<RedirectIfAuth />}>
@@ -57,26 +80,11 @@ function AppRoutes() {
       </Route>
 
       <Route element={<RequireAuth />}>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/scanner" element={<ScannerHub />} />
-          <Route path="/water" element={<WaterTracker />} />
-          <Route path="/supplements" element={<SupplementTracker />} />
-          <Route path="/meal-planner" element={<MealPlanner />} />
-          <Route path="/shopping" element={<ShoppingList />} />
-          <Route path="/health-risk" element={<HealthRisk />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/exercise" element={<Exercise />} />
-          <Route path="/sleep" element={<SleepTracker />} />
-          <Route path="/tips" element={<Tips />} />
-        </Route>
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/food-scanner" element={<FoodScanner />} />
-        <Route path="/skincare-scanner" element={<SkincareScanner />} />
-        <Route path="/supplement-scanner" element={<SupplementScanner />} />
-        <Route path="/face-scanner" element={<FaceScanner />} />
-        <Route path="/body-scanner" element={<BodyScanner />} />
-        <Route path="/exercise-form-scanner" element={<ExerciseFormScanner />} />
+        <Route element={<RequireOnboardingComplete />}>
+          {AppShellRoutes()}
+          {ScannerRoutes()}
+        </Route>
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
@@ -84,8 +92,12 @@ function AppRoutes() {
   );
 }
 
+function AppRoutes() {
+  return isDemoMode ? <DemoRoutes /> : <AuthRoutes />;
+}
+
 function App() {
-  if (!isSupabaseConfigured) {
+  if (!isDemoMode && !isSupabaseConfigured) {
     return <ConfigError message={getSupabaseConfigError()} />;
   }
 

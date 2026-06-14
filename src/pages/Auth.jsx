@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { getAuthRedirectUrl, isAuthCallback } from '@/lib/authCallback';
 import { getAuthErrorMessage } from '@/lib/authErrors';
+import { getPostAuthPath } from '@/lib/postAuth';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -12,6 +14,12 @@ export default function Auth() {
   const [info, setInfo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const finishingOAuth = isAuthCallback();
+
+  useEffect(() => {
+    if (!finishingOAuth) return;
+    setGoogleLoading(true);
+  }, [finishingOAuth]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,21 +38,26 @@ export default function Auth() {
           return;
         }
         if (data.session) {
-          navigate('/', { replace: true });
+          const path = await getPostAuthPath();
+          navigate(path, { replace: true });
         }
       } else {
         const { data, error: authError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          options: {
+            emailRedirectTo: getAuthRedirectUrl(),
+          },
         });
         if (authError) {
           setError(getAuthErrorMessage(authError));
           return;
         }
         if (data.session) {
-          navigate('/', { replace: true });
+          const path = await getPostAuthPath();
+          navigate(path, { replace: true });
         } else {
-          setInfo('Account created! Check your email to confirm your account, then sign in.');
+          setInfo('Account created! Check your email and click the confirmation link — you\'ll be taken to onboarding after confirming.');
           setMode('signin');
         }
       }
@@ -63,7 +76,7 @@ export default function Auth() {
     try {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: getAuthRedirectUrl() },
       });
       if (authError) {
         setError(getAuthErrorMessage(authError));
@@ -82,13 +95,23 @@ export default function Auth() {
       <div className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-foreground mb-1">VitalScan</h1>
         <p className="text-sm text-muted-foreground mb-8">
-          {mode === 'signin' ? 'Sign in to continue' : 'Create your account'}
+          {finishingOAuth
+            ? 'Finishing sign in…'
+            : mode === 'signin'
+              ? 'Sign in to continue'
+              : 'Create your account'}
         </p>
+
+        {finishingOAuth && (
+          <div className="flex justify-center mb-6">
+            <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+          </div>
+        )}
 
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          disabled={busy}
+          disabled={busy || finishingOAuth}
           className="w-full h-12 rounded-2xl border border-border bg-white text-sm font-semibold text-foreground flex items-center justify-center gap-3 disabled:opacity-60 mb-4"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -106,7 +129,7 @@ export default function Auth() {
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className={`space-y-4 ${finishingOAuth ? 'pointer-events-none opacity-50' : ''}`}>
           <input
             type="email"
             placeholder="Email"

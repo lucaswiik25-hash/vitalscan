@@ -362,6 +362,14 @@ NEVER fail.`,
     }
   }, []);
 
+  // Auto-trigger camera on open — skip typing screen
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1' || urlParams.get('replay') === '1') return;
+    const t = setTimeout(() => cameraRef.current?.click(), 100);
+    return () => clearTimeout(t);
+  }, []);
+
   const reset = () => { setResult(null); setCapturedFile(null); setPreviewUrl(null); setShowDetail(false); };
 
   if (result && showDetail) return <DetailPage result={result} onBack={() => setShowDetail(false)} />;
@@ -440,7 +448,26 @@ NEVER fail.`,
   }
 
   const userName = profile.name || 'there';
-  return <BodyScannerLanding userName={userName} cameraRef={cameraRef} uploadRef={uploadRef} onFile={handleFile} onBack={() => navigate('/scanner')} />;
+  return (
+    <div className="min-h-screen px-6 pt-14 pb-20">
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+      <input ref={uploadRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <button onClick={() => navigate('/scanner')} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+        <ArrowLeft className="w-5 h-5 text-gray-900" />
+      </button>
+      <div className="space-y-6">
+        <p className="text-3xl font-bold text-gray-900 leading-snug">Body Scanner</p>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          <button onClick={() => cameraRef.current?.click()} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1" style={{ verticalAlign: 'middle' }}>Photo Scan</button>{' '}
+          your full body for a complete physique analysis.
+        </p>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Or{' '}
+          <button onClick={() => uploadRef.current?.click()} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1" style={{ verticalAlign: 'middle' }}>Upload from Gallery</button>
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function BodyScannerLanding({ userName, cameraRef, uploadRef, onFile, onBack }) {

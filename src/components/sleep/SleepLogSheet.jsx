@@ -72,7 +72,7 @@ export default function SleepLogSheet({ open, onClose, onSave, saving, initialDa
         className={`st-log-overlay${visible ? ' is-active' : ''}`}
         onClick={onClose}
       />
-      <div className={`st-log-sheet${visible ? ' is-active' : ''}`}>
+      <div className={`st-log-sheet${visible ? ' is-active' : ''}${step === 1 ? ' is-fullscreen' : ''}`}>
         <div className="st-log-sheet-handle" />
         <div className="st-log-sheet-content">
           <div className="st-log-header">

@@ -28,12 +28,12 @@ export { registerScan };
 
 // ─── Scanner card gradients & icons ───────────────────────────────────────────
 const CARD_CONFIGS = {
-  food:         { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Food Scanner',        description: 'Scan any food or barcode for full nutrition info',      path: '/food-scanner' },
-  skincare:     { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Skincare Analyzer',   description: 'Analyze ingredients in any cosmetic product',           path: '/skincare-scanner' },
-  supplement:   { bg: '#ffffff', border: 'rgba(0,0,0,0.20)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Supplement Scanner',  description: 'Check quality and dosage of any supplement',           path: '/supplement-scanner' },
-  face:         { bg: '#1c1c1e', border: 'rgba(255,255,255,0.18)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Face Analyser',       description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
-  body:         { bg: '#e8e8ea', border: 'rgba(0,0,0,0.10)',       titleColor: '#1a1a1a', descColor: 'rgba(0,0,0,0.5)',       title: 'Body Analyser',       description: 'Find the areas you need to work on most',              path: '/body-scanner' },
-  exerciseform: { bg: '#1a1a1a', border: 'rgba(255,255,255,0.12)', titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.6)', title: 'Form Analyzer',       description: 'Score your exercise form and get your #1 fix cue',     path: '/exercise-form-scanner' },
+  food:         { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Food Scanner',        description: 'Scan any food or barcode for full nutrition info',      path: '/food-scanner' },
+  skincare:     { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Skincare Analyzer',   description: 'Analyze ingredients in any cosmetic product',           path: '/skincare-scanner' },
+  supplement:   { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Supplement Scanner',  description: 'Check quality and dosage of any supplement',           path: '/supplement-scanner' },
+  face:         { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Face Analyser',       description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
+  body:         { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Body Analyser',       description: 'Find the areas you need to work on most',              path: '/body-scanner' },
+  exerciseform: { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Form Analyzer',       description: 'Score your exercise form and get your #1 fix cue',     path: '/exercise-form-scanner' },
 };
 
 // ─── Food search ──────────────────────────────────────────────────────────────
@@ -190,16 +190,18 @@ function ScannerCarousel({ cardKeys }) {
                 key={key}
                 to={c.path}
                 onClick={(e) => { if (!isActive) { e.preventDefault(); setActive(i); } }}
-                className="shrink-0 rounded-[22px] overflow-hidden relative transition-all duration-300 active:scale-[0.97]"
+                className="shrink-0 overflow-hidden relative transition-all duration-300 active:scale-[0.97]"
                 style={{
                   width: CARD_W,
                   height: 320,
-                  background: c.bg,
-                  border: `1.5px solid ${c.border}`,
-                  boxShadow: isActive ? '0 8px 28px rgba(0,0,0,0.10)' : '0 2px 8px rgba(0,0,0,0.06)',
+                  background: 'rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255,255,255,0.6)',
+                  boxShadow: isActive ? '0 0 20px rgba(255,255,255,0.2), 0 8px 28px rgba(0,0,0,0.10)' : '0 0 20px rgba(255,255,255,0.1)',
                   opacity: isActive ? 1 : 0.6,
                   transform: isActive ? 'scale(1)' : 'scale(0.94)',
-                  borderRadius: 22,
+                  borderRadius: 24,
                   overflow: 'hidden',
                   transition: 'all 0.3s',
                 }}

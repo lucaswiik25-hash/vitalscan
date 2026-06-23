@@ -210,6 +210,14 @@ Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 we
     }
   }, []);
 
+  // Auto-trigger camera on open — skip typing screen
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bgScan') === '1' || urlParams.get('replay') === '1') return;
+    const t = setTimeout(() => cam1Ref.current?.click(), 100);
+    return () => clearTimeout(t);
+  }, []);
+
   const reset = () => {
     setResult(null); setStep1Data(null); setStep(1);
     setS1File(null); setS2File(null);
@@ -260,7 +268,27 @@ Also return: cycle_recommendation (e.g. "Take continuously" or "8 weeks on, 4 we
   }
 
   // ─── Step 1: landing ───────────────────────────────────────────────────────
-  return <SupplementLanding userName={userName} cam1Ref={cam1Ref} up1Ref={up1Ref} onS1File={handleS1File} onBack={() => navigate(-1)} isLoading={isAnalyzing} loadingMessage={analyzingMsg} />;
+  return (
+    <div className="min-h-screen px-6 pt-14 pb-20">
+      <input ref={cam1Ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleS1File} />
+      <input ref={up1Ref} type="file" accept="image/*" className="hidden" onChange={handleS1File} />
+      <button onClick={() => navigate(-1)} className="mb-10 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+        <ArrowLeft className="w-5 h-5 text-gray-900" />
+      </button>
+      <div className="space-y-6">
+        {isAnalyzing && <p className="text-sm text-gray-500 font-medium">{analyzingMsg || 'Identifying supplement…'}</p>}
+        <p className="text-3xl font-bold text-gray-900 leading-snug">Supplement Scanner</p>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          <button onClick={() => cam1Ref.current?.click()} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1" style={{ verticalAlign: 'middle' }}>Scan Supplement</button>{' '}
+          by photographing the front of the bottle.
+        </p>
+        <p className="text-2xl font-semibold text-gray-900 leading-relaxed">
+          Or{' '}
+          <button onClick={() => up1Ref.current?.click()} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-900 text-white text-lg font-bold active:scale-95 transition-transform mx-1" style={{ verticalAlign: 'middle' }}>Upload from Gallery</button>
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function SupplementLanding({ userName, cam1Ref, up1Ref, onS1File, onBack, isLoading, loadingMessage }) {

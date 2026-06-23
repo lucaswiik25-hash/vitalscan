@@ -22,6 +22,8 @@ import { usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
 import SleepWeeklyChart from '@/components/sleep/SleepWeeklyChart';
 import SleepLogSheet from '@/components/sleep/SleepLogSheet';
 import SleepAnalysisPage from '@/components/sleep/SleepAnalysisPage';
+import SleepCalendarModal from '@/components/sleep/SleepCalendarModal';
+import { AnimatePresence } from 'framer-motion';
 import '@/styles/sleepTracker.css';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
@@ -48,6 +50,7 @@ export default function SleepTracker() {
   const [showLogSheet, setShowLogSheet] = useState(false);
   const [saving, setSaving] = useState(false);
   const [analysisDay, setAnalysisDay] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '' });
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -288,7 +291,7 @@ Identify patterns (weekday vs weekend, quality vs duration mismatches, consisten
             <button
               type="button"
               className="st-section-action"
-              onClick={() => showToast('Full history coming soon')}
+              onClick={() => setShowCalendar(true)}
             >
               See All →
             </button>
@@ -418,6 +421,12 @@ Identify patterns (weekday vs weekend, quality vs duration mismatches, consisten
           <p className="text-sm mt-1 st-ai-loading-sub">Reviewing patterns from your logs</p>
         </div>
       )}
+
+      <AnimatePresence>
+        {showCalendar && (
+          <SleepCalendarModal sleepLogs={sleepLogs} onClose={() => setShowCalendar(false)} />
+        )}
+      </AnimatePresence>
 
       <SleepToast message={toast.message} show={toast.show} />
     </div>

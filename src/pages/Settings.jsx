@@ -7,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useUserProfile } from '../hooks/useUserProfile';
 import { calculateTargets } from '../lib/calculateTargets';
 import BodyProfileSection from '../components/settings/BodyProfileSection';
-import { upsertProfile } from '@/lib/db';
-import { signOut } from '@/lib/auth';
-import { isDemoMode } from '@/lib/demoMode';
+import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 
 const DIET_OPTIONS = [
   { id: 'none', label: 'No restrictions' },
@@ -56,6 +55,7 @@ export default function Settings() {
   const [togglePress, setTogglePress] = useState(false);
 
   const { profile } = useUserProfile();
+  const { logout } = useAuth();
   const pageVisible = usePageVisible();
 
   const startEdit = () => {
@@ -63,11 +63,19 @@ export default function Settings() {
     setEditingProfile(true);
   };
 
+  const upsert = async (updates) => {
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, updates);
+    } else {
+      await base44.entities.UserProfile.create(updates);
+    }
+    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+  };
+
   const recalculateAndSave = async (updates) => {
     const merged = { ...profile, ...updates };
     const targets = calculateTargets(merged);
-    await upsertProfile({ ...updates, ...targets });
-    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    await upsert({ ...updates, ...targets });
   };
 
   const saveEdit = async () => {
@@ -90,8 +98,7 @@ export default function Settings() {
     if (needsRecalc) {
       await recalculateAndSave({ [field]: value });
     } else {
-      await upsertProfile({ [field]: value });
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      await upsert({ [field]: value });
     }
     setSaving(false);
   };
@@ -122,7 +129,7 @@ export default function Settings() {
                 className="flex-1 h-12 rounded-2xl bg-secondary text-sm font-semibold text-foreground">
                 Cancel
               </button>
-              <button onClick={async () => { await signOut(); }}
+              <button onClick={async () => { await logout(); }}
                 className="flex-1 h-12 rounded-2xl bg-destructive text-sm font-semibold text-white">
                 Delete
               </button>
@@ -273,39 +280,33 @@ export default function Settings() {
         {/* Body Profile */}
         <BodyProfileSection profile={profile} onSave={async (updates) => {
           if (!profile.id) return;
-          await upsertProfile(updates);
+          await base44.entities.UserProfile.update(profile.id, updates);
           queryClient.invalidateQueries({ queryKey: ['userProfile'] });
         }} pageVisible={pageVisible} />
 
         {/* Redo Onboarding */}
-        {!isDemoMode && (
         <button {...animCard(5, pageVisible)}
           onClick={() => navigate('/onboarding')}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <RefreshCw className="w-4 h-4 text-foreground" />
           <span className="text-sm font-semibold text-foreground">Redo Onboarding</span>
         </button>
-        )}
 
         {/* Logout */}
-        {!isDemoMode && (
         <button {...animCard(6, pageVisible)}
-          onClick={() => signOut()}
+          onClick={() => logout()}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <LogOut className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Log Out</span>
         </button>
-        )}
 
         {/* Delete Account */}
-        {!isDemoMode && (
         <button {...animCard(7, pageVisible)}
           onClick={() => setShowDeleteConfirm(true)}
           className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
           <Trash2 className="w-4 h-4 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Delete Account</span>
         </button>
-        )}
       </div>
     </div>
   );

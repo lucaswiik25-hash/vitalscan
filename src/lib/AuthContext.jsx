@@ -1,68 +1,59 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from './supabase';
-import { isAuthCallback } from './authCallback';
-import { isDemoMode, DEMO_USER } from './demoMode';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(isDemoMode ? DEMO_USER : null);
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(isDemoMode ? false : () => isAuthCallback());
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingPublicSettings] = useState(false);
+  const [authError, setAuthError] = useState(null);
+
+  const navigateToLogin = () => {
+    base44.auth.redirectToLogin(window.location.pathname);
+  };
 
   useEffect(() => {
-    if (isDemoMode) return undefined;
-
-    let mounted = true;
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (!mounted) return;
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-      if (s && isAuthCallback()) {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      if (!mounted) return;
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (!isAuthCallback() || s) {
-        setLoading(false);
-      }
-    });
-
-    const timeout = isAuthCallback()
-      ? window.setTimeout(() => {
-          if (mounted) setLoading(false);
-        }, 10000)
-      : null;
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-      if (timeout) window.clearTimeout(timeout);
-    };
+    base44.auth.me()
+      .then((u) => {
+        setUser(u);
+        setIsLoadingAuth(false);
+      })
+      .catch((err) => {
+        setIsLoadingAuth(false);
+        const msg = err?.message || '';
+        if (msg.includes('not registered') || err?.status === 403) {
+          setAuthError({ type: 'user_not_registered' });
+        } else {
+          setAuthError({ type: 'auth_required' });
+        }
+      });
   }, []);
 
-  const signOut = async () => {
-    if (isDemoMode) return;
-    await supabase.auth.signOut();
+  const logout = async () => {
+    await base44.auth.logout('/');
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{
+      user,
+      isLoadingAuth,
+      isLoadingPublicSettings,
+      authError,
+      navigateToLogin,
+      logout,
+      loading: isLoadingAuth,
+      signOut: logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

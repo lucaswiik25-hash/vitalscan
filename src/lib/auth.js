@@ -1,20 +1,16 @@
-import { supabase } from './supabase';
-import { isDemoMode } from './demoMode';
+/**
+ * Base44 auth shim — replaces old Supabase auth.js
+ */
+import { base44 } from '@/api/base44Client';
 
 export async function getSession() {
-  if (!supabase) return null;
-  const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  return data.session;
+  return base44.auth.me().catch(() => null);
 }
 
 export async function signOut() {
-  if (isDemoMode) return { error: null };
-  if (!supabase) return { error: new Error('Supabase is not configured') };
-  return supabase.auth.signOut();
+  return base44.auth.logout('/');
 }
 
 export async function getSessionUser() {
-  const session = await getSession();
-  return session?.user ?? null;
+  return base44.auth.me().catch(() => null);
 }

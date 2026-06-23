@@ -1,27 +1,28 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/lib/AuthContext';
-import { getProfile, upsertProfile } from '@/lib/db';
+import { base44 } from '@/api/base44Client';
 
 export function useUserProfile() {
-  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ['userProfile', user?.id],
-    queryFn: getProfile,
-    enabled: !!user?.id,
+  const { data: profiles = [], isLoading } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => base44.entities.UserProfile.list(),
   });
 
+  const profile = profiles[0] || {};
+
   const updateProfile = async (updates) => {
-    const updated = await upsertProfile(updates);
-    queryClient.setQueryData(['userProfile', user?.id], updated);
+    if (profile.id) {
+      await base44.entities.UserProfile.update(profile.id, updates);
+    } else {
+      await base44.entities.UserProfile.create(updates);
+    }
     queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-    return updated;
   };
 
   return {
-    profile: profile || {},
-    loading: authLoading || isLoading,
+    profile,
+    loading: isLoading,
     updateProfile,
   };
 }

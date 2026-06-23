@@ -1,36 +1,25 @@
-import { supabase } from './supabase';
-
 /**
- * Call Claude via dev proxy (/api/ai) or Supabase edge function (production).
- * Returns { result: parsed | string }
+ * Base44 AI shim — replaces old Supabase ai.js
+ * Routes all AI calls through base44.functions.invoke('analyzeWithClaude')
  */
-export async function analyzeWithClaude({
-  prompt,
-  image_url,
-  image_base64,
-  image_media_type,
-  response_json_schema,
-}) {
-  const body = { prompt, image_url, image_base64, image_media_type, response_json_schema };
+import { base44 } from '@/api/base44Client';
+import { parseApiResponse } from './parseApiResponse';
 
-  if (import.meta.env.DEV) {
-    const res = await fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'AI request failed');
-    return data;
-  }
-
-  const { data, error } = await supabase.functions.invoke('analyze-with-claude', { body });
-  if (error) throw error;
-  return data;
+export async function analyzeWithClaude({ prompt, image_url, response_json_schema }) {
+  const rraw = await base44.functions.invoke('analyzeWithClaude', {
+    prompt,
+    image_url,
+    response_json_schema,
+  });
+  const result = parseApiResponse(rraw);
+  return { result };
 }
 
-/** Text-only LLM call — returns parsed JSON (or string) directly. */
 export async function invokeLLM(params) {
-  const { result } = await analyzeWithClaude(params);
-  return result;
+  const res = await base44.integrations.Core.InvokeLLM({
+    prompt: params.prompt,
+    response_json_schema: params.response_json_schema,
+    file_urls: params.image_url ? [params.image_url] : undefined,
+  });
+  return res;
 }

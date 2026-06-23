@@ -1,7 +1,7 @@
-/**
- * @deprecated Legacy shim — import from @/lib/db and @/lib/ai instead.
- */
-export { supabase } from '@/lib/supabase';
-export * from '@/lib/auth';
-export * from '@/lib/db';
-export * from '@/lib/ai';
+import { createClient } from '@base44/sdk';
+
+export const base44 = createClient({
+  appId: import.meta.env.VITE_BASE44_APP_ID ?? "69fd7fe9e1c61305baf8f1b9",
+});
+
+export default base44;

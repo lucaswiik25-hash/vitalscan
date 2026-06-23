@@ -5,8 +5,7 @@ import { Loader2, Sparkles, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { motion } from 'framer-motion';
-import { getProfileList, upsertProfile, deleteProfile } from '@/lib/db';
-import { invokeLLM } from '@/lib/ai';
+import { base44 } from '@/api/base44Client';
 
 const DIET_OPTIONS = [
   {
@@ -178,7 +177,7 @@ export default function Onboarding() {
     setIsAnalyzing(true);
     setStep('analyzing');
 
-    const result = await invokeLLM({
+    const result = await base44.integrations.Core.InvokeLLM({
       prompt: `Analyze the following user description and extract their profile data for a nutrition/health tracking app. The user wrote:
 
 "${text}"
@@ -222,12 +221,12 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
 
   const saveProfile = async () => {
     setIsAnalyzing(true);
-    // Delete only the current user's existing profiles before creating a new one
-    const existing = await getProfileList();
+    // Delete existing profiles before creating a new one
+    const existing = await base44.entities.UserProfile.list();
     for (const p of existing) {
-      await deleteProfile(p.id);
+      await base44.entities.UserProfile.delete(p.id);
     }
-    await upsertProfile({
+    await base44.entities.UserProfile.create({
       ...parsedProfile,
       diet_mode: selectedDiet,
       allergens: selectedAllergens,
@@ -240,6 +239,7 @@ If any info is missing, make reasonable assumptions for a healthy individual.`,
       appearance_mode: selectedDiet === 'appearance_mode',
     });
     queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    setIsAnalyzing(false);
     navigate('/');
   };
 

@@ -2,13 +2,11 @@ import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Droplets, Dumbbell, Settings, Plus, Lightbulb,
-  Pill, UtensilsCrossed, ShoppingCart, ShieldAlert, Moon
+  Pill, UtensilsCrossed, ShoppingCart, ShieldAlert
 } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/water', icon: Droplets, label: 'Hydration' },
-  { path: '/sleep', icon: Moon, label: 'Sleep' },
   { path: '/exercise', icon: Dumbbell, label: 'Exercise' },
   { path: '/supplements', icon: Pill, label: 'Supps' },
   { path: '/tips', icon: Lightbulb, label: 'Tips' },

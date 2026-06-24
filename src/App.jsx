@@ -12,7 +12,6 @@ import ScannerHub from './pages/ScannerHub';
 import FoodScanner from './pages/FoodScanner';
 import SkincareScanner from './pages/SkincareScanner';
 import SupplementScanner from './pages/SupplementScanner';
-import WaterTracker from './pages/WaterTracker';
 import SupplementTracker from './pages/SupplementTracker';
 import MealPlanner from './pages/MealPlanner';
 import ShoppingList from './pages/ShoppingList';
@@ -20,9 +19,7 @@ import HealthRisk from './pages/HealthRisk';
 import Settings from './pages/Settings';
 import FaceScanner from './pages/FaceScanner';
 import BodyScanner from './pages/BodyScanner';
-import Exercise from './pages/Exercise';
 import ExerciseFormScanner from './pages/ExerciseFormScanner';
-import SleepTracker from './pages/SleepTracker';
 import Tips from './pages/Tips.jsx';
 
 const AuthenticatedApp = () => {
@@ -50,14 +47,11 @@ const AuthenticatedApp = () => {
       <Route element={<AppShell />}>
         <Route path="/" element={<Home />} />
         <Route path="/scanner" element={<ScannerHub />} />
-        <Route path="/water" element={<WaterTracker />} />
         <Route path="/supplements" element={<SupplementTracker />} />
         <Route path="/meal-planner" element={<MealPlanner />} />
         <Route path="/shopping" element={<ShoppingList />} />
         <Route path="/health-risk" element={<HealthRisk />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/exercise" element={<Exercise />} />
-        <Route path="/sleep" element={<SleepTracker />} />
         <Route path="/tips" element={<Tips />} />
       </Route>
       <Route path="/onboarding" element={<Onboarding />} />

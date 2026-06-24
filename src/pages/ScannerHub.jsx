@@ -400,7 +400,7 @@ export default function ScannerHub() {
     : ['food', 'skincare', 'supplement', 'body', 'exerciseform'];
 
   return (
-    <div className="min-h-screen pb-20" style={pageRevealStyle(pageVisible)}>
+    <div className="min-h-screen pb-20 overflow-y-auto" style={pageRevealStyle(pageVisible)}>
       {/* Header */}
       <div {...animCard(0, pageVisible)} className="flex items-center justify-between px-5 pt-12 pb-2">
         <button onClick={() => navigate('/')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">

@@ -5,19 +5,14 @@ import { listFoodLogs } from '@/lib/db';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 // Mountain background image
-const BG_URL = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900&q=80&fit=crop';
+const BG_URL = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&q=80&fit=crop';
 
 // Half-circle gauge
-function HalfGauge({ value, max, size = 340 }) {
-  const stroke = 28;
+function HalfGauge({ value, max, size = 200 }) {
+  const stroke = 4;
   const r = (size - stroke) / 2;
-  // Half circle: arc from 180deg to 0deg (left to right across top)
   const cx = size / 2;
   const cy = size / 2;
-  const startAngle = Math.PI; // left
-  const endAngle = 0;         // right (going clockwise via bottom would be wrong, go counter-clockwise)
-  // We want the arc going from left, curving UP over the top, to right
-  // SVG path: start at left, arc to right along top half
   const toX = (angle) => cx + r * Math.cos(angle);
   const toY = (angle) => cy + r * Math.sin(angle);
 
@@ -25,14 +20,12 @@ function HalfGauge({ value, max, size = 340 }) {
   const trackEnd   = { x: toX(0),       y: toY(0) };
 
   const pct = max > 0 ? Math.min(1, value / max) : 0;
-  // progress arc: from left (PI) sweeping counter-clockwise (negative) to PI - pct*PI
-  const progressAngle = Math.PI - pct * Math.PI; // angle at end of progress
+  const progressAngle = Math.PI - pct * Math.PI;
   const progEnd = { x: toX(progressAngle), y: toY(progressAngle) };
   const largeArc = pct > 0.5 ? 1 : 0;
 
   return (
-    <svg width={size} height={size / 2 + stroke / 2} viewBox={`0 0 ${size} ${size / 2 + stroke / 2}`} style={{ overflow: 'visible' }}>
-      {/* Track */}
+    <svg width={size} height={size / 2 + stroke} viewBox={`0 0 ${size} ${size / 2 + stroke}`} style={{ overflow: 'visible' }}>
       <path
         d={`M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 0 1 ${trackEnd.x} ${trackEnd.y}`}
         fill="none"
@@ -40,7 +33,6 @@ function HalfGauge({ value, max, size = 340 }) {
         strokeWidth={stroke}
         strokeLinecap="round"
       />
-      {/* Progress */}
       {pct > 0 && (
         <path
           d={`M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 ${largeArc} 1 ${progEnd.x} ${progEnd.y}`}
@@ -48,7 +40,7 @@ function HalfGauge({ value, max, size = 340 }) {
           stroke="rgba(200,225,240,0.85)"
           strokeWidth={stroke}
           strokeLinecap="round"
-          style={{ filter: 'drop-shadow(0 0 14px rgba(200,225,240,0.5))' }}
+          style={{ filter: 'drop-shadow(0 0 8px rgba(200,225,240,0.5))' }}
         />
       )}
     </svg>
@@ -123,45 +115,47 @@ export default function Home() {
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.18) 60%, rgba(0,0,0,0.45) 100%)', zIndex: 1 }} />
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-7"
-        style={{ paddingTop: 'max(56px, env(safe-area-inset-top))' }}>
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6"
+        style={{ paddingTop: 'max(48px, env(safe-area-inset-top))' }}>
         <span style={{
-          fontFamily: "'Inria Serif', Georgia, serif",
-          fontSize: 30,
-          fontWeight: 300,
-          fontStyle: 'italic',
+          fontFamily: 'var(--font-inter)',
+          fontSize: 17,
+          fontWeight: 600,
+          fontStyle: 'normal',
           color: 'rgba(255,255,255,0.9)',
-          letterSpacing: '0.5px',
-          textShadow: '0 2px 12px rgba(0,0,0,0.3)',
+          letterSpacing: '0px',
+          textShadow: '0 1px 8px rgba(0,0,0,0.3)',
         }}>Scanly</span>
 
         {/* Streak badge */}
-        <div style={{
-          position: 'relative',
-          width: 40,
-          height: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <span style={{ fontSize: 26, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))' }}>🔥</span>
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>🔥</span>
+          </div>
           <div style={{
             position: 'absolute',
-            top: -2,
-            right: -4,
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            border: '0.5px solid rgba(255,255,255,0.4)',
+            top: -3,
+            right: -3,
+            minWidth: 14,
+            height: 14,
+            borderRadius: 7,
+            background: 'rgba(255,255,255,0.25)',
+            border: '0.5px solid rgba(255,255,255,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 9,
-            fontWeight: 600,
+            fontWeight: 700,
             color: '#fff',
+            padding: '0 2px',
           }}>
             {profile.streak || 0}
           </div>
@@ -169,27 +163,27 @@ export default function Home() {
       </div>
 
       {/* Content */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center" style={{ paddingTop: 'max(140px, env(safe-area-inset-top) + 100px)' }}>
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-start" style={{ paddingTop: 'max(110px, env(safe-area-inset-top) + 68px)' }}>
 
         {/* Macro label */}
         <p style={{
-          fontFamily: "'Inria Serif', Georgia, serif",
-          fontSize: 64,
-          fontWeight: 300,
-          fontStyle: 'italic',
+          fontFamily: 'var(--font-inter)',
+          fontSize: 28,
+          fontWeight: 500,
+          fontStyle: 'normal',
           color: 'rgba(255,255,255,0.95)',
-          letterSpacing: 1,
+          letterSpacing: 0,
           lineHeight: 1,
-          marginBottom: 20,
-          textShadow: '0 2px 20px rgba(0,0,0,0.25)',
+          marginBottom: 12,
+          textShadow: '0 1px 12px rgba(0,0,0,0.3)',
         }}>
           {slide.label}
         </p>
 
-        {/* Half gauge */}
-        <div style={{ position: 'relative', width: 340, height: 185, marginBottom: 8 }}>
-          <HalfGauge value={current} max={target} size={340} />
-          {/* Big number centered below arc */}
+        {/* Half gauge + number */}
+        <div style={{ position: 'relative', width: 200, height: 104, marginBottom: 0 }}>
+          <HalfGauge value={current} max={target} size={200} />
+          {/* Number centered below arc */}
           <div style={{
             position: 'absolute',
             bottom: 0,
@@ -197,49 +191,47 @@ export default function Home() {
             transform: 'translateX(-50%)',
             display: 'flex',
             alignItems: 'baseline',
-            gap: 3,
+            gap: 2,
+            whiteSpace: 'nowrap',
           }}>
             <span style={{
-              fontFamily: "'Inria Serif', Georgia, serif",
-              fontSize: 96,
-              fontWeight: 300,
+              fontFamily: 'var(--font-inter)',
+              fontSize: 56,
+              fontWeight: 600,
               color: 'rgba(255,255,255,0.97)',
-              letterSpacing: -3,
+              letterSpacing: -1,
               lineHeight: 1,
-              textShadow: '0 2px 18px rgba(0,0,0,0.35)',
+              textShadow: '0 2px 14px rgba(0,0,0,0.3)',
             }}>{current}</span>
             <span style={{
-              fontFamily: "'Inria Serif', Georgia, serif",
-              fontSize: 28,
-              fontWeight: 300,
-              color: 'rgba(255,255,255,0.5)',
-              fontStyle: 'italic',
+              fontFamily: 'var(--font-inter)',
+              fontSize: 20,
+              fontWeight: 400,
+              color: 'rgba(255,255,255,0.55)',
             }}>{slide.unit}</span>
           </div>
         </div>
 
-        {/* Sub value — left remaining */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 6, gap: 4 }}>
-          <div style={{ width: 50, height: 2, background: 'rgba(255,255,255,0.5)', borderRadius: 1 }} />
-          <p style={{
-            fontFamily: "'Inria Serif', Georgia, serif",
-            fontSize: 16,
-            fontWeight: 300,
-            color: 'rgba(255,255,255,0.6)',
-            letterSpacing: '0.5px',
-          }}>{left}{slide.unit} left</p>
-        </div>
+        {/* Subtitle — target reference */}
+        <p style={{
+          fontFamily: 'var(--font-inter)',
+          fontSize: 13,
+          fontWeight: 400,
+          color: 'rgba(255,255,255,0.5)',
+          marginTop: 8,
+          letterSpacing: 0,
+        }}>{target}{slide.unit}</p>
 
         {/* Dots */}
-        <div style={{ display: 'flex', gap: 6, marginTop: 20, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, marginTop: 12, alignItems: 'center' }}>
           {SLIDES.map((_, i) => (
             <button
               key={i}
               onClick={() => setSlideIdx(i)}
               style={{
-                width: i === slideIdx ? 18 : 6,
-                height: 6,
-                borderRadius: i === slideIdx ? 4 : '50%',
+                width: i === slideIdx ? 14 : 5,
+                height: 5,
+                borderRadius: i === slideIdx ? 3 : '50%',
                 background: i === slideIdx ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
                 border: 'none',
                 padding: 0,

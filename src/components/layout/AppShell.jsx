@@ -8,6 +8,17 @@ export default function AppShell() {
   const location = useLocation();
   const hideNav = HIDE_NAV_PATHS.some(p => location.pathname.startsWith(p));
 
+  const isHome = location.pathname === '/';
+
+  if (isHome) {
+    return (
+      <div className="min-h-screen max-w-lg mx-auto relative" style={{ background: 'transparent' }}>
+        <Outlet />
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen max-w-lg mx-auto relative" style={{ background: 'transparent' }}>
       <div style={{ paddingBottom: hideNav ? 0 : '100px' }}>

@@ -1,51 +1,60 @@
-const Frame2 = () => {
+const Frame1 = () => {
   return (
-    <div className="w-full relative flex flex-col items-center justify-center py-[3.5rem] pl-[1.556rem] pr-[1.25rem] box-border isolate gap-[0.875rem] bg-[url('/public/Frame-2@3x.png')] bg-cover bg-no-repeat bg-[top] text-left text-[5.625rem] text-[#000] font-['Inria_Serif']">
-      <section className="w-full flex items-end justify-between flex-wrap content-end pt-[0rem] pb-[9.375rem] pl-[0rem] pr-[0.818rem] box-border gap-x-[0rem] gap-y-[0.625rem] max-w-[25.006rem] z-[5] text-left text-[3rem] text-[#fff] font-['Inria_Serif']">
-        <h2 className="m-0 w-[9.063rem] relative text-[length:inherit] font-normal font-[inherit] inline-block opacity-[0.59]">
-          Scanly
-        </h2>
-        <div className="rounded-[30px] flex items-center justify-center pt-[0.381rem] px-[0.5rem] pb-[0.375rem] gap-[0.125rem] bg-[url('/public/Frame@3x.png')] bg-cover bg-no-repeat bg-[top] text-[1.5rem]">
-          <button className="cursor-pointer [border:none] p-0 bg-[transparent] w-[1.5rem] relative text-[1.5rem] font-[Inter] text-[#000] text-left inline-block">
-            🔥
-          </button>
-          <h3 className="m-0 w-[0.563rem] relative text-[length:inherit] font-normal font-[inherit] inline-block">
-            1
-          </h3>
-        </div>
-      </section>
-      <div className="flex items-start py-[0rem] pl-[0rem] pr-[0.112rem] z-[6]">
-        <h2 className="m-0 w-[11.125rem] relative text-[length:inherit] font-normal font-[inherit] inline-block">
-          Kcal
-        </h2>
-      </div>
-      <section className="w-full flex items-start pt-[0rem] px-[0rem] pb-[0.812rem] box-border max-w-[26.006rem] z-[7] text-center text-[8rem] text-[#fff] font-['Inria_Serif']">
-        <div className="flex-1 rounded-[42px] flex flex-col items-center pt-[3.875rem] pb-[11.187rem] pl-[2.125rem] pr-[1.25rem] relative isolate bg-[url('/public/Frame1@3x.png')] bg-cover bg-no-repeat bg-[top]">
-          <h1 className="m-0 self-stretch relative text-[length:inherit] font-normal font-[inherit] z-[2] shrink-0">
-            1300
-          </h1>
-          <div className="w-[0.125rem] h-[0.063rem] absolute !!m-[0 important] top-[5.906rem] left-[0.538rem] border-[#000] border-solid border-t-[1px] box-border z-[1] shrink-0" />
-          <div className="self-stretch flex flex-col items-center z-[3] mt-[-0.875rem] relative shrink-0 text-[1.5rem]">
-            <div className="w-full h-[0.375rem] relative rounded-[26px] bg-[#fff] max-w-[6.256rem]" />
-            <h3 className="m-0 self-stretch relative text-[length:inherit] font-normal font-[inherit]">
-              2450
-            </h3>
-          </div>
-        </div>
-      </section>
-      <div className="w-[0.625rem] h-[0.625rem] absolute !!m-[0 important] top-[calc(50%_+_186px)] left-[calc(50%_+_13.5px)] rounded-[26px] bg-[#fff] z-[1]" />
-      <div className="w-[0.625rem] h-[0.625rem] absolute !!m-[0 important] top-[calc(50%_+_186px)] left-[calc(50%_+_26.5px)] rounded-[26px] bg-[#fff] z-[2]" />
-      <div className="w-[0.625rem] h-[0.625rem] absolute !!m-[0 important] top-[calc(50%_+_186px)] left-[calc(50%_-_21.5px)] rounded-[26px] bg-[#fff] z-[3]" />
-      <div className="w-[1.125rem] h-[0.625rem] absolute !!m-[0 important] top-[calc(50%_+_186px)] left-[calc(50%_-_7.5px)] rounded-[26px] bg-[#fff] z-[4]" />
-      <div className="w-[26rem] h-[25.938rem] absolute !!m-[0 important] top-[calc(50%_+_331px)] left-[calc(50%_+_206.5px)] rounded-[50%] bg-[#9fc2ce] [transform:_rotate(180deg)] [transform-origin:0_0] z-[7]" />
+    <div className="w-full relative leading-[normal] tracking-[normal] text-left text-[1.5rem] text-[#fff] font-['Inria_Serif']">
       <img
-        className="w-full h-[4.625rem] relative max-w-[25.5rem] overflow-hidden shrink-0 z-[8]"
-        loading="lazy"
+        className="absolute top-[0rem] left-[0rem] w-[30.563rem] h-[60.75rem] object-cover"
         alt=""
-        src="/Group-8.svg"
+        src="/Rectangle-194@2x.png"
+      />
+      <h2 className="m-0 absolute top-[6rem] left-[7.563rem] text-[5.625rem] font-normal font-[inherit] text-[#000]">
+        Score
+      </h2>
+      <img
+        className="absolute top-[1.813rem] left-[24rem] rounded-[30px] w-[3.188rem] h-[2.625rem]"
+        alt=""
+        src="/Rectangle-132.svg"
+      />
+      <h3 className="m-0 absolute top-[2.25rem] left-[26.125rem] text-[length:inherit] font-normal font-[inherit] mq450:text-[1.188rem]">
+        1
+      </h3>
+      <div className="absolute top-[2.375rem] left-[24.5rem] font-[Inter] text-[#000] inline-block min-w-[1.5rem] mq450:text-[1.188rem]">
+        🔥
+      </div>
+      <h2 className="m-0 absolute top-[0.813rem] left-[1.75rem] text-[3.25rem] font-normal font-['SF_Pro']">
+        Scanly
+      </h2>
+      <div className="absolute top-[29.75rem] left-[13.688rem] rounded-[26px] bg-[#fff] w-[1rem] h-[0.625rem]" />
+      <div className="absolute top-[29.75rem] left-[15.125rem] rounded-[26px] bg-[#fff] w-[0.625rem] h-[0.625rem]" />
+      <div className="absolute top-[29.75rem] left-[16.75rem] rounded-[26px] bg-[#fff] w-[0.625rem] h-[0.625rem]" />
+      <div className="absolute top-[29.75rem] left-[15.938rem] rounded-[26px] bg-[#fff] w-[0.625rem] h-[0.625rem]" />
+      <img
+        className="absolute top-[54.063rem] left-[23.125rem] rounded-[53px] w-[5.125rem] h-[4.625rem]"
+        alt=""
+        src="/Rectangle-138.svg"
+      />
+      <div className="absolute top-[12.75rem] left-[2.25rem] rounded-[50%] bg-[rgba(0,0,0,0.2)] w-[26rem] h-[25.938rem]" />
+      <h1 className="m-0 absolute top-[19.125rem] left-[10.875rem] text-[8rem] font-normal font-[inherit]">
+        80
+      </h1>
+      <div className="absolute top-[34.188rem] left-[1.688rem] whitespace-pre-wrap text-center inline-block w-[26.938rem] mq450:text-[1.188rem]">{`Last nights sleep as extrodinary  good. you logged over 9h of sleep. this means you have officially payed your sleep dept only issue i see is your eating habits. you ate only 2 times yesterday. and consumed only 800kcal. if you keep that up you will ot hit your goal of gaining muscle `}</div>
+      <section className="absolute top-[12.75rem] left-[28rem] rounded-[50%] bg-[#9fc2ce] w-[26rem] h-[25.938rem] [transform:_rotate(180deg)] [transform-origin:0_0]" />
+      <img
+        className="absolute top-[54.5rem] left-[2.188rem] rounded-[200px] w-full h-full"
+        alt=""
+        src="/Rectangle-138.svg"
+      />
+      <div className="absolute h-[calc(100%_-_905px)] top-[54.5rem] bottom-[2.063rem] left-[3rem] rounded-[45px] [background:rgba(208,_219,_255,_0.4),_rgba(208,_219,_255,_0.4),_rgba(208,_219,_255,_0.4)] w-[4.125rem]" />
+      <button className="cursor-pointer [border:none] p-0 bg-[transparent] absolute top-[54.625rem] left-[24.688rem] text-[3.25rem] font-['SF_Pro'] text-[#000] text-left inline-block min-w-[2rem]">
+        +
+      </button>
+      <img
+        className="cursor-pointer [border:none] p-0 bg-[transparent] absolute h-[2.75%] w-[4.91%] top-[91.77%] right-[80.98%] bottom-[5.48%] left-[14.11%] max-w-full overflow-hidden max-h-full"
+        alt=""
+        src="/Icon.svg"
       />
     </div>
   );
 };
 
-export default Frame2;
+export default Frame1;
+

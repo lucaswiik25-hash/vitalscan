@@ -1,83 +1,157 @@
-import React from 'react';
+import React from "react";
 
-const Frame1 = () => {
+/**
+ * ScoreScreen — "Scanly" app score view
+ * Converted from Figma design (node 883:28)
+ *
+ * Notes:
+ * - The mountain photo background is approximated with a CSS gradient since
+ *   the original Figma image asset URLs expire after 7 days. Swap the
+ *   `backgroundImage` below for your own exported photo if you want pixel-exact art.
+ * - Tailwind utility classes only — no extra dependencies required.
+ * - Drop this into Base44 / any React+Tailwind project as a single component.
+ */
+
+export default function ScoreScreen({ score = 80 }) {
+  // Gauge math: semicircle arc, 0–100 mapped to 0–180 degrees
+  const pct = Math.max(0, Math.min(100, score)) / 100;
+  const radius = 160;
+  const circumference = Math.PI * radius; // half circumference (semicircle)
+  const dashOffset = circumference * (1 - pct);
+
   return (
-    <div className="w-full h-screen relative bg-[url('/mountain.jpg')] bg-cover bg-center overflow-hidden text-left text-[#fff] font-['Inria_Serif']">
-      
-      {/* 1. TOP HEADER NAVIGATION BAR */}
-      <div className="absolute top-[1.5rem] left-[1.75rem] right-[1.75rem] flex justify-between items-center z-10">
-        <h2 className="m-0 text-[3.25rem] font-normal font-['SF_Pro'] tracking-tight">
+    <div className="relative w-full max-w-[489px] mx-auto h-[972px] overflow-hidden rounded-[28px] shadow-2xl">
+      {/* Background */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, #6b5b8a 0%, #c97b5a 25%, #f0a868 45%, #e8915f 60%, #2b2a3d 100%)",
+        }}
+      >
+        {/* Mountain silhouette */}
+        <svg
+          className="absolute bottom-0 left-0 w-full h-[55%]"
+          viewBox="0 0 489 500"
+          preserveAspectRatio="none"
+        >
+          <polygon
+            points="0,500 80,260 160,340 245,120 330,300 410,230 489,500"
+            fill="#e8e4e0"
+            opacity="0.9"
+          />
+          <polygon
+            points="0,500 80,300 160,380 245,200 330,340 410,280 489,500"
+            fill="#2b2a3d"
+            opacity="0.55"
+          />
+        </svg>
+      </div>
+
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-7 pt-4">
+        <h1 className="text-white text-[44px] leading-none font-light tracking-tight">
           Scanly
-        </h2>
-        
-        {/* Streak Counter Asset */}
-        <div className="relative flex items-center justify-center w-[4.5rem] h-[2.5rem]">
-          <img
-            className="absolute inset-0 w-full h-full object-contain"
-            alt="Streak Bg"
-            src="/streak-bg.png" 
+        </h1>
+        <div className="flex items-center gap-1 bg-black/70 rounded-full pl-3 pr-4 py-2">
+          <span className="text-xl">🔥</span>
+          <span className="text-white text-lg font-medium">1</span>
+        </div>
+      </div>
+
+      {/* "Score" heading */}
+      <p className="absolute top-[88px] left-1/2 -translate-x-1/2 font-serif text-black text-[80px] leading-none whitespace-nowrap">
+        Score
+      </p>
+
+      {/* Gauge */}
+      <div className="absolute top-[190px] left-1/2 -translate-x-1/2 w-[416px] h-[210px]">
+        <svg viewBox="0 0 416 220" className="w-full h-full">
+          <defs>
+            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#cdb98a" />
+              <stop offset="50%" stopColor="#8fb6c9" />
+              <stop offset="100%" stopColor="#a08a6f" />
+            </linearGradient>
+          </defs>
+          {/* Track */}
+          <path
+            d="M 48 208 A 160 160 0 0 1 368 208"
+            fill="none"
+            stroke="rgba(255,255,255,0.18)"
+            strokeWidth="14"
+            strokeLinecap="round"
           />
-          <div className="relative flex items-center gap-1 z-10 font-[Inter] font-semibold text-[1.25rem]">
-            <span>🔥</span>
-            <span className="text-white">1</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. CORE SCORE VISUAL DOCK */}
-      <div className="absolute top-[6.5rem] inset-x-0 flex flex-col items-center z-10">
-        <h2 className="m-0 text-[5rem] font-normal text-black drop-shadow-sm tracking-wide">
-          Score
-        </h2>
-        
-        {/* Central Metric Container */}
-        <div className="relative w-[24rem] h-[24rem] flex flex-col items-center justify-center mt-2">
-          {/* 3D Liquid/Chrome Progress Ring Overlaid */}
-          <img 
-            src="/score-ring.png" 
-            className="absolute inset-0 w-full h-full object-contain drop-shadow-lg" 
-            alt="Progress Ring" 
+          {/* Progress */}
+          <path
+            d="M 48 208 A 160 160 0 0 1 368 208"
+            fill="none"
+            stroke="url(#gaugeGradient)"
+            strokeWidth="14"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
           />
-          
-          {/* Centered Score Number */}
-          <h1 className="m-0 relative text-[7.5rem] font-normal leading-none mt-6 tracking-tighter drop-shadow-md text-white">
-            80
-          </h1>
-
-          {/* Carousel Dot Indicators */}
-          <div className="absolute bottom-[2rem] flex gap-1.5 justify-center items-center">
-            <div className="rounded-[26px] bg-white w-[1.25rem] h-[0.5rem] transition-all" />
-            <div className="rounded-[26px] bg-white/40 w-[0.5rem] h-[0.5rem]" />
-            <div className="rounded-[26px] bg-white/40 w-[0.5rem] h-[0.5rem]" />
-            <div className="rounded-[26px] bg-white/40 w-[0.5rem] h-[0.5rem]" />
-          </div>
-        </div>
+        </svg>
+        <p className="absolute inset-0 flex items-center justify-center font-serif text-white text-[110px] leading-none">
+          {score}
+        </p>
       </div>
 
-      {/* 3. INSIGHT FEEDBACK MODULE TEXT */}
-      <div className="absolute bottom-[7rem] inset-x-0 px-6 text-center z-10 flex justify-center">
-        <div className="w-full max-w-[28rem] text-[1.25rem] leading-[1.6rem] font-normal tracking-wide text-white font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-          Last nights sleep as extrodinary good. you logged over 9h of sleep. this means you have officially payed your sleep dept only issue i see is your eating habits. you ate only 2 times yesterday. and consumed only 800kcal. if you keep that up you will ot hit your goal of gaining muscle
-        </div>
+      {/* Pagination dots */}
+      <div className="absolute top-[478px] left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <span className="w-4 h-2.5 rounded-full bg-white" />
+        <span className="w-2.5 h-2.5 rounded-full bg-white" />
+        <span className="w-2.5 h-2.5 rounded-full bg-white" />
+        <span className="w-2.5 h-2.5 rounded-full bg-white" />
       </div>
 
-      {/* 4. PREMIUM GLASSMORPHIC BOTTOM NAV BAR */}
-      <div className="absolute bottom-[1.5rem] inset-x-4 h-[5rem] rounded-[30px] bg-white/10 border border-white/10 backdrop-blur-[20px] shadow-2xl flex items-center justify-between px-6 z-20">
-        
-        {/* Left Side Active Nav Dock */}
-        <div className="flex items-center gap-1.5 bg-white rounded-[24px] px-4 py-2 shadow-md">
-          <span className="text-black text-[1.3rem]">🏠</span>
-          <span className="text-black font-semibold text-[1rem] font-sans">Home</span>
+      {/* Summary text */}
+      <p className="absolute top-[545px] left-1/2 -translate-x-1/2 w-[430px] text-center font-serif text-white text-2xl leading-snug">
+        Last night's sleep was extraordinarily good. You logged over 9h of
+        sleep — this means you've officially paid off your sleep debt. The
+        only issue I see is your eating habits: you ate only 2 times
+        yesterday and consumed just 800kcal. If you keep that up, you won't
+        hit your goal of gaining muscle.
+      </p>
+
+      {/* Bottom nav bar */}
+      <div className="absolute bottom-[35px] left-1/2 -translate-x-1/2 w-[420px] flex items-center justify-between">
+        {/* Home pill */}
+        <div className="relative flex-1 h-[67px] bg-black/55 backdrop-blur rounded-[45px] flex items-center pl-1">
+          <button
+            type="button"
+            className="w-[66px] h-[66px] rounded-full bg-gradient-to-r from-[rgba(208,219,255,0.4)] to-[rgba(208,219,255,0.4)] flex items-center justify-center"
+            aria-label="Home"
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 11.5 12 4l9 7.5"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
 
-        {/* Floating Add Action Button */}
-        <button className="cursor-pointer border-none w-[3.5rem] h-[3.5rem] rounded-full bg-gradient-to-tr from-[#1a1f2c] to-[#2d3748] flex items-center justify-center text-white text-[2rem] font-light shadow-xl hover:scale-105 active:scale-95 transition-all">
-          +
+        {/* Add button */}
+        <button
+          type="button"
+          className="ml-4 w-[74px] h-[74px] rounded-full bg-black/85 flex items-center justify-center"
+          aria-label="Add"
+        >
+          <span className="text-white text-4xl leading-none font-light">+</span>
         </button>
       </div>
-
     </div>
   );
-};
-
-export default Frame1;
+}

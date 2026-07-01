@@ -6,7 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppShell from './components/layout/AppShell';
-import Home from './pages/Home';
+import Home from './pages/Frame32';
 import Onboarding from './pages/Onboarding';
 import ScannerHub from './pages/ScannerHub';
 import FoodScanner from './pages/FoodScanner';

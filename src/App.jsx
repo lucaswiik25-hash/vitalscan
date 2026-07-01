@@ -21,6 +21,7 @@ import FaceScanner from './pages/FaceScanner';
 import BodyScanner from './pages/BodyScanner';
 import ExerciseFormScanner from './pages/ExerciseFormScanner';
 import Tips from './pages/Tips.jsx';
+import Frame3 from './pages/Frame3';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
       <Route path="/body-scanner" element={<BodyScanner />} />
       <Route path="/exercise-form-scanner" element={<ExerciseFormScanner />} />
       <Route path="*" element={<PageNotFound />} />
+      <Route path="/Frame3" element={<Frame3 />} />
     </Routes>
   );
 };

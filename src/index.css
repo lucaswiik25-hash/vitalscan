@@ -42,6 +42,16 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* figma:app-design (yYgV3Jmz) — start */
+    --figma-primary: 0 0% 100%;
+    --figma-secondary: 226 100% 91% / 0.4;
+    --figma-accent: 315 12% 67% / 0.2;
+    --figma-muted: 215 10% 47% / 0.2;
+    --figma-surface: 0 0% 0% / 0.2;
+    --figma-border: 196 32% 72%;
+    --figma-highlight: 0 0% 100% / 0.2;
+    --figma-text-1: 0 0% 0%;
+    /* figma:app-design (yYgV3Jmz) — end */
   }
 
   .dark {

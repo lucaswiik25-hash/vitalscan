@@ -8,8 +8,19 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — start
         "figma-normal": "400",
         // figma:app-design (yYgV3Jmz) — end
+      
+        // figma:app-design (yYgV3Jmz) — start
+        "figma-normal": "400",
+        // figma:app-design (yYgV3Jmz) — end
       },
       lineHeight: {
+        // figma:app-design (yYgV3Jmz) — start
+        "figma-29": "29px",
+        "figma-62": "62px",
+        "figma-108": "108px",
+        "figma-153": "153px",
+        // figma:app-design (yYgV3Jmz) — end
+      
         // figma:app-design (yYgV3Jmz) — start
         "figma-19": "19px",
         "figma-29": "29px",
@@ -20,6 +31,13 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — end
       },
       fontSize: {
+        // figma:app-design (yYgV3Jmz) — start
+        "figma-24": "24px",
+        "figma-52": "52px",
+        "figma-90": "90px",
+        "figma-128": "128px",
+        // figma:app-design (yYgV3Jmz) — end
+      
         // figma:app-design (yYgV3Jmz) — start
         "figma-16": "16px",
         "figma-24": "24px",

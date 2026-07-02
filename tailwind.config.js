@@ -5,6 +5,12 @@ module.exports = {
   theme: {
   	extend: {
       fontWeight: {
+        // figma:untitled (YTbSyfZL) — start
+        "figma-light": "300",
+        "figma-medium": "500",
+        "figma-bold": "700",
+        // figma:untitled (YTbSyfZL) — end
+      
         // figma:app-design (yYgV3Jmz) — start
         "figma-normal": "400",
         // figma:app-design (yYgV3Jmz) — end
@@ -14,6 +20,15 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — end
       },
       lineHeight: {
+        // figma:untitled (YTbSyfZL) — start
+        "figma-18": "18px",
+        "figma-19": "19px",
+        "figma-24": "24px",
+        "figma-29": "29px",
+        "figma-48": "48px",
+        "figma-131": "131px",
+        // figma:untitled (YTbSyfZL) — end
+      
         // figma:app-design (yYgV3Jmz) — start
         "figma-29": "29px",
         "figma-62": "62px",
@@ -31,6 +46,15 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — end
       },
       fontSize: {
+        // figma:untitled (YTbSyfZL) — start
+        "figma-15": "15px",
+        "figma-16": "16px",
+        "figma-20": "20px",
+        "figma-24": "24px",
+        "figma-40": "40px",
+        "figma-108": "108px",
+        // figma:untitled (YTbSyfZL) — end
+      
         // figma:app-design (yYgV3Jmz) — start
         "figma-24": "24px",
         "figma-52": "52px",
@@ -64,6 +88,14 @@ module.exports = {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+        // figma:untitled (YTbSyfZL) — start
+        "figma-muted-2": "hsl(var(--figma-muted-2))",
+        "figma-surface-2": "hsl(var(--figma-surface-2))",
+        "figma-border-2": "hsl(var(--figma-border-2))",
+        "figma-highlight-2": "hsl(var(--figma-highlight-2))",
+        "figma-text-1-2": "hsl(var(--figma-text-1-2))",
+        // figma:untitled (YTbSyfZL) — end
+      
         // figma:app-design (yYgV3Jmz) — start
         "figma-primary": "hsl(var(--figma-primary))",
         "figma-secondary": "hsl(var(--figma-secondary))",

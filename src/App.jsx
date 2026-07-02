@@ -24,6 +24,7 @@ import Tips from './pages/Tips.jsx';
 import SleepTracker from './pages/SleepTracker';
 import Exercise from './pages/Exercise';
 import Frame6 from './pages/Frame6';
+import Frame8 from './pages/Frame8';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
       <Route path="*" element={<PageNotFound />} />
 
       <Route path="/Frame6" element={<Frame6 />} />
+      <Route path="/Frame8" element={<Frame8 />} />
     </Routes>
   );
 };

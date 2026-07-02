@@ -85,35 +85,40 @@ export default function Frame32() {
         {/* ── Half-circle arc + 80 metric ── */}
         <div
           className="absolute left-0 right-0 flex flex-col items-center z-10"
-          style={{ top: "38%" }}
+          style={{ top: "36%" }}
         >
-          {/* Semi-circle: top half of the circle visible, bottom hidden */}
+          {/* SVG progress arc — arch opening downward */}
           <motion.div
-            className="relative flex items-end justify-center"
-            style={{ width: 320, height: 160, overflow: "hidden" }}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.65, duration: 0.9, ease: "easeOut" }}
           >
-            {/* Outer ring — white stroke, semi-transparent fill */}
-            <div
-              className="absolute bottom-0"
-              style={{
-                width: 320,
-                height: 320,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.13)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                border: "5px solid rgba(255,255,255,0.85)",
-              }}
-            />
+            <svg width="300" height="160" viewBox="0 0 300 160" fill="none">
+              {/* Track (dim white) — top semicircle */}
+              <path
+                d="M 20 150 A 130 130 0 0 1 280 150"
+                stroke="rgba(255,255,255,0.30)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                fill="none"
+              />
+              {/* Progress stroke — 80% of the arc */}
+              <path
+                d="M 20 150 A 130 130 0 0 1 280 150"
+                stroke="white"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray="408"
+                strokeDashoffset="82"
+                fill="none"
+              />
+            </svg>
           </motion.div>
 
-          {/* 80 sits just below the arc, overlapping it slightly */}
+          {/* 80 sits below the arc */}
           <motion.p
             style={{
-              marginTop: -44,
+              marginTop: -20,
               fontFamily: "'Georgia', 'Times New Roman', serif",
               fontWeight: 400,
               fontSize: "clamp(72px, 20vw, 110px)",

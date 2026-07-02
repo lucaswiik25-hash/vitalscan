@@ -3,154 +3,217 @@ import { motion } from "framer-motion";
 
 export default function Frame32() {
   return (
-    <main className="w-full min-h-screen flex items-center justify-center bg-zinc-950 p-4 sm:p-8">
-      {/*
-        Using a fluid aspect-ratio container with percentage-based absolute positioning
-        to perfectly preserve the "poster" layout fidelity across all screen sizes.
-      */}
-      <div className="relative w-full max-w-[489px] aspect-[489/972] mx-auto overflow-clip rounded-[40px] shadow-2xl bg-black">
+    <main className="w-full min-h-screen flex items-center justify-center bg-black">
+      {/* Full-screen phone frame — no black rim, image fills everything */}
+      <div
+        className="relative w-full max-w-[390px] mx-auto overflow-hidden"
+        style={{ height: "100svh", maxHeight: 844 }}
+      >
+        {/* Full-bleed background image */}
+        <motion.img
+          src="https://media.base44.com/images/public/69fd7fe9e1c61305baf8f1b9/a5b576513_d9be0168f_67ec5c8e6977d0cbaef966754bccad720c2b178a.png"
+          alt="Mountain Landscape"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+        />
 
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0 overflow-clip">
-          <motion.img
-            src="https://media.base44.com/images/public/69fd7fe9e1c61305baf8f1b9/a5b576513_d9be0168f_67ec5c8e6977d0cbaef966754bccad720c2b178a.png"
-            alt="Mountain Landscape"
-            className="w-full h-full object-cover object-center"
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          />
-        </div>
+        {/* Subtle dark vignette at top & bottom for legibility */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 30%, transparent 55%, rgba(0,0,0,0.35) 100%)",
+          }}
+        />
 
-        {/* Header: Scanly Logo */}
-        <div className="absolute top-[1.337%] left-[5.726%] w-[30.061%] h-[6.378%] z-[5]">
+        {/* ── Header ── */}
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12 z-10">
+          {/* Scanly wordmark — SF Pro, large */}
           <motion.p
-            className="w-full h-full text-[clamp(29px,10.63vw,52px)] font-normal font-figma-sf-pro leading-[1.1923] text-figma-primary flex items-center"
-            initial={{ opacity: 0, y: -10 }}
+            className="text-white text-3xl tracking-tight"
+            style={{ fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif", fontWeight: 500 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
+            transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
           >
             Scanly
           </motion.p>
-        </div>
 
-        {/* Header: Fire Badge */}
-        <div className="absolute top-[2.983%] left-[78.527%] w-[10.429%] h-[4.321%] z-[2]">
+          {/* Fire streak badge */}
           <motion.div
-            className="relative w-full h-full"
-            initial={{ opacity: 0, scale: 0.8 }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full"
+            style={{
+              background: "rgba(255,255,255,0.18)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.25)",
+            }}
+            initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+            transition={{ delay: 0.35, duration: 0.55, ease: "easeOut" }}
           >
-            <img
-              src="https://media.base44.com/images/public/69fd7fe9e1c61305baf8f1b9/5ddbaf066_fce239ce5_763_21.svg"
-              alt="Badge Background"
-              className="absolute inset-0 w-full h-full object-contain"
-            />
-            <p className="absolute top-[21.4%] left-[15.6%] text-[clamp(14px,4.91vw,24px)] font-normal font-figma-inter leading-[1.2083] text-figma-text-1 flex items-center justify-center">
-              🔥
-            </p>
-            <p className="absolute top-[16.6%] left-[66.6%] text-[clamp(14px,4.91vw,24px)] font-normal font-heading leading-[1.2083] text-figma-primary flex items-center justify-center">
+            <span className="text-base">🔥</span>
+            <span
+              className="text-white text-sm font-semibold"
+              style={{ fontFamily: "'SF Pro Text', -apple-system, sans-serif" }}
+            >
               1
-            </p>
+            </span>
           </motion.div>
         </div>
 
-        {/* Main Content: Overview Text */}
-        <div className="absolute top-[21.810%] left-[12.065%] w-[78.527%] h-[11.111%] z-[16]">
-          <motion.p
-            className="w-full h-full text-[clamp(50px,18.4vw,90px)] font-normal font-heading leading-[1.2] text-figma-text-1 flex items-center justify-center text-center"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 1, ease: "easeOut" }}
-          >
-            Overview
-          </motion.p>
-        </div>
+        {/* ── Overview label ── */}
+        <motion.p
+          className="absolute left-0 right-0 text-center z-10"
+          style={{
+            top: "26%",
+            fontFamily: "'Georgia', 'Times New Roman', serif",
+            fontWeight: 400,
+            fontSize: "clamp(52px, 14vw, 76px)",
+            color: "#000",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
+          }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
+        >
+          Overview
+        </motion.p>
 
-        {/* Main Content: 80 Metric */}
-        <div className="absolute top-[47.119%] left-[35.582%] w-[30.470%] h-[15.740%] z-[15]">
-          <motion.p
-            className="w-full h-full text-[clamp(70px,26.18vw,128px)] font-normal font-heading leading-[1.1953] text-figma-primary flex items-center justify-center text-center"
+        {/* ── Half-circle arc + 80 metric ── */}
+        <div
+          className="absolute left-0 right-0 flex flex-col items-center z-10"
+          style={{ top: "38%" }}
+        >
+          {/* Semi-circle: top half of the circle visible, bottom hidden */}
+          <motion.div
+            className="relative flex items-end justify-center"
+            style={{ width: 320, height: 160, overflow: "hidden" }}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.7, duration: 1, ease: "easeOut" }}
+            transition={{ delay: 0.65, duration: 0.9, ease: "easeOut" }}
+          >
+            {/* Outer ring — white stroke, semi-transparent fill */}
+            <div
+              className="absolute bottom-0"
+              style={{
+                width: 320,
+                height: 320,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.13)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                border: "5px solid rgba(255,255,255,0.85)",
+              }}
+            />
+          </motion.div>
+
+          {/* 80 sits just below the arc, overlapping it slightly */}
+          <motion.p
+            style={{
+              marginTop: -44,
+              fontFamily: "'Georgia', 'Times New Roman', serif",
+              fontWeight: 400,
+              fontSize: "clamp(72px, 20vw, 110px)",
+              color: "#fff",
+              letterSpacing: "-0.03em",
+              lineHeight: 1,
+              textShadow: "0 2px 24px rgba(0,0,0,0.35)",
+            }}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.8, duration: 0.9, ease: "easeOut" }}
           >
             80
           </motion.p>
         </div>
 
-        {/* Pagination Dots */}
-        <div className="absolute top-[70.267%] left-[43.967%] w-[12.065%] h-[1.028%] z-[11]">
-          <motion.div
-            className="w-full h-full flex items-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9, duration: 0.8 }}
-          >
-            <div className="bg-figma-primary rounded-[26px] w-[27.11%] h-full mr-[11.86%]" />
-            <div className="bg-figma-primary rounded-[26px] w-[16.94%] h-full mr-[5.08%]" />
-            <div className="bg-figma-primary rounded-[26px] w-[16.94%] h-full mr-[5.08%]" />
-            <div className="bg-figma-primary rounded-[26px] w-[16.94%] h-full" />
-          </motion.div>
-        </div>
-
-        {/* Footer: Navigation Pill Background */}
-        <div className="absolute top-[89.711%] left-[7.157%] w-[65.439%] h-[6.893%] z-[7]">
-          <motion.div
-            className="w-full h-full relative"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.8, ease: "easeOut" }}
-          >
-            <img
-              src="https://media.base44.com/images/public/69fd7fe9e1c61305baf8f1b9/1b389fab2_a6ef2d975_777_154.svg"
-              alt="Navigation Background"
-              className="absolute inset-0 w-full h-full object-contain"
+        {/* ── Pagination dots ── */}
+        <motion.div
+          className="absolute left-0 right-0 flex items-center justify-center gap-1.5 z-10"
+          style={{ bottom: "18%" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.6 }}
+        >
+          {[true, false, false, false].map((active, i) => (
+            <div
+              key={i}
+              className="rounded-full bg-white"
+              style={{
+                width: active ? 22 : 8,
+                height: 8,
+                opacity: active ? 1 : 0.5,
+                transition: "all 0.3s",
+              }}
             />
-          </motion.div>
-        </div>
+          ))}
+        </motion.div>
 
-        {/* Footer: Home Button */}
-        <div className="absolute top-[89.711%] left-[9.815%] w-[13.496%] h-[6.893%] z-[8]">
-          <motion.button
-            className="w-full h-full bg-figma-secondary rounded-[45px] flex items-center justify-center hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.1, duration: 0.8, ease: "easeOut" }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Home"
+        {/* ── Bottom navigation bar ── */}
+        <motion.div
+          className="absolute left-0 right-0 flex items-center justify-between px-6 z-10"
+          style={{ bottom: "5%" }}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.1, duration: 0.7, ease: "easeOut" }}
+        >
+          {/* Nav pill */}
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-full"
+            style={{
+              background: "rgba(120,120,128,0.55)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              flex: 1,
+              marginRight: 14,
+            }}
           >
-            <img
-              src="https://media.base44.com/images/public/69fd7fe9e1c61305baf8f1b9/317b7642d_367fb4826_777_156.svg"
-              alt="Home Icon"
-              className="w-[40.9%] h-[44.7%] object-contain"
-            />
-          </motion.button>
-        </div>
+            {/* Home tab — active */}
+            <button
+              className="flex items-center justify-center rounded-full active:scale-90 transition-transform"
+              style={{
+                width: 44,
+                height: 44,
+                background: "rgba(255,255,255,0.22)",
+              }}
+              aria-label="Home"
+            >
+              {/* SF-style house icon */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M3 9.75L12 3l9 6.75V21a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.75Z"
+                  stroke="white"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+                <path d="M9 22V12h6v10" stroke="white" strokeWidth="1.8" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
 
-        {/* Footer: Add Button */}
-        <div className="absolute top-[88.991%] left-[75.664%] w-[16.768%] h-[7.613%] z-[6]">
-          <motion.button
-            className="w-full h-full relative flex items-center justify-center hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-white/50 rounded-full"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2, duration: 0.8, ease: "easeOut" }}
-            whileHover={{ scale: 1.05, rotate: 90 }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Add new item"
+          {/* Add / FAB button */}
+          <button
+            className="flex items-center justify-center rounded-full active:scale-90 transition-transform"
+            style={{
+              width: 52,
+              height: 52,
+              background: "rgba(120,120,128,0.55)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.22)",
+              flexShrink: 0,
+            }}
+            aria-label="Add"
           >
-            <img
-              src="https://media.base44.com/images/public/69fd7fe9e1c61305baf8f1b9/37c4dc2db_4ea0b569a_763_52.svg"
-              alt="Add Button Background"
-              className="absolute inset-0 w-full h-full object-contain"
-            />
-            <span className="absolute top-[12.16%] left-[30.48%] w-[39.02%] h-[83.78%] z-[9] text-[clamp(29px,10.63vw,52px)] font-normal font-figma-sf-pro leading-[1.1923] text-figma-text-1 flex items-center justify-center">
-              +
-            </span>
-          </motion.button>
-        </div>
-
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </motion.div>
       </div>
     </main>
   );

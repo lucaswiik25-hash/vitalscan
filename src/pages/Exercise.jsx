@@ -1,319 +1,137 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { ArrowLeft, Plus, Dumbbell, Trash2, X, Loader2, Bike, PersonStanding, Waves, Zap, Activity, SkipForward } from 'lucide-react';
-import { animCard, usePageVisible, pageRevealStyle } from '../lib/animHelpers';
-import ExerciseHeroModule from '../components/exercise/ExerciseHeroModule';
-import { listExerciseLogs, createExerciseLog, deleteExerciseLog, getProfileList } from '@/lib/db';
-
-const GOAL_STORAGE_KEY = 'scanly_exercise_goal';
-
-const QUICK_EXERCISES = [
-  { name: 'Running', icon: Activity, met: 9.8, category: 'cardio' },
-  { name: 'Walking', icon: PersonStanding, met: 3.5, category: 'cardio' },
-  { name: 'Cycling', icon: Bike, met: 7.5, category: 'cardio' },
-  { name: 'Swimming', icon: Waves, met: 8.0, category: 'cardio' },
-  { name: 'Weight Training', icon: Dumbbell, met: 5.0, category: 'strength' },
-  { name: 'HIIT', icon: Zap, met: 10.0, category: 'cardio' },
-  { name: 'Jump Rope', icon: SkipForward, met: 11.0, category: 'cardio' },
-  { name: 'Yoga', icon: Activity, met: 2.5, category: 'flexibility' },
-  { name: 'Basketball', icon: Activity, met: 8.0, category: 'sports' },
-  { name: 'Football', icon: Activity, met: 8.3, category: 'sports' },
-  { name: 'Pilates', icon: Activity, met: 3.5, category: 'flexibility' },
-  { name: 'Rowing', icon: Activity, met: 8.5, category: 'cardio' },
-];
-
-function calcCalories(met, weight, minutes) {
-  return Math.round((met * weight * minutes) / 60);
-}
-
-
-
-export default function Exercise() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [showAdd, setShowAdd] = useState(false);
-  const [sheetClosing, setSheetClosing] = useState(false);
-  const [sheetVisible, setSheetVisible] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const [form, setForm] = useState({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
-  const [saving, setSaving] = useState(false);
-  const [exerciseTarget, setExerciseTarget] = useState(() => {
-    try {
-      const stored = localStorage.getItem(GOAL_STORAGE_KEY);
-      return stored ? parseInt(stored, 10) : 500;
-    } catch {
-      return 500;
-    }
-  });
-
-  const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => getProfileList() });
-  const profile = profiles[0] || {};
-  const weight = profile.weight || 70;
-
-  const { data: exercises = [] } = useQuery({
-    queryKey: ['exercises', selectedDate],
-    queryFn: () => listExerciseLogs({ date: selectedDate }),
-  });
-
-  const { data: allExercises = [] } = useQuery({
-    queryKey: ['allExercises'],
-    queryFn: () => listExerciseLogs(),
-  });
-
-  const handleGoalChange = (goal) => {
-    setExerciseTarget(goal);
-    try { localStorage.setItem(GOAL_STORAGE_KEY, String(goal)); } catch { /* ignore */ }
-  };
-
-  const openSheet = () => {
-    setShowAdd(true);
-    setSheetClosing(false);
-    requestAnimationFrame(() => requestAnimationFrame(() => setSheetVisible(true)));
-  };
-
-  const closeSheet = () => {
-    setSheetClosing(true);
-    setSheetVisible(false);
-    setTimeout(() => { setShowAdd(false); setSheetClosing(false); }, 280);
-  };
-
-  const handleQuickSelect = (ex) => {
-    const cal = calcCalories(ex.met, weight, 30);
-    setForm({ name: ex.name, category: ex.category, duration_minutes: 30, intensity: 'medium', notes: '', calories_burned: cal });
-    openSheet();
-  };
-
-  const handleDurationChange = (mins) => {
-    const met = QUICK_EXERCISES.find(e => e.name === form.name)?.met;
-    const cal = met ? calcCalories(met, weight, mins) : form.calories_burned;
-    setForm(f => ({ ...f, duration_minutes: mins, calories_burned: cal }));
-  };
-
-  const handleSave = async () => {
-    if (!form.name.trim()) return;
-    setSaving(true);
-    const met = QUICK_EXERCISES.find(e => e.name === form.name)?.met || 5;
-    const cal = form.calories_burned || calcCalories(met, weight, form.duration_minutes || 30);
-    await createExerciseLog({ ...form, date: selectedDate, calories_burned: cal });
-    queryClient.invalidateQueries({ queryKey: ['exercises', selectedDate] });
-    queryClient.invalidateQueries({ queryKey: ['exercises', today] });
-    queryClient.invalidateQueries({ queryKey: ['allExercises'] });
-    setShowAdd(false);
-    setSheetVisible(false);
-    setSheetClosing(false);
-    setForm({ name: '', category: 'cardio', duration_minutes: 30, intensity: 'medium', notes: '' });
-    setSaving(false);
-  };
-
-  const handleDelete = async (id) => {
-    await deleteExerciseLog(id);
-    queryClient.invalidateQueries({ queryKey: ['exercises', selectedDate] });
-    queryClient.invalidateQueries({ queryKey: ['allExercises'] });
-  };
-
-  const visibleExercises = showAll ? QUICK_EXERCISES : QUICK_EXERCISES.slice(0, 6);
-  const pageVisible = usePageVisible();
-
+const MainScreen = () => {
   return (
-    <div className="min-h-screen pb-28" style={pageRevealStyle(pageVisible)}>
-      {/* Header */}
-      <div className="px-5 pt-12 pb-4 flex items-center">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center mr-3">
-          <ArrowLeft className="w-5 h-5 text-gray-900" />
-        </button>
-        <h1 className="text-xl font-bold text-gray-900 flex-1 text-center">Exercise</h1>
-        <button onClick={openSheet} className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center press-scale">
-          <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
-        </button>
-      </div>
-
-      <div className="px-5 space-y-5">
-        <div {...animCard(0, pageVisible)}>
-          <ExerciseHeroModule
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            exercises={exercises}
-            allExercises={allExercises}
-            goalValue={exerciseTarget}
-            onGoalChange={handleGoalChange}
-            onLogWorkout={openSheet}
-          />
-        </div>
-
-        {/* Add Exercise section */}
-        <div>
-          <div {...animCard(1, pageVisible)} className="mb-3">
-            <h2 className="text-base font-bold text-gray-900">Add Exercise</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Tap to log instantly</p>
-          </div>
-          <div className="space-y-2">
-            {visibleExercises.map((ex, i) => {
-              const Icon = ex.icon;
-              const calPerHour = Math.round(calcCalories(ex.met, weight, 60));
-              return (
-                <button key={ex.name} {...animCard(2 + i, pageVisible)} onClick={() => handleQuickSelect(ex)}
-                  className="w-full rounded-[14px] p-4 flex items-center gap-3 text-left press-scale glow-card"
-                  style={{
-                    background: 'rgba(255,255,255,0.55)',
-                    backdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
-                    WebkitBackdropFilter: 'blur(20px) saturate(200%) brightness(1.05)',
-                  }}>
-                  <div className="w-10 h-10 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
-                    <Icon className="w-5 h-5 text-gray-900" strokeWidth={1.8} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900">{ex.name}</p>
-                    <p className="text-xs text-gray-400">approx {calPerHour} kcal per hour</p>
-                  </div>
-                  <Plus className="w-4 h-4 text-gray-400 shrink-0" />
+    <div className="w-full relative flex items-start pt-[0rem] px-[0.062rem] pb-[4.937rem] box-border leading-[normal] tracking-[normal]">
+      <main className="flex-1 flex items-start py-[0rem] pl-[0rem] pr-[0.937rem] box-border max-w-full">
+        <section className="flex-1 flex flex-col items-center relative isolate gap-[3.625rem] max-w-[27.444rem] z-[0] text-left text-[1.5rem] text-[#000] font-[Inter] mq439:max-w-full">
+          <section className="self-stretch rounded-[62px] bg-[#fff] flex flex-col items-center py-[1.25rem] pl-[0.25rem] pr-[0.625rem] box-border relative isolate gap-[2.812rem] max-w-full z-[9] shrink-0 text-left text-[1.5rem] text-[#000] font-[Inter]">
+            <div className="w-[7.813rem] h-[2.313rem] absolute !!m-[0 important] top-[0.875rem] left-[calc(50%_-_62.25px)] rounded-[104px] bg-[#000] z-[0] shrink-0" />
+            <div className="self-stretch flex flex-col items-end py-[1.937rem] px-[0rem] box-border gap-[2.562rem] max-w-full z-[1] shrink-0 mq424:gap-[1.25rem]">
+              <div className="w-[4.869rem] h-[2.688rem] flex items-start py-[0rem] px-[1rem] box-border">
+                <div className="h-[2.688rem] w-[2.813rem] rounded-[200px] bg-[#d9d9d9] flex items-center justify-center">
+                  <h3 className="m-0 relative text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit] inline-block min-w-[1.5rem] mq450:text-[1.188rem]">
+                    AI
+                  </h3>
+                </div>
+              </div>
+              <div className="self-stretch flex items-start flex-wrap content-start gap-[0.5rem] max-w-full">
+                <h3 className="m-0 flex-1 relative text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit] inline-block min-w-[8.313rem] max-w-full mq450:text-[1.188rem]">{`Todays Burn `}</h3>
+                <button className="cursor-pointer [border:none] pt-[0.25rem] px-[1.437rem] pb-[0.312rem] bg-[#000] h-[1.75rem] rounded-[50px] flex items-center justify-center box-border hover:bg-[#333]">
+                  <b className="relative text-[1rem] tracking-[-0.05em] font-[Inter] text-[#fff] text-left">
+                    Log
+                  </b>
                 </button>
-              );
-            })}
-          </div>
-          {!showAll && (
-            <button onClick={() => setShowAll(true)} className="w-full mt-3 text-sm text-gray-400 font-medium py-2 press-scale">
-              Show more
-            </button>
-          )}
-        </div>
-
-        {/* Sessions */}
-        {exercises.length > 0 && (
-          <div>
-            <h2 className="text-base font-bold text-gray-900 mb-3">
-              {selectedDate === today ? "Today's Sessions" : format(new Date(selectedDate), 'MMM d') + "'s Sessions"}
-            </h2>
-            <div className="space-y-2">
-              {exercises.map(ex => (
-                <div key={ex.id} className="bg-white rounded-[14px] p-4 flex items-center gap-3 glow-card">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900">{ex.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{ex.duration_minutes} min · {ex.calories_burned} kcal</p>
+              </div>
+            </div>
+            <img
+              className="cursor-pointer [border:none] p-0 bg-[transparent] w-[2.563rem] h-[2.5rem] absolute !!m-[0 important] top-[3.188rem] left-[1.706rem] z-[2] shrink-0"
+              alt=""
+              src="/Home.svg"
+            />
+            <div className="w-[calc(100%_+_0.9px)] h-[0.063rem] absolute !!m-[0 important] top-[6.969rem] right-[0.081rem] left-[-0.137rem] border-[#000] border-solid border-t-[1px] box-border opacity-[0.24] z-[3] shrink-0" />
+            <div className="w-[16.106rem] h-[10.5rem] relative z-[4] shrink-0 text-[6.75rem] text-[#c1d5e1]">
+              <h2 className="m-0 absolute top-[2.313rem] left-[1.875rem] text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit]">
+                70%
+              </h2>
+              <h1 className="m-0 absolute top-[2.313rem] left-[1.438rem] text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit] text-[#000]">
+                70%
+              </h1>
+            </div>
+            <div className="self-stretch flex items-start justify-center flex-wrap content-start py-[0rem] pl-[0.937rem] pr-[1rem] gap-x-[1.937rem] gap-y-[0.625rem] z-[5] shrink-0 mq421:gap-[0.938rem]">
+              <div className="flex-1 flex flex-col items-center py-[0rem] pl-[0rem] pr-[1.125rem] box-border gap-[0.125rem] min-w-[7.25rem] max-w-[7.438rem] mq450:max-w-full mq439:flex-1">
+                <h3 className="m-0 self-stretch relative text-[length:inherit] tracking-[-0.05em] font-medium font-[inherit] mq450:text-[1.188rem]">{`Exercises `}</h3>
+                <h2 className="m-0 relative text-[2.5rem] tracking-[-0.05em] font-light font-[inherit] inline-block min-w-[1.563rem]">
+                  2
+                </h2>
+              </div>
+              <div className="flex-[1.1783] flex flex-col items-center gap-[0.125rem] min-w-[6.125rem] max-w-[6.188rem] mq450:max-w-full">
+                <h3 className="m-0 w-full relative text-[length:inherit] tracking-[-0.05em] font-medium font-[inherit] inline-block max-w-[5.438rem] mq450:text-[1.188rem]">{`Burned `}</h3>
+                <div className="flex items-end gap-[0.25rem] text-[2.5rem]">
+                  <h2 className="m-0 relative text-[length:inherit] tracking-[-0.05em] font-light font-[inherit]">
+                    250
+                  </h2>
+                  <div className="h-[1.556rem] flex items-start pt-[0rem] px-[0rem] pb-[0.431rem] box-border text-[0.938rem]">
+                    <div className="relative tracking-[-0.05em] font-medium">
+                      Kcal
+                    </div>
                   </div>
-                  <button onClick={() => handleDelete(ex.id)}
-                    className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                  </button>
                 </div>
-              ))}
+              </div>
+              <div className="flex-[1.1783] flex flex-col items-start gap-[0.062rem] min-w-[6.75rem] max-w-[6.875rem] mq450:max-w-full">
+                <h3 className="m-0 self-stretch relative text-[length:inherit] tracking-[-0.05em] font-medium font-[inherit] mq450:text-[1.188rem]">{`Remaining `}</h3>
+                <div className="self-stretch flex items-end justify-end py-[0rem] px-[0.062rem] gap-[0.187rem] text-[2.5rem]">
+                  <h2 className="m-0 relative text-[length:inherit] tracking-[-0.05em] font-light font-[inherit] inline-block min-w-[4.375rem]">
+                    350
+                  </h2>
+                  <div className="h-[1.431rem] flex items-start pt-[0rem] px-[0rem] pb-[0.306rem] box-border text-[0.938rem]">
+                    <div className="relative tracking-[-0.05em] font-medium">
+                      Kcal
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div className="w-[6.25rem] h-[6.25rem] absolute !!m-[0 important] top-[calc(50%_-_110px)] left-[-0.106rem] [filter:blur(100px)] rounded-[200px] bg-[#ea234b] opacity-[0.14] z-[10] shrink-0" />
+          <div className="w-[6.25rem] h-[6.25rem] absolute !!m-[0 important] top-[calc(50%_-_99px)] right-[-1.012rem] [filter:blur(100px)] rounded-[200px] bg-[#0095ff] opacity-[0.15] z-[11] shrink-0" />
+          <h3 className="!!m-[0 important] absolute top-[calc(50%_+_124px)] left-[1.331rem] text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit] text-[#fff] inline-block min-w-[6.938rem] z-[2] shrink-0 mq450:text-[1.188rem]">{`Quick Add `}</h3>
+          <div className="w-full flex items-start py-[0rem] pl-[0rem] pr-[0.187rem] box-border max-w-[26.675rem] z-[12] shrink-0 mq427:max-w-full">
+            <div className="h-[5rem] flex-1 rounded-[50px] [background:linear-gradient(90deg,_#fff_25.96%,_#d5d2d2)] border-[#fff] border-solid border-[3px] box-border flex items-center justify-center pt-[0.5rem] pb-[0.506rem] pl-[1.25rem] pr-[1.062rem] gap-[1.618rem] max-w-full mq354:flex-wrap">
+              <img
+                className="w-[3.875rem] relative rounded-[200px] max-h-full object-cover"
+                loading="lazy"
+                alt=""
+                src="/running-icon-1@2x.png"
+              />
+              <div className="flex-1 flex flex-col items-start pt-[0rem] px-[0rem] pb-[0.306rem] box-border isolate min-w-[9.688rem] z-[0]">
+                <h3 className="m-0 self-stretch relative text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit] z-[1] mq450:text-[1.188rem]">{`Running `}</h3>
+                <h3 className="m-0 self-stretch relative text-[1.25rem] tracking-[-0.11em] font-light font-[inherit] whitespace-pre-wrap opacity-[0.45] z-[2] mt-[-0.063rem] mq450:text-[1rem]">{`Approx  600-900 Kcal Per Hour `}</h3>
+              </div>
+              <button className="cursor-pointer [border:none] p-0 bg-[transparent] w-[1.688rem] relative text-[2.5rem] tracking-[-0.11em] font-medium font-[Inter] text-[#000] text-left inline-block">
+                +
+              </button>
             </div>
           </div>
-        )}
-
-        {exercises.length === 0 && (
-          <div className="rounded-[14px] p-8 text-center glow-card">
-            <Dumbbell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">
-              {selectedDate === today ? 'No exercises logged today' : `No exercises on ${format(new Date(selectedDate), 'MMM d')}`}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Add Exercise — full screen slide-up */}
-      {showAdd && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className={`bottom-sheet-backdrop absolute inset-0 bg-black/40 backdrop-blur-sm ${sheetVisible && !sheetClosing ? 'is-visible' : ''} ${sheetClosing ? 'is-closing' : ''}`}
-            onClick={closeSheet}
+          <div className="w-[24.125rem] h-[4.5rem] absolute !!m-[0 important] bottom-[6.75rem] left-[calc(50%_-_194.25px)] rounded-[50px] [background:linear-gradient(90deg,_#fff,_#d5d2d2)] border-[#fff] border-solid border-[3px] box-border opacity-[0.72] z-[5] shrink-0" />
+          <h3 className="!!m-[0 important] absolute bottom-[8.75rem] left-[calc(50%_-_105.25px)] text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit] opacity-[0.74] z-[6] shrink-0 mq450:text-[1.188rem]">{`Weight Training `}</h3>
+          <button className="cursor-pointer [border:none] p-0 bg-[transparent] w-[1.688rem] absolute !!m-[0 important] right-[2.988rem] bottom-[7.563rem] text-[2.5rem] tracking-[-0.11em] font-medium font-[Inter] text-[#000] text-left inline-block opacity-[0.75] z-[14] shrink-0">
+            +
+          </button>
+          <img
+            className="w-[3.125rem] absolute !!m-[0 important] bottom-[7.438rem] left-[3.019rem] max-h-full object-cover z-[16] shrink-0"
+            loading="lazy"
+            alt=""
+            src="/Weights-ikon-1@2x.png"
           />
-          <div
-            className={`bottom-sheet-panel absolute left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden ${sheetVisible && !sheetClosing ? 'is-visible' : ''} ${sheetClosing ? 'is-closing' : ''}`}
-            style={{ top: 0, borderRadius: '24px 24px 0 0' }}
-          >
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-gray-200" />
-            </div>
-            <div className="flex items-start justify-between px-6 pt-3 pb-4 shrink-0 border-b border-gray-100">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Log Exercise</h2>
-                <p className="text-sm text-gray-400 mt-0.5">Track your workout session</p>
-              </div>
-              <button onClick={closeSheet} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center press-scale">
-                <X className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-              {/* Quick select */}
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Select</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {QUICK_EXERCISES.map(ex => {
-                    const Icon = ex.icon;
-                    const isSelected = form.name === ex.name;
-                    return (
-                      <button key={ex.name} onClick={() => handleQuickSelect(ex)}
-                        className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-[16px] transition-all active:scale-95"
-                        style={{ background: isSelected ? '#1a1a1a' : '#f3f4f6', border: isSelected ? '2px solid #1a1a1a' : '2px solid transparent' }}>
-                        <Icon className="w-5 h-5" style={{ color: isSelected ? 'white' : '#6b7280' }} strokeWidth={1.8} />
-                        <span className="text-[11px] font-bold text-center leading-tight" style={{ color: isSelected ? 'white' : '#374151' }}>{ex.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Name */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Exercise Name</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Morning Run"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="sentences"
-                  spellCheck={false}
-                  className="w-full h-12 rounded-2xl border border-gray-200 px-4 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 bg-white"
-                />
-              </div>
-
-              {/* Duration */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Duration: {form.duration_minutes} min</label>
-                <input type="range" min="5" max="180" step="5" value={form.duration_minutes}
-                  onChange={e => handleDurationChange(Number(e.target.value))}
-                  className="w-full accent-gray-900"
-                />
-                <div className="flex justify-between text-[10px] text-gray-400 mt-1"><span>5 min</span><span>180 min</span></div>
-              </div>
-
-              {/* Intensity */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Intensity</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['low', 'medium', 'high'].map(lvl => (
-                    <button key={lvl} onClick={() => setForm(f => ({ ...f, intensity: lvl }))}
-                      className="h-12 rounded-2xl text-sm font-bold capitalize transition-all"
-                      style={{ background: form.intensity === lvl ? '#1a1a1a' : '#f3f4f6', color: form.intensity === lvl ? 'white' : '#6b7280' }}>
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Calories estimate */}
-              {form.calories_burned ? (
-                <div className="rounded-2xl p-4 text-center bg-gray-50 border border-gray-100">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">Estimated Calories Burned</p>
-                  <p className="text-3xl font-black text-gray-900">{form.calories_burned} <span className="text-sm font-semibold text-gray-400">kcal</span></p>
-                </div>
-              ) : null}
-
-              <button onClick={handleSave} disabled={saving || !form.name.trim()}
-                className="w-full h-14 rounded-full bg-gray-900 text-white font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-50 press-scale">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {saving ? 'Saving...' : 'Log Exercise'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          <h3 className="!!m-[0 important] absolute bottom-[7.188rem] left-[calc(50%_-_106.25px)] text-[1.25rem] tracking-[-0.11em] font-light font-[inherit] whitespace-pre-wrap opacity-[0.33] z-[17] shrink-0 mq450:text-[1rem]">{`Approx  180-600 Kcal Per Hour `}</h3>
+          <footer className="self-stretch flex flex-col items-center py-[3rem] px-[1.125rem] isolate z-[13] shrink-0 text-left text-[1.25rem] text-[#000] font-[Inter]">
+            <h3 className="m-0 w-full relative text-[length:inherit] tracking-[-0.05em] font-bold font-[inherit] inline-block opacity-[0.43] max-w-[13.194rem] z-[1] mq450:text-[1rem]">{`Weight Training `}</h3>
+            <div className="w-full relative text-[1rem] tracking-[-0.11em] font-light whitespace-pre-wrap inline-block opacity-[0.16] max-w-[13.194rem] z-[2] mt-[-0.188rem]">{`Approx  180-600 Kcal Per Hour `}</div>
+          </footer>
+          <div className="w-[19.563rem] h-[3.188rem] absolute !!m-[0 important] bottom-[2.688rem] left-[calc(50%_-_148.25px)] rounded-[50px] [background:linear-gradient(90deg,_#fff,_#d5d2d2)] border-[#fff] border-solid border-[3px] box-border opacity-[0.53] z-[4] shrink-0" />
+          <button className="cursor-pointer [border:none] p-0 bg-[transparent] w-[1.688rem] absolute !!m-[0 important] right-[4.425rem] bottom-[2.875rem] text-[2.5rem] tracking-[-0.11em] font-medium font-[Inter] text-[#000] text-left inline-block opacity-[0.41] z-[15] shrink-0">
+            +
+          </button>
+          <img
+            className="cursor-pointer [border:none] p-0 bg-[transparent] w-[1.938rem] h-[1.938rem] absolute !!m-[0 important] bottom-[3.313rem] left-[5.581rem] object-contain z-[3] shrink-0"
+            alt=""
+            src="/jump-rope-icon-1@2x.png"
+          />
+          <div className="w-[9.125rem] h-[1.688rem] absolute !!m-[0 important] bottom-[0.563rem] left-[calc(50%_-_64.25px)] rounded-[50px] [background:linear-gradient(90deg,_#fff,_#d5d2d2)] opacity-[0.62] z-[8] shrink-0" />
+          <img
+            className="w-[25.075rem] h-[5.55rem] absolute !!m-[0 important] bottom-[-4.425rem] left-[calc(50%_-_191.25px)] z-[7] shrink-0"
+            loading="lazy"
+            alt=""
+            src="/Group-34.svg"
+          />
+          <img
+            className="w-[27.438rem] h-[calc(100%_+_79px)] absolute !!m-[0 important] top-[60.313rem] bottom-[-65.25rem] left-[27.331rem] [filter:blur(0px)] rounded-[64px] max-h-full object-cover z-[1] shrink-0"
+            alt=""
+            src="/iPhone-17-Pro-Max@2x.png"
+          />
+        </section>
+      </main>
     </div>
   );
-}
+};
+
+export default MainScreen;

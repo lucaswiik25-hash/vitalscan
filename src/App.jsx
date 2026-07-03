@@ -25,6 +25,7 @@ import SleepTracker from './pages/SleepTracker';
 import Exercise from './pages/Exercise';
 import Frame6 from './pages/Frame6';
 import Frame8 from './pages/Frame8';
+import Frame82 from './pages/Frame82';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
 
       <Route path="/Frame6" element={<Frame6 />} />
       <Route path="/Frame8" element={<Frame8 />} />
+      <Route path="/Frame82" element={<Frame82 />} />
     </Routes>
   );
 };

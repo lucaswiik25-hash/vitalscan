@@ -1,434 +1,263 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { Loader2, Sparkles, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
-import { useUserProfile } from '@/hooks/useUserProfile';
-import { listSleepLogs, createSleepLog, updateSleepLog, upsertProfile } from '@/lib/db';
-import { analyzeWithClaude } from '@/lib/ai';
-import {
-  buildCalendarWeek,
-  calcWeekStreak,
-  calcWeekAvgHours,
-  calcBestNight,
-  calcDurationScore,
-  calcQualitySleepScore,
-  deriveTimesFromHours,
-  getGreeting,
-  hoursFromLog,
-  QUALITY_EMOJI,
-} from '@/lib/sleepCalculations';
-import { loadLocalSleepLogs, saveLocalSleepLog, mergeSleepLogs } from '@/lib/sleepStorage';
-import { usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
-import SleepWeeklyChart from '@/components/sleep/SleepWeeklyChart';
-import SleepLogSheet from '@/components/sleep/SleepLogSheet';
-import SleepAnalysisPage from '@/components/sleep/SleepAnalysisPage';
-import SleepCalendarModal from '@/components/sleep/SleepCalendarModal';
-import { AnimatePresence } from 'framer-motion';
-import '@/styles/sleepTracker.css';
-
-const TODAY = format(new Date(), 'yyyy-MM-dd');
-
-const insightStyle = (type) => {
-  if (type === 'warning') return { icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, iconBg: '#FEF3C7' };
-  if (type === 'positive') return { icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, iconBg: '#D1FAE5' };
-  return { icon: <Lightbulb className="w-4 h-4 text-indigo-500" />, iconBg: '#EEF2FF' };
-};
-
-function SleepToast({ message, show }) {
-  return (
-    <div className={`st-toast${show ? ' is-show' : ''}`}>
-      {message}
-    </div>
-  );
-}
+import React, { useState, useEffect } from 'react';
 
 export default function SleepTracker() {
-  const queryClient = useQueryClient();
-  const { profile } = useUserProfile();
-  const pageVisible = usePageVisible();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [sleepDebt, setSleepDebt] = useState({ hours: 2, minutes: 30 });
+  const [isSleeping, setIsSleeping] = useState(false);
+  const [sleepStartTime, setSleepStartTime] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logHours, setLogHours] = useState('');
+  const [logMinutes, setLogMinutes] = useState('');
 
-  const [showLogSheet, setShowLogSheet] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [analysisDay, setAnalysisDay] = useState(null);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '' });
-  const [analyzing, setAnalyzing] = useState(false);
-  const [aiResult, setAiResult] = useState(null);
-
-  const { data: apiSleepLogs = [] } = useQuery({
-    queryKey: ['sleepLogs'],
-    queryFn: async () => {
-      try {
-        return await listSleepLogs();
-      } catch {
-        return [];
-      }
-    },
-  });
-
-  const sleepLogs = useMemo(
-    () => mergeSleepLogs(apiSleepLogs, loadLocalSleepLogs()),
-    [apiSleepLogs],
-  );
-
-  const todayLog = useMemo(() => sleepLogs.find((l) => l.date === TODAY), [sleepLogs]);
-
-  const weekDays = useMemo(() => buildCalendarWeek(sleepLogs), [sleepLogs]);
-  const avgHours = useMemo(() => calcWeekAvgHours(weekDays), [weekDays]);
-  const bestNight = useMemo(() => calcBestNight(weekDays), [weekDays]);
-  const streak = useMemo(() => calcWeekStreak(weekDays), [weekDays]);
-
-  const showToast = useCallback((message) => {
-    setToast({ show: true, message });
-    setTimeout(() => setToast({ show: false, message: '' }), 2500);
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  const logInitialData = useMemo(() => {
-    if (!todayLog) return null;
-    return {
-      hours: hoursFromLog(todayLog),
-      quality: todayLog.mood || null,
-      notes: todayLog.journal_note || '',
-      tags: [],
-    };
-  }, [todayLog]);
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = days[currentTime.getDay()];
+  const dayPrefix = dayName.slice(0, 3);
+  const daySuffix = dayName.slice(3);
 
-  const handleSaveSleep = async ({ hours, quality, notes, tags }) => {
-    setSaving(true);
-    const { sleep_time, wake_time, duration_minutes } = deriveTimesFromHours(hours);
-    const sleepScore = calcQualitySleepScore(hours, quality);
-    const durationScore = calcDurationScore(duration_minutes);
+  const nextDayCode = days[(currentTime.getDay() + 1) % 7].slice(0, 2).toUpperCase();
 
-    const noteText = [notes.trim(), tags.length ? tags.join(', ') : ''].filter(Boolean).join('\n');
+  const formatTimeUnit = (num) => num.toString().padStart(2, '0');
 
-    const payload = {
-      date: TODAY,
-      sleep_time,
-      wake_time,
-      duration_minutes,
-      sleep_score: sleepScore,
-      duration_score: durationScore,
-      consistency_score: todayLog?.consistency_score ?? 0,
-      habits_score: todayLog?.habits_score ?? 50,
-      mood: quality,
-      journal_note: noteText,
-    };
-
-    const existingId = todayLog?.id && !String(todayLog.id).startsWith('local-') ? todayLog.id : null;
-    const localEntry = saveLocalSleepLog({ ...payload, id: existingId || todayLog?.id });
-
-    queryClient.setQueryData(['sleepLogs'], (old = []) => {
-      const rest = (old || []).filter((l) => l.date !== TODAY);
-      return [localEntry, ...rest];
-    });
-
-    try {
-      let saved = localEntry;
-      if (existingId) {
-        saved = await updateSleepLog(existingId, payload);
-      } else {
-        saved = await createSleepLog(payload);
-      }
-      saveLocalSleepLog({ ...payload, id: saved.id });
-      queryClient.setQueryData(['sleepLogs'], (old = []) => {
-        const rest = (old || []).filter((l) => l.date !== TODAY);
-        return [{ ...saved, ...payload }, ...rest];
-      });
-    } catch (err) {
-      console.error('Sleep API save failed, using local storage:', err);
-    }
-
-    try {
-      if (profile?.id) {
-        await upsertProfile({
-          last_sleep_hours: hours,
-          last_sleep_date: TODAY,
-        });
-      }
-    } catch (_) {
-      /* profile update is optional */
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['sleepLogs'] });
-    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-
-    setShowLogSheet(false);
-    showToast('Sleep logged! 💤');
-    setSaving(false);
-  };
-
-  const analyzeSleep = async () => {
-    if (sleepLogs.length === 0) {
-      showToast('Log some sleep first to analyze');
-      return;
-    }
-
-    setAnalyzing(true);
-    setAiResult(null);
-
-    const recent = [...sleepLogs]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 30);
-
-    const avgHoursLogged = recent.reduce((s, l) => s + (l.duration_minutes || 0), 0) / recent.length / 60;
-    const avgScore = Math.round(
-      recent.reduce((s, l) => s + (l.sleep_score || 0), 0) / recent.length,
-    );
-
-    const sleepSummary = recent
-      .map((l) => {
-        const h = ((l.duration_minutes || 0) / 60).toFixed(1);
-        return `${l.date}: ${h}h, quality: ${l.mood || 'unknown'}, score: ${l.sleep_score ?? 'n/a'}${l.journal_note ? `, notes: ${l.journal_note}` : ''}`;
-      })
-      .join('\n');
-
-    const prompt = `You are a sleep specialist and coach. Analyze this user's sleep logs and give personalized, actionable insights.
-
-Base your entire analysis on the specific data below. Do not use generic advice — reference actual numbers from their logs.
-
-USER PROFILE:
-- Age: ${profile.age || 'unknown'} | Sex: ${profile.sex || 'unknown'} | Goal: ${profile.goal || 'general health'}
-- Health conditions: ${(profile.health_conditions || []).join(', ') || 'none reported'}
-
-SLEEP SUMMARY (last ${recent.length} logged nights):
-- Average duration: ${avgHoursLogged.toFixed(1)} hours/night
-- Average sleep score: ${avgScore}/100
-
-DAILY LOGS:
-${sleepSummary}
-
-Identify patterns (weekday vs weekend, quality vs duration mismatches, consistency issues). Return 3-4 specific insights with titles and descriptions citing their actual data.`;
-
-    try {
-      const claudeRes = await analyzeWithClaude({
-        prompt,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            summary: { type: 'string' },
-            insights: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  title: { type: 'string' },
-                  description: { type: 'string' },
-                  type: { type: 'string' },
-                },
-              },
-            },
-            top_recommendation: { type: 'string' },
-          },
-        },
-      });
-      setAiResult(claudeRes?.result ?? claudeRes);
-    } catch (err) {
-      console.error(err);
-      showToast('Analysis failed — try again');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleDayClick = (day) => {
-    if (day.log) {
-      setAnalysisDay(day);
+  const handleStartSleep = () => {
+    if (!isSleeping) {
+      setIsSleeping(true);
+      setSleepStartTime(new Date());
     } else {
-      showToast(`No data for ${day.label}`);
+      const endTime = new Date();
+      const durationMs = endTime - sleepStartTime;
+      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+      const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      setLogs(prev => [...prev, {
+        id: Date.now(),
+        start: sleepStartTime,
+        end: endTime,
+        duration: `${durationHours}h ${durationMinutes}min`
+      }]);
+      setIsSleeping(false);
+      setSleepStartTime(null);
     }
   };
 
-  const handleCloseAnalysis = () => setAnalysisDay(null);
+  const handleAddLog = () => {
+    const h = parseInt(logHours) || 0;
+    const m = parseInt(logMinutes) || 0;
+    if (h > 0 || m > 0) {
+      setLogs(prev => [...prev, {
+        id: Date.now(),
+        start: new Date(),
+        end: new Date(),
+        duration: `${h}h ${m}min`,
+        isManual: true
+      }]);
+      setLogHours('');
+      setLogMinutes('');
+      setShowLogModal(false);
+    }
+  };
+
+  const getElapsedTime = () => {
+    if (!sleepStartTime) return { hours: 0, minutes: 0 };
+    const diff = new Date() - sleepStartTime;
+    return {
+      hours: Math.floor(diff / (1000 * 60 * 60)),
+      minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    };
+  };
+
+  const elapsed = getElapsedTime();
+  const displayHours = isSleeping ? elapsed.hours : 11;
+  const displayMinutes = isSleeping ? elapsed.minutes : 30;
 
   return (
-    <div className="sleep-tracker min-h-screen" style={{ background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8', fontFamily: 'Inter,ui-sans-serif,system-ui,-apple-system,sans-serif' }}>
-      <div className={`st-main${analysisDay ? ' is-hidden' : ''}`}>
-        {/* Header */}
-        <div className="st-page-header">
-          <div>
-            <div className="st-header-greeting">{getGreeting()}</div>
-            <div className="st-header-title">Sleep</div>
-          </div>
-          <div className="st-header-avatar">🌙</div>
-        </div>
+    <div className="w-full max-w-[390px] mx-auto bg-[#7a8fa3] rounded-[48px] p-3 pb-6 relative overflow-hidden shadow-2xl">
+      {/* Notch */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[120px] h-[30px] bg-black rounded-[20px] z-10" />
 
-        {/* Log Sleep */}
-        <button type="button" className="st-log-btn" onClick={() => setShowLogSheet(true)}>
-          <div className="st-log-btn-label">
-            <div className="st-btn-icon">+</div>
-            LOG Sleep
-          </div>
-          <div className="st-log-btn-sub">
-            {todayLog ? `Last logged: ${hoursFromLog(todayLog).toFixed(1)}h — tap to update` : "Tap to record tonight's sleep"}
-          </div>
-        </button>
-
-        {/* Quick Stats */}
-        <div className="st-quick-stats">
-          <div className="st-quick-stat">
-            <div className="st-quick-stat-value">{avgHours != null ? avgHours.toFixed(1) : '--'}</div>
-            <div className="st-quick-stat-label">Avg Hours</div>
-            <div className="st-quick-stat-delta st-delta-neutral">This week</div>
-          </div>
-          <div className="st-quick-stat">
-            <div className="st-quick-stat-value">{bestNight ? bestNight.dayShort : '--'}</div>
-            <div className="st-quick-stat-label">Best Night</div>
-            <div className="st-quick-stat-delta st-delta-up">
-              {bestNight ? `${Number(bestNight.hours).toFixed(1)}h` : '--'}
-            </div>
-          </div>
-          <div className="st-quick-stat">
-            <div className="st-quick-stat-value">{streak}</div>
-            <div className="st-quick-stat-label">Day Streak</div>
-            <div className="st-quick-stat-delta st-delta-neutral">Keep it up!</div>
-          </div>
-        </div>
-
-        {/* Weekly Chart */}
-        <div className="st-section">
-          <div className="st-section-header">
-            <div className="st-section-title">Weekly Trends</div>
-            <button
-              type="button"
-              className="st-section-action"
-              onClick={() => setShowCalendar(true)}
-            >
-              See All →
-            </button>
-          </div>
-          <SleepWeeklyChart weekDays={weekDays} onDayClick={handleDayClick} />
-        </div>
-
-        {/* Week Overview */}
-        <div className="st-section">
-          <div className="st-section-header">
-            <div className="st-section-title">Week Overview</div>
-            <button
-              type="button"
-              className="st-section-action"
-              onClick={() => showToast('Tap a day with data to analyze')}
-            >
-              Tap to analyze
-            </button>
-          </div>
-          <div className="st-week-container">
-            {weekDays.map((day) => {
-              const hasData = !!day.log;
-              const emoji = day.quality ? QUALITY_EMOJI[day.quality] || '' : '';
-              return (
-                <button
-                  key={day.key}
-                  type="button"
-                  className={`st-day-pill${hasData ? ' has-data' : ''}${day.isToday ? ' is-today' : ''}`}
-                  onClick={() => handleDayClick(day)}
-                >
-                  <div className="st-day-letter">{day.label[0]}</div>
-                  <div className="st-day-name">{day.label}</div>
-                  {hasData && <div className="st-day-hours">{Number(day.hours).toFixed(1)}h</div>}
-                  {hasData && emoji && <div className="st-day-quality">{emoji}</div>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* AI Card */}
-        <div className="st-ai-card">
-          <div className="st-ai-header">
-            <div className="st-ai-icon-wrap">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="st-ai-title">AI Sleep Analysis</div>
-              <div className="st-ai-badge">Beta</div>
-            </div>
-          </div>
-          <div className="st-ai-desc">
-            Analyzes your sleep logs to find patterns, consistency issues, and personalized tips for better rest.
-          </div>
-          <button
-            type="button"
-            className="st-ai-btn"
-            onClick={analyzeSleep}
-            disabled={analyzing}
-          >
-            {analyzing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Analyzing...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" /> Analyze My Sleep
-              </>
-            )}
-          </button>
-
-          {aiResult && (
-            <div className="st-ai-results">
-              {aiResult.summary && (
-                <div className="st-ai-summary">
-                  <p className="st-ai-summary-label">Summary</p>
-                  <p className="st-ai-summary-text">{aiResult.summary}</p>
-                </div>
-              )}
-
-              {(aiResult.insights || []).map((insight, i) => {
-                const style = insightStyle(insight.type);
-                return (
-                  <div key={i} className="st-ai-insight">
-                    <div className="st-ai-insight-icon" style={{ background: style.iconBg }}>
-                      {style.icon}
-                    </div>
-                    <div>
-                      <p className="st-ai-insight-title">{insight.title}</p>
-                      <p className="st-ai-insight-desc">{insight.description}</p>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {aiResult.top_recommendation && (
-                <div className="st-ai-recommendation">
-                  <p className="st-ai-recommendation-label">Top Recommendation</p>
-                  <p className="st-ai-recommendation-text">{aiResult.top_recommendation}</p>
-                </div>
-              )}
-            </div>
-          )}
+      {/* Status Bar */}
+      <div className="h-11 flex items-center justify-between px-2 relative z-[5]">
+        <div className="w-8 h-8 bg-[#1a1a1a] rounded-full flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17.5 19c0-1.7-1.3-3-3-3h-5c-1.7 0-3 1.3-3 3" />
+            <path d="M13 13V9" />
+            <path d="M13 9a4 4 0 0 0-4-4" />
+            <path d="M13 9a4 4 0 0 1 4-4" />
+            <path d="M9 16v3" />
+            <path d="M15 16v3" />
+            <path d="M11 16v3" />
+            <path d="M17 16v3" />
+          </svg>
         </div>
       </div>
 
-      {/* Log Sheet */}
-      <SleepLogSheet
-        open={showLogSheet}
-        onClose={() => setShowLogSheet(false)}
-        onSave={handleSaveSleep}
-        saving={saving}
-        initialData={logInitialData}
-        onToast={showToast}
-      />
+      {/* Main Card */}
+      <div className="bg-[#f0f0f0] rounded-[32px] p-7 pt-7 pb-5 mt-1">
 
-      {/* Analysis Page */}
-      {analysisDay && (
-        <SleepAnalysisPage day={analysisDay} onClose={handleCloseAnalysis} />
-      )}
+        {/* Day Header */}
+        <div className="mb-6 leading-[0.9]">
+          <div className="text-[72px] font-bold text-black tracking-[-3px] leading-[0.85]">
+            {dayPrefix}-
+          </div>
+          <div className="text-[48px] font-normal text-black tracking-[-1px] ml-1 leading-none">
+            {daySuffix}
+          </div>
+        </div>
 
-      {/* AI loading overlay */}
-      {analyzing && (
-        <div className="st-ai-loading">
-          <Loader2 className="w-10 h-10 animate-spin text-white mb-4" />
-          <p className="text-white text-lg font-semibold">Analyzing your sleep...</p>
-          <p className="text-sm mt-1 st-ai-loading-sub">Reviewing patterns from your logs</p>
+        {/* Clock Display */}
+        <div className="flex justify-center mb-5">
+          <div className="bg-[#f8f8f8] border-[5px] border-[#5a5a5a] rounded-[60px] px-9 pt-[18px] pb-[22px] relative shadow-[inset_0_2px_8px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.15)]">
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-[80px] font-medium text-[#555] leading-none tracking-[-4px]">
+                {displayHours}
+              </span>
+              <span className="text-2xl font-medium text-black ml-0.5 -mr-0.5">h</span>
+              <span className="text-[48px] font-semibold text-[#333] mx-1 leading-[0.8]">:</span>
+              <span className="text-[80px] font-medium text-[#555] leading-none tracking-[-4px]">
+                {formatTimeUnit(displayMinutes)}
+              </span>
+              <span className="text-2xl font-medium text-black ml-0.5">min</span>
+            </div>
+            {/* Clock Feet */}
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-20">
+              <div className="w-7 h-3.5 bg-[#5a5a5a] rounded-b-md" />
+              <div className="w-7 h-3.5 bg-[#5a5a5a] rounded-b-md" />
+            </div>
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex flex-col gap-2.5 mb-4">
+          <button
+            onClick={handleStartSleep}
+            className={`w-full py-4 border-[3px] border-[#b0b0b0] rounded-[28px] text-[26px] font-normal cursor-pointer transition-all duration-200 active:scale-[0.98] ${
+              isSleeping 
+                ? 'bg-red-50 text-red-600 border-red-300' 
+                : 'bg-[#f5f5f5] text-black'
+            }`}
+          >
+            {isSleeping ? 'stop sleep' : 'start sleep'}
+          </button>
+          <button
+            onClick={() => setShowLogModal(true)}
+            className="w-full py-4 border-[3px] border-[#b0b0b0] rounded-[28px] bg-[#f5f5f5] text-[26px] font-normal text-black cursor-pointer transition-all duration-200 active:scale-[0.98]"
+          >
+            Log
+          </button>
+        </div>
+
+        {/* Bottom Cards Row */}
+        <div className="flex gap-2.5">
+          {/* Debt Card */}
+          <div className="flex-[1.2] bg-[#e8e8e8] rounded-[24px] p-4 px-[18px]">
+            <div className="text-[32px] font-normal text-black mb-1">Dept</div>
+            <div className="flex items-baseline gap-px">
+              <span className="text-[64px] font-medium text-[#555] leading-none tracking-[-3px]">
+                {sleepDebt.hours}
+              </span>
+              <span className="text-xl font-medium text-black">h</span>
+              <span className="text-[64px] font-medium text-[#555] leading-none tracking-[-3px]">
+                {formatTimeUnit(sleepDebt.minutes)}
+              </span>
+              <span className="text-xl font-medium text-black">min</span>
+            </div>
+          </div>
+
+          {/* Calendar Card */}
+          <div className="flex-1 bg-[#e8e8e8] rounded-[24px] p-4 px-[18px] relative">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xl font-normal text-black">Calender</span>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div className="text-[72px] font-bold text-[#555] leading-[0.9] tracking-[-4px] mt-2">
+              {nextDayCode}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="flex items-center justify-between mt-3 px-1">
+          <div className="w-10 h-10 bg-[#c5d4e8] rounded-full opacity-60" />
+          <button className="w-10 h-10 border-[3px] border-[#b0b0b0] rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-90">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Log Modal */}
+      {showLogModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[32px] p-6 w-full max-w-[320px]">
+            <h3 className="text-2xl font-bold text-black mb-4">Add Sleep Log</h3>
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1">
+                <label className="text-sm text-gray-500 block mb-1">Hours</label>
+                <input
+                  type="number"
+                  value={logHours}
+                  onChange={(e) => setLogHours(e.target.value)}
+                  placeholder="0"
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl text-2xl text-center"
+                  min="0"
+                  max="24"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-sm text-gray-500 block mb-1">Minutes</label>
+                <input
+                  type="number"
+                  value={logMinutes}
+                  onChange={(e) => setLogMinutes(e.target.value)}
+                  placeholder="0"
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl text-2xl text-center"
+                  min="0"
+                  max="59"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLogModal(false)}
+                className="flex-1 py-3 border-2 border-gray-300 rounded-xl text-lg font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddLog}
+                className="flex-1 py-3 bg-black text-white rounded-xl text-lg font-medium"
+              >
+                Add
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      <AnimatePresence>
-        {showCalendar && (
-          <SleepCalendarModal sleepLogs={sleepLogs} onClose={() => setShowCalendar(false)} />
-        )}
-      </AnimatePresence>
-
-      <SleepToast message={toast.message} show={toast.show} />
+      {/* Logs List (collapsible) */}
+      {logs.length > 0 && (
+        <div className="mt-4 bg-white/10 rounded-[24px] p-4">
+          <h4 className="text-white text-lg font-medium mb-2">Recent Logs</h4>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {logs.slice(-5).map((log) => (
+              <div key={log.id} className="bg-white/20 rounded-xl p-3 flex justify-between items-center">
+                <span className="text-white text-sm">
+                  {log.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className="text-white font-medium">{log.duration}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

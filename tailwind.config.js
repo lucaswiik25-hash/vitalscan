@@ -5,6 +5,10 @@ module.exports = {
   theme: {
   	extend: {
       fontWeight: {
+        // figma:figma-basics (pl3bVsQK) — start
+        "figma-normal": "400",
+        // figma:figma-basics (pl3bVsQK) — end
+      
         // figma:untitled (YTbSyfZL) — start
         "figma-normal": "400",
         // figma:untitled (YTbSyfZL) — end
@@ -28,6 +32,13 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — end
       },
       lineHeight: {
+        // figma:figma-basics (pl3bVsQK) — start
+        "figma-48": "48px",
+        "figma-77": "77px",
+        "figma-116": "116px",
+        "figma-155": "155px",
+        // figma:figma-basics (pl3bVsQK) — end
+      
         // figma:untitled (YTbSyfZL) — start
         "figma-38": "38px",
         "figma-39": "39px",
@@ -68,6 +79,13 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — end
       },
       fontSize: {
+        // figma:figma-basics (pl3bVsQK) — start
+        "figma-40": "40px",
+        "figma-64": "64px",
+        "figma-96": "96px",
+        "figma-128": "128px",
+        // figma:figma-basics (pl3bVsQK) — end
+      
         // figma:untitled (YTbSyfZL) — start
         "figma-32": "32px",
         "figma-40": "40px",
@@ -122,6 +140,13 @@ module.exports = {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+        // figma:figma-basics (pl3bVsQK) — start
+        "figma-secondary-2": "hsl(var(--figma-secondary-2))",
+        "figma-muted-3": "hsl(var(--figma-muted-3))",
+        "figma-surface-4": "hsl(var(--figma-surface-4))",
+        "figma-border-4": "hsl(var(--figma-border-4))",
+        // figma:figma-basics (pl3bVsQK) — end
+      
         // figma:untitled (YTbSyfZL) — start
         "figma-accent-2": "hsl(var(--figma-accent-2))",
         "figma-surface-3": "hsl(var(--figma-surface-3))",

@@ -22,6 +22,7 @@ import BodyScanner from './pages/BodyScanner';
 import ExerciseFormScanner from './pages/ExerciseFormScanner';
 import Tips from './pages/Tips.jsx';
 import SleepTracker from './pages/SleepTracker';
+import WaterTracker from './pages/WaterTracker';
 import Exercise from './pages/Exercise';
 import Frame6 from './pages/Frame6';
 import Frame8 from './pages/Frame8';
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/tips" element={<Tips />} />
         <Route path="/sleep" element={<SleepTracker />} />
+        <Route path="/water" element={<WaterTracker />} />
         <Route path="/exercise" element={<Exercise />} />
       </Route>
       <Route path="/onboarding" element={<Onboarding />} />

@@ -140,22 +140,27 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
 
   const toggleExpand = (i) => setExpanded(prev => ({ ...prev, [i]: !prev[i] }));
 
+  const pageStyle = {
+    background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8',
+  };
+  const cardCls = "rounded-[30px] bg-white/80 p-6 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl";
+
   return (
-    <div className="min-h-screen pb-10" style={pageRevealStyle(pageVisible)}>
-      <div {...animCard(0, pageVisible)} className="px-5 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">Meal Planner</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised meals for today' : 'AI-generated meals for your diet & goals'}</p>
+    <div className="min-h-screen pb-10 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]" style={pageStyle}>
+      <div className="px-4 pt-6 pb-4">
+        <h1 className="text-[28px] font-extrabold text-[#101114]">Meal Planner</h1>
+        <p className="text-sm text-[#6d7079] mt-1">{profile.diet_mode === 'appearance_mode' ? 'Appearance-optimised meals for today' : 'AI-generated meals for your diet & goals'}</p>
       </div>
 
-      <div className="px-5 space-y-4">
+      <div className="px-4 space-y-4">
         {/* Meal count selector */}
-        <div {...animCard(1, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
-          <p className="text-sm font-semibold text-foreground mb-3">How many meals per day?</p>
+        <div className={cardCls}>
+          <p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] mb-3">Meals per day</p>
           <div className="flex gap-2">
             {MEAL_COUNTS.map(n => (
               <button key={n} onClick={() => setMealCount(n)}
-                className="flex-1 py-3 rounded-2xl text-sm font-bold transition-all"
-                style={{ background: mealCount === n ? '#1a1a1a' : 'hsl(var(--secondary))', color: mealCount === n ? 'white' : 'hsl(var(--foreground))' }}>
+                className="flex-1 py-3 rounded-full text-sm font-extrabold transition-all"
+                style={{ background: mealCount === n ? '#121316' : '#f1f0f4', color: mealCount === n ? 'white' : '#101114' }}>
                 {n}
               </button>
             ))}
@@ -164,15 +169,15 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
 
         {/* Diet info */}
         {profile.diet_mode && profile.diet_mode !== 'none' && (
-          <div {...animCard(2, pageVisible)} className="bg-secondary/50 border border-border rounded-[20px] px-4 py-3 flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Diet mode active:</span>
-            <span className="text-xs font-bold text-foreground capitalize">{DIET_LABELS[profile.diet_mode] || profile.diet_mode?.replace(/_/g, ' ')}</span>
+          <div className="rounded-[20px] bg-[#e9e2ff] px-4 py-3 flex items-center gap-2">
+            <span className="text-xs text-[#6d7079]">Diet mode active:</span>
+            <span className="text-xs font-extrabold text-[#322b58] capitalize">{DIET_LABELS[profile.diet_mode] || profile.diet_mode?.replace(/_/g, ' ')}</span>
           </div>
         )}
 
         {/* Generate button */}
-        <button {...animCard(3, pageVisible)} onClick={generatePlan} disabled={loading}
-          className="press-scale w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base flex items-center justify-center gap-2">
+        <button onClick={generatePlan} disabled={loading}
+          className="w-full min-h-[54px] rounded-full bg-[#121316] text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-[0_16px_36px_rgba(18,19,22,.18)] disabled:opacity-50">
           {loading
             ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating your plan...</>
             : plan
@@ -184,74 +189,69 @@ For each meal provide: name, description (1-2 sentences), ingredients (list), ca
         {/* Plan */}
         {plan && (
           <>
-            <div {...animCard(4, pageVisible)} className="flex gap-3">
-              <div className="flex-1 bg-white rounded-[20px] p-4 text-center glow-card">
-                <p className="text-2xl font-extrabold text-foreground">{plan.total_calories}</p>
-                <p className="text-xs text-muted-foreground">Total kcal</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-[20px] bg-white/80 backdrop-blur-2xl p-4 text-center shadow-[0_14px_38px_rgba(16,17,20,.05)]">
+                <p className="text-2xl font-extrabold text-[#101114]">{plan.total_calories}</p>
+                <p className="text-xs text-[#6d7079]">Total kcal</p>
               </div>
-              <div className="flex-1 bg-white rounded-[20px] p-4 text-center glow-card">
-                <p className="text-2xl font-extrabold text-foreground">{plan.total_protein}g</p>
-                <p className="text-xs text-muted-foreground">Protein</p>
+              <div className="rounded-[20px] bg-white/80 backdrop-blur-2xl p-4 text-center shadow-[0_14px_38px_rgba(16,17,20,.05)]">
+                <p className="text-2xl font-extrabold text-[#101114]">{plan.total_protein}g</p>
+                <p className="text-xs text-[#6d7079]">Protein</p>
               </div>
-              <div className="flex-1 bg-white rounded-[20px] p-4 text-center glow-card">
-                <p className="text-xs text-muted-foreground">Generated for</p>
-                <p className="text-xs font-bold text-foreground mt-0.5">Today</p>
+              <div className="rounded-[20px] bg-white/80 backdrop-blur-2xl p-4 text-center shadow-[0_14px_38px_rgba(16,17,20,.05)]">
+                <p className="text-xs text-[#6d7079]">Generated for</p>
+                <p className="text-xs font-extrabold text-[#101114] mt-0.5">Today</p>
               </div>
             </div>
 
             {plan.notes && (
-              <div className="bg-secondary/40 border border-border rounded-[20px] px-4 py-3">
-                <p className="text-xs text-muted-foreground">{plan.notes}</p>
+              <div className="rounded-[20px] bg-[#f1f0f4] px-4 py-3">
+                <p className="text-xs text-[#6d7079]">{plan.notes}</p>
               </div>
             )}
 
             <div className="space-y-3">
               {(plan.meals || []).map((meal, i) => (
-                <div key={i} {...animCard(5 + i, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
+                <div key={i} className={cardCls}>
                   <button onClick={() => toggleExpand(i)} className="w-full text-left">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{meal.meal_type}</p>
-                        <h3 className="text-base font-bold text-foreground mt-0.5">{meal.name}</h3>
+                        <p className="text-[10px] font-extrabold uppercase tracking-[.08em] text-[#6d7079]">{meal.meal_type}</p>
+                        <h3 className="text-lg font-extrabold text-[#101114] mt-0.5">{meal.name}</h3>
                         {plan.is_appearance_mode
-                          ? <p className="text-xs text-muted-foreground mt-0.5">{meal.prep_time} · Bloat: {meal.bloat_risk} · ~{meal.sodium_estimate}mg Na</p>
-                          : <p className="text-xs text-muted-foreground mt-0.5">{meal.calories} kcal · {meal.prep_time}</p>
+                          ? <p className="text-xs text-[#6d7079] mt-0.5">{meal.prep_time} · Bloat: {meal.bloat_risk} · ~{meal.sodium_estimate}mg Na</p>
+                          : <p className="text-xs text-[#6d7079] mt-0.5">{meal.calories} kcal · {meal.prep_time}</p>
                         }
                       </div>
-                      {expanded[i] ? <ChevronUp className="w-4 h-4 text-muted-foreground mt-1" /> : <ChevronDown className="w-4 h-4 text-muted-foreground mt-1" />}
+                      {expanded[i] ? <ChevronUp className="w-4 h-4 text-[#6d7079] mt-1 shrink-0" /> : <ChevronDown className="w-4 h-4 text-[#6d7079] mt-1 shrink-0" />}
                     </div>
                   </button>
                   {expanded[i] && (
-                    <div className="mt-3 pt-3 border-t border-border space-y-2">
-                      <p className="text-sm text-muted-foreground">{meal.description}</p>
+                    <div className="mt-4 pt-4 border-t border-[#e7e5eb] space-y-3">
+                      <p className="text-sm text-[#6d7079] leading-relaxed">{meal.description}</p>
                       {plan.is_appearance_mode && meal.appearance_benefit && (
-                        <div className="bg-purple-50 rounded-xl px-3 py-2">
-                          <p className="text-[10px] font-bold text-purple-600 uppercase mb-0.5">Appearance Benefit</p>
-                          <p className="text-xs text-purple-700">{meal.appearance_benefit}</p>
+                        <div className="rounded-[16px] bg-[#e9e2ff] px-3 py-2">
+                          <p className="text-[10px] font-extrabold text-[#322b58] uppercase mb-0.5">Appearance Benefit</p>
+                          <p className="text-xs text-[#322b58]">{meal.appearance_benefit}</p>
                         </div>
                       )}
-                      <div className="flex gap-3">
-                        {plan.is_appearance_mode
-                          ? [['Calories', `${meal.calories}`], ['Sodium', `${meal.sodium_estimate}mg`], ['Bloat', meal.bloat_risk]].map(([l, v]) => (
-                              <div key={l} className="flex-1 bg-secondary rounded-xl p-2 text-center">
-                                <p className="text-sm font-bold text-foreground">{v}</p>
-                                <p className="text-xs text-muted-foreground">{l}</p>
-                              </div>
-                            ))
-                          : [['Protein', `${meal.protein}g`], ['Carbs', `${meal.carbs}g`], ['Fat', `${meal.fat}g`]].map(([l, v]) => (
-                              <div key={l} className="flex-1 bg-secondary rounded-xl p-2 text-center">
-                                <p className="text-sm font-bold text-foreground">{v}</p>
-                                <p className="text-xs text-muted-foreground">{l}</p>
-                              </div>
-                            ))
-                        }
+                      <div className="flex gap-2">
+                        {(plan.is_appearance_mode
+                          ? [['Calories', `${meal.calories}`], ['Sodium', `${meal.sodium_estimate}mg`], ['Bloat', meal.bloat_risk]]
+                          : [['Protein', `${meal.protein}g`], ['Carbs', `${meal.carbs}g`], ['Fat', `${meal.fat}g`]]
+                        ).map(([l, v]) => (
+                          <div key={l} className="flex-1 bg-[#f1f0f4] rounded-[14px] p-2 text-center">
+                            <p className="text-sm font-extrabold text-[#101114]">{v}</p>
+                            <p className="text-xs text-[#6d7079]">{l}</p>
+                          </div>
+                        ))}
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-foreground mb-1">Ingredients</p>
+                        <p className="text-xs font-extrabold text-[#101114] mb-1.5">Ingredients</p>
                         <ul className="space-y-0.5">
                           {(meal.ingredients || []).map((ing, j) => (
-                            <li key={j} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                              <span className="w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
+                            <li key={j} className="text-xs text-[#6d7079] flex items-center gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-[#b6a4ff] shrink-0" />
                               {ing}
                             </li>
                           ))}

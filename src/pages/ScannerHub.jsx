@@ -400,14 +400,16 @@ export default function ScannerHub() {
     : ['food', 'skincare', 'supplement', 'body', 'exerciseform'];
 
   return (
-    <div className="min-h-screen pb-20 overflow-y-auto" style={pageRevealStyle(pageVisible)}>
+    <div
+      className="min-h-screen pb-20 overflow-y-auto font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]"
+      style={{ background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8' }}
+    >
       {/* Header */}
-      <div {...animCard(0, pageVisible)} className="flex items-center justify-between px-5 pt-12 pb-2">
-        <button onClick={() => navigate('/')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-          <Home className="w-5 h-5 text-foreground" />
+      <div className="flex items-center justify-between px-4 pt-6 pb-2">
+        <h1 className="text-[28px] font-extrabold text-[#101114]">Scanner</h1>
+        <button onClick={() => navigate('/')} className="grid h-11 w-11 place-items-center rounded-full bg-white/80 shadow-[0_14px_38px_rgba(16,17,20,.05)] backdrop-blur-2xl">
+          <Home className="w-5 h-5 text-[#101114]" />
         </button>
-        <span className="text-lg font-bold text-foreground">Scanner</span>
-        <div className="w-10" />
       </div>
 
       {/* Food search bar */}

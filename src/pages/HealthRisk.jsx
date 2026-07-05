@@ -177,32 +177,37 @@ Identify ALL health risks based on the actual numbers above. For each risk:
     dangerous: { icon: ShieldAlert, color: '#dc2626', bg: '#fee2e2', label: 'Dangerous' },
   };
 
+  const pageStyle = {
+    background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8',
+  };
+  const cardCls = "rounded-[30px] bg-white/80 p-6 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl";
+
   return (
-    <div className="min-h-screen pb-10">
-      <div className="px-5 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">{profile.diet_mode === 'appearance_mode' ? 'Appearance Score' : 'Health Risk Analysis'}</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{profile.diet_mode === 'appearance_mode' ? 'How your diet is affecting your face & skin' : 'AI-powered diet risk assessment'}</p>
+    <div className="min-h-screen pb-10 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]" style={pageStyle}>
+      <div className="px-4 pt-6 pb-4">
+        <h1 className="text-[28px] font-extrabold text-[#101114]">{profile.diet_mode === 'appearance_mode' ? 'Appearance Score' : 'Health Risk Analysis'}</h1>
+        <p className="text-sm text-[#6d7079] mt-1">{profile.diet_mode === 'appearance_mode' ? 'How your diet is affecting your face & skin' : 'AI-powered diet risk assessment'}</p>
       </div>
 
-      <div className="px-5 space-y-4">
-        <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-          <p className="text-sm font-semibold text-foreground mb-3">Analysis Period</p>
+      <div className="px-4 space-y-4">
+        <div className={cardCls}>
+          <p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] mb-3">Analysis Period</p>
           <div className="flex gap-2">
             {[3, 7, 14, 30].map(d => (
               <button key={d} onClick={() => setDays(d)}
-                className="flex-1 py-3 rounded-2xl text-sm font-bold transition-all"
-                style={{ background: days === d ? '#1a1a1a' : 'hsl(var(--secondary))', color: days === d ? 'white' : 'hsl(var(--foreground))' }}>
+                className="flex-1 py-3 rounded-full text-sm font-extrabold transition-all"
+                style={{ background: days === d ? '#121316' : '#f1f0f4', color: days === d ? 'white' : '#101114' }}>
                 {d}d
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-[#6d7079] mt-2">
             Analyzing {meals.filter(m => { const c = new Date(); c.setDate(c.getDate() - days); return new Date(m.date) >= c; }).length} meals from the past {days} days
           </p>
         </div>
 
         <button onClick={analyze} disabled={loading}
-          className="w-full h-14 rounded-2xl bg-foreground text-white font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+          className="w-full min-h-[54px] rounded-full bg-[#121316] text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-[0_16px_36px_rgba(18,19,22,.18)] disabled:opacity-50">
           {loading
             ? <><Loader2 className="w-5 h-5 animate-spin" /> {profile.diet_mode === 'appearance_mode' ? 'Analysing appearance...' : 'Analyzing your health...'}</>
             : <><ShieldAlert className="w-5 h-5" /> {profile.diet_mode === 'appearance_mode' ? 'Analyse Appearance Score' : 'Analyze Health Risks'}</>
@@ -215,7 +220,7 @@ Identify ALL health risks based on the actual numbers above. For each risk:
           return (
             <>
               {/* Overall score */}
-              <div className="bg-white border border-border rounded-[24px] p-6 shadow-sm">
+              <div className={cardCls}>
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-xs text-muted-foreground">{result.is_appearance_mode ? 'Appearance Score' : 'Overall Health Score'}</p>
@@ -235,31 +240,31 @@ Identify ALL health risks based on the actual numbers above. For each risk:
                 <p className="text-sm text-muted-foreground mt-3">{result.summary}</p>
                 {/* Appearance Mode extra cards */}
                 {result.is_appearance_mode && (
-                  <div className="mt-4 space-y-2">
-                    {result.sodium_assessment && (
-                      <div className="bg-blue-50 rounded-2xl px-4 py-3">
-                        <p className="text-[10px] font-bold text-blue-600 uppercase mb-0.5">Sodium → Tomorrow's Face</p>
-                        <p className="text-xs text-blue-700">{result.sodium_assessment}</p>
-                      </div>
-                    )}
-                    {result.inflammation_assessment && (
-                      <div className="bg-orange-50 rounded-2xl px-4 py-3">
-                        <p className="text-[10px] font-bold text-orange-600 uppercase mb-0.5">Skin Inflammation Today</p>
-                        <p className="text-xs text-orange-700">{result.inflammation_assessment}</p>
-                      </div>
-                    )}
-                  </div>
+                <div className="mt-4 space-y-2">
+                  {result.sodium_assessment && (
+                    <div className="rounded-[16px] bg-[#dbeaff] px-4 py-3">
+                      <p className="text-[10px] font-extrabold text-blue-700 uppercase mb-0.5">Sodium → Tomorrow's Face</p>
+                      <p className="text-xs text-blue-800">{result.sodium_assessment}</p>
+                    </div>
+                  )}
+                  {result.inflammation_assessment && (
+                    <div className="rounded-[16px] bg-[#ffe8d7] px-4 py-3">
+                      <p className="text-[10px] font-extrabold text-orange-700 uppercase mb-0.5">Skin Inflammation Today</p>
+                      <p className="text-xs text-orange-800">{result.inflammation_assessment}</p>
+                    </div>
+                  )}
+                </div>
                 )}
               </div>
 
               {/* Risks */}
               {(result.risks || []).length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-foreground px-1">Identified Risks</h3>
+                  <h3 className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] px-1">Identified Risks</h3>
                   {result.risks.map((risk, i) => {
                     const sc = SEV_STYLES[risk.severity] || SEV_STYLES.low;
                     return (
-                      <div key={i} className="bg-white border rounded-[24px] p-5 shadow-sm space-y-3" style={{ borderColor: sc.border }}>
+                      <div key={i} className="rounded-[30px] bg-white/80 p-5 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl space-y-3" style={{ borderLeft: `4px solid ${sc.border}` }}>
                         {/* Header */}
                         <div className="flex items-center justify-between">
                           <h4 className="text-sm font-bold text-foreground">{risk.title}</h4>
@@ -306,7 +311,7 @@ Identify ALL health risks based on the actual numbers above. For each risk:
 
               {/* Positives */}
               {(result.positive_habits || []).length > 0 && (
-                <div className="bg-green-50 border border-green-100 rounded-[24px] p-5">
+                <div className="rounded-[30px] bg-[#ccefdc] p-5">
                   <h3 className="text-sm font-bold text-green-800 mb-2">Positive Habits</h3>
                   <ul className="space-y-1">
                     {result.positive_habits.map((h, i) => (
@@ -319,14 +324,14 @@ Identify ALL health risks based on the actual numbers above. For each risk:
               )}
 
               {result.top_recommendation && (
-                <div className="bg-foreground rounded-[24px] p-5">
+                <div className="rounded-[30px] bg-[#121316] p-5">
                   <p className="text-xs font-bold text-white/60 uppercase tracking-wider mb-1">{result.is_appearance_mode ? 'Change This Tomorrow' : 'Top Recommendation'}</p>
                   <p className="text-sm text-white font-medium">{result.top_recommendation}</p>
                 </div>
               )}
               {result.is_appearance_mode && result.thirty_day_plan?.length > 0 && (
-                <div className="bg-white border border-border rounded-[24px] p-5 shadow-sm">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">30-Day Improvement Plan</p>
+                <div className="rounded-[30px] bg-white/80 p-5 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+                  <p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] mb-3">30-Day Improvement Plan</p>
                   <div className="space-y-2">
                     {result.thirty_day_plan.map((step, i) => (
                       <div key={i} className="flex items-start gap-2.5">

@@ -113,10 +113,14 @@ export default function Settings() {
     </div>
   );
 
+  const pageStyle = {
+    background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8',
+  };
+
   return (
-    <div className="min-h-screen pb-10" style={pageRevealStyle(pageVisible)}>
-      <div className="px-5 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+    <div className="min-h-screen pb-10 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]" style={pageStyle}>
+      <div className="px-4 pt-6 pb-4">
+        <h1 className="text-[28px] font-extrabold text-[#101114]">Settings</h1>
       </div>
       {/* Delete Account confirmation dialog */}
       {showDeleteConfirm && (
@@ -138,9 +142,9 @@ export default function Settings() {
         </div>
       )}
 
-      <div className="px-5 space-y-4">
+      <div className="px-4 space-y-4">
         {/* Profile summary */}
-        <div {...animCard(0, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
+        <div className="rounded-[30px] bg-white/80 p-5 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
           {!editingProfile ? (
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-xl font-bold text-foreground shrink-0">
@@ -188,8 +192,8 @@ export default function Settings() {
         </div>
 
         {/* Diet & Goals */}
-        <div {...animCard(1, pageVisible)} className="bg-white rounded-[24px] px-5 glow-card">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Diet & Goals</p>
+        <div className="rounded-[30px] bg-white/80 px-5 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+          <p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] pt-4 pb-2">Diet & Goals</p>
           <SettingRow icon={User} label="Goal">
             <Select value={profile.goal || 'maintain'} onValueChange={v => updateField('goal', v)}>
               <SelectTrigger className="w-36 rounded-xl border-0 bg-secondary h-8 text-xs">
@@ -230,8 +234,8 @@ export default function Settings() {
         </div>
 
         {/* Appearance */}
-        <div {...animCard(2, pageVisible)} className="bg-white rounded-[24px] px-5 glow-card">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">Preferences</p>
+        <div className="rounded-[30px] bg-white/80 px-5 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+          <p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] pt-4 pb-2">Preferences</p>
           <SettingRow icon={Shield} label="Appearance Mode">
             <button
               onClick={() => updateField('appearance_mode', !profile.appearance_mode)}
@@ -249,8 +253,8 @@ export default function Settings() {
         </div>
 
         {/* Daily targets */}
-        <div {...animCard(3, pageVisible)} className="bg-white rounded-[24px] p-5 glow-card">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Daily Targets</p>
+        <div className="rounded-[30px] bg-white/80 p-5 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+          <p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] mb-3">Daily Targets</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               ['Calories', `${profile.calorie_target || 0} kcal`],
@@ -269,8 +273,8 @@ export default function Settings() {
         </div>
 
         {/* About */}
-        <div {...animCard(4, pageVisible)} className="bg-white rounded-[24px] px-5 glow-card">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pt-4 pb-2">About</p>
+        <div className="rounded-[30px] bg-white/80 px-5 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+          <p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#6d7079] pt-4 pb-2">About</p>
           <SettingRow icon={Info} label="Version">
             <span className="text-xs text-muted-foreground">Scanly v1.0</span>
           </SettingRow>
@@ -285,27 +289,24 @@ export default function Settings() {
         }} pageVisible={pageVisible} />
 
         {/* Redo Onboarding */}
-        <button {...animCard(5, pageVisible)}
-          onClick={() => navigate('/onboarding')}
-          className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
-          <RefreshCw className="w-4 h-4 text-foreground" />
-          <span className="text-sm font-semibold text-foreground">Redo Onboarding</span>
+        <button onClick={() => navigate('/onboarding')}
+          className="w-full rounded-[30px] bg-white/80 px-5 py-4 flex items-center gap-3 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+          <RefreshCw className="w-4 h-4 text-[#101114]" />
+          <span className="text-sm font-extrabold text-[#101114]">Redo Onboarding</span>
         </button>
 
         {/* Logout */}
-        <button {...animCard(6, pageVisible)}
-          onClick={() => logout()}
-          className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
-          <LogOut className="w-4 h-4 text-destructive" />
-          <span className="text-sm font-semibold text-destructive">Log Out</span>
+        <button onClick={() => logout()}
+          className="w-full rounded-[30px] bg-white/80 px-5 py-4 flex items-center gap-3 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+          <LogOut className="w-4 h-4 text-red-500" />
+          <span className="text-sm font-extrabold text-red-500">Log Out</span>
         </button>
 
         {/* Delete Account */}
-        <button {...animCard(7, pageVisible)}
-          onClick={() => setShowDeleteConfirm(true)}
-          className="press-scale w-full bg-white rounded-[24px] px-5 py-4 flex items-center gap-3 glow-card">
-          <Trash2 className="w-4 h-4 text-destructive" />
-          <span className="text-sm font-semibold text-destructive">Delete Account</span>
+        <button onClick={() => setShowDeleteConfirm(true)}
+          className="w-full rounded-[30px] bg-white/80 px-5 py-4 flex items-center gap-3 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl">
+          <Trash2 className="w-4 h-4 text-red-500" />
+          <span className="text-sm font-extrabold text-red-500">Delete Account</span>
         </button>
       </div>
     </div>

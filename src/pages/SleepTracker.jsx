@@ -241,7 +241,7 @@ Identify patterns (weekday vs weekend, quality vs duration mismatches, consisten
   const handleCloseAnalysis = () => setAnalysisDay(null);
 
   return (
-    <div className="sleep-tracker min-h-screen" style={pageRevealStyle(pageVisible)}>
+    <div className="sleep-tracker min-h-screen" style={{ background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8', fontFamily: 'Inter,ui-sans-serif,system-ui,-apple-system,sans-serif' }}>
       <div className={`st-main${analysisDay ? ' is-hidden' : ''}`}>
         {/* Header */}
         <div className="st-page-header">

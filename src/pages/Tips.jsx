@@ -23,28 +23,26 @@ export default function Tips() {
   const profile = profiles[0] || null;
 
   return (
-    <div className="min-h-screen pb-24" style={pageRevealStyle(pageVisible)}>
+    <div
+      className="min-h-screen pb-24 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]"
+      style={{ background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8' }}
+    >
       {/* Header */}
-      <div {...animCard(0, pageVisible)} className="px-5 pt-14 pb-4">
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>Tips</h1>
-        <p style={{ fontSize: 14, color: '#6B7280', marginTop: 2 }}>Personalised for you</p>
+      <div className="px-4 pt-6 pb-4">
+        <h1 className="text-[28px] font-extrabold text-[#101114]">Tips</h1>
+        <p className="text-sm text-[#6d7079] mt-1">Personalised for you</p>
       </div>
 
       {/* Tab pills */}
-      <div {...animCard(1, pageVisible)} className="px-5 mb-5 flex gap-2">
+      <div className="px-4 mb-5 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
+            className="inline-flex shrink-0 items-center gap-1.5 min-h-11 px-4 rounded-full text-sm font-extrabold transition-all shadow-[0_14px_38px_rgba(16,17,20,.05)] backdrop-blur-2xl"
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              background: activeTab === t.key ? '#1a2e1a' : '#fff',
-              color: activeTab === t.key ? '#fff' : '#4a5568',
-              fontSize: 13, fontWeight: 600,
-              border: activeTab === t.key ? '1px solid #1a2e1a' : '1px solid rgba(0, 0, 0, 0.13)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              transition: 'all 0.2s',
+              background: activeTab === t.key ? '#121316' : 'rgba(255,255,255,0.8)',
+              color: activeTab === t.key ? '#fff' : '#464951',
             }}
           >
             <span>{t.emoji}</span> {t.label}

@@ -10,6 +10,10 @@ module.exports = {
         // figma:figma-basics (pl3bVsQK) — end
       
         // figma:figma-basics (pl3bVsQK) — start
+        "figma-w-590": "590",
+        // figma:figma-basics (pl3bVsQK) — end
+      
+        // figma:figma-basics (pl3bVsQK) — start
         "figma-normal": "400",
         // figma:figma-basics (pl3bVsQK) — end
       
@@ -36,6 +40,16 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — end
       },
       lineHeight: {
+        // figma:figma-basics (pl3bVsQK) — start
+        "figma-24": "24px",
+        "figma-29": "29px",
+        "figma-31": "31px",
+        "figma-38": "38px",
+        "figma-43": "43px",
+        "figma-57": "57px",
+        "figma-115": "115px",
+        // figma:figma-basics (pl3bVsQK) — end
+      
         // figma:figma-basics (pl3bVsQK) — start
         "figma-24": "24px",
         "figma-29": "29px",
@@ -93,6 +107,15 @@ module.exports = {
         // figma:app-design (yYgV3Jmz) — end
       },
       fontSize: {
+        // figma:figma-basics (pl3bVsQK) — start
+        "figma-20": "20px",
+        "figma-24": "24px",
+        "figma-32": "32px",
+        "figma-36": "36px",
+        "figma-48": "48px",
+        "figma-96": "96px",
+        // figma:figma-basics (pl3bVsQK) — end
+      
         // figma:figma-basics (pl3bVsQK) — start
         "figma-20": "20px",
         "figma-24": "24px",

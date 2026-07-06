@@ -1,252 +1,205 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { motion } from 'framer-motion';
+import { listExerciseLogs, createExerciseLog, getProfileList } from '@/lib/db';
 
-const quickExercises = [
-  {
-    name: "Running",
-    range: "Approx 600-900 Kcal Per Hour",
-    kcal: 240,
-    icon: "running",
-  },
-  {
-    name: "Weight Training",
-    range: "Approx 180-600 Kcal Per Hour",
-    kcal: 160,
-    icon: "weights",
-  },
-  {
-    name: "Walking",
-    range: "Approx 180-300 Kcal Per Hour",
-    kcal: 95,
-    icon: "walking",
-  },
+const QUICK_EXERCISES = [
+  { name: 'Running', kcalRange: '600–900 Kcal Per Hour', met: 9.8, category: 'cardio' },
+  { name: 'Weight Training', kcalRange: '180–600 Kcal Per Hour', met: 5.0, category: 'strength' },
+  { name: 'Cycling', kcalRange: '400–800 Kcal Per Hour', met: 7.5, category: 'cardio' },
+  { name: 'Swimming', kcalRange: '400–700 Kcal Per Hour', met: 8.0, category: 'cardio' },
+  { name: 'HIIT', kcalRange: '500–900 Kcal Per Hour', met: 10.0, category: 'cardio' },
 ];
 
-function Icon({ name, className = "h-6 w-6" }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2.6,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    className,
-    "aria-hidden": true,
+function calcCalories(met, weight, minutes) {
+  return Math.round((met * weight * minutes) / 60);
+}
+
+export default function Exercise() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const [showLog, setShowLog] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState(null);
+  const [duration, setDuration] = useState(30);
+
+  const { data: profiles = [] } = useQuery({ queryKey: ['userProfile'], queryFn: () => getProfileList() });
+  const profile = profiles[0] || {};
+  const weight = profile.weight || 70;
+
+  const { data: exercises = [] } = useQuery({
+    queryKey: ['exercises', today],
+    queryFn: () => listExerciseLogs({ date: today }),
+  });
+
+  const totalBurned = exercises.reduce((s, e) => s + (e.calories_burned || 0), 0);
+  const goal = 600;
+  const percent = Math.min(100, Math.round((totalBurned / goal) * 100));
+  const remaining = Math.max(0, goal - totalBurned);
+
+  const handleAdd = async (ex) => {
+    const cal = calcCalories(ex.met, weight, duration);
+    await createExerciseLog({
+      name: ex.name,
+      date: today,
+      duration_minutes: duration,
+      calories_burned: cal,
+      category: ex.category,
+      intensity: 'medium',
+    });
+    queryClient.invalidateQueries({ queryKey: ['exercises', today] });
+    setShowLog(false);
+    setSelectedExercise(null);
   };
 
-  if (name === "home") {
-    return (
-      <svg {...common}>
-        <path d="m3 10 9-7 9 7" />
-        <path d="M5 9.5V21h14V9.5" />
-        <path d="M10 21v-6h4v6" />
-      </svg>
-    );
-  }
-
-  if (name === "running") {
-    return (
-      <svg {...common}>
-        <path d="m13 4 2 2 2-2" />
-        <path d="M11 7 8 12l4 2 3 6" />
-        <path d="m6 20 3-5" />
-        <path d="m14 10 4 2" />
-        <path d="M3 9h4" />
-        <path d="M2 13h3" />
-      </svg>
-    );
-  }
-
-  if (name === "weights") {
-    return (
-      <svg {...common}>
-        <path d="M6.5 7v10" />
-        <path d="M17.5 7v10" />
-        <path d="M3.5 10v4" />
-        <path d="M20.5 10v4" />
-        <path d="M6.5 12h11" />
-      </svg>
-    );
-  }
-
-  if (name === "walking") {
-    return (
-      <svg {...common}>
-        <circle cx="12" cy="4" r="2" />
-        <path d="m11 8-2 5 3 2 1 5" />
-        <path d="m7 20 2-5" />
-        <path d="m13 10 4 2" />
-      </svg>
-    );
-  }
-
-  if (name === "bag") {
-    return (
-      <svg {...common}>
-        <path d="M7 8h10l1 13H6L7 8Z" />
-        <path d="M9 8a3 3 0 0 1 6 0" />
-      </svg>
-    );
-  }
-
-  if (name === "plus") {
-    return (
-      <svg {...common}>
-        <path d="M12 5v14" />
-        <path d="M5 12h14" />
-      </svg>
-    );
-  }
-
-  return null;
-}
-
-function QuickAddRow({ exercise, faded, onAdd }) {
-  return (
-    <button
-      onClick={() => onAdd(exercise)}
-      className={[
-        "group flex w-full items-center gap-4 rounded-full border-4 border-white bg-white/75 py-3 pl-7 pr-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.04)] backdrop-blur-xl transition duration-200 active:scale-[0.985]",
-        faded ? "scale-[0.88] opacity-45" : "hover:bg-white",
-      ].join(" ")}
-    >
-      <Icon name={exercise.icon} className="h-9 w-9 shrink-0 text-black" />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[26px] font-[780] leading-none text-[#1f2329]">
-          {exercise.name}
-        </div>
-        <div className="mt-1 truncate text-[19px] font-[430] leading-none text-[#8e8e93]">
-          {exercise.range}
-        </div>
-      </div>
-      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#25272b] transition group-active:scale-90">
-        <Icon name="plus" className="h-8 w-8" />
-      </div>
-    </button>
-  );
-}
-
-export default function ExercisePage() {
-  const goal = 600;
-  const [burned, setBurned] = useState(250);
-  const [exerciseCount, setExerciseCount] = useState(2);
-  const [lastAdded, setLastAdded] = useState("");
-
-  const remaining = Math.max(goal - burned, 0);
-  const progress = Math.min(70 + Math.round(((burned - 250) / (goal - 250)) * 30), 100);
-
-  function addExercise(exercise) {
-    setBurned((value) => Math.min(value + exercise.kcal, goal));
-    setExerciseCount((value) => value + 1);
-    setLastAdded(`${exercise.name} logged`);
-  }
+  const openLog = (ex) => {
+    setSelectedExercise(ex);
+    setShowLog(true);
+  };
 
   return (
-    <main
-      className="min-h-screen bg-[#f3f3f3] text-black"
-      style={{
-        fontFamily:
-          "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', Inter, Arial, sans-serif",
-      }}
-    >
-      <section className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-white">
-        <header className="flex h-[106px] shrink-0 items-end justify-between border-b border-black/20 px-8 pb-6">
-          <button aria-label="Home" className="grid h-12 w-12 place-items-center rounded-full active:scale-95">
-            <Icon name="home" className="h-11 w-11 text-[#25272b]" />
+    <div className="min-h-screen pb-32 flex flex-col">
+      {/* Top White Card — fills top corners flush */}
+      <div
+        className="w-full flex flex-col pt-14 px-6 pb-8 relative shrink-0"
+        style={{
+          background: '#fff',
+          borderRadius: '0 0 48px 48px',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.08)',
+        }}
+      >
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <path d="M4 12.5L14 4L24 12.5V24H17.5V18H10.5V24H4V12.5Z" stroke="#111" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+            </svg>
           </button>
+          <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+            <span className="text-base font-bold text-black">AI</span>
+          </div>
+        </div>
 
-          <button className="grid h-[46px] w-[46px] place-items-center rounded-full bg-[#e5e5e5] text-[23px] font-[760] active:scale-95">
-            AI
+        {/* Divider */}
+        <div className="w-full h-px bg-black opacity-10 mb-6" />
+
+        {/* Todays Burn row */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xl font-bold text-black tracking-tight">Todays Burn</span>
+          <button className="bg-black rounded-full px-5 h-7 flex items-center justify-center">
+            <span className="text-sm font-bold text-white">Log</span>
           </button>
-        </header>
+        </div>
 
-        <section className="relative flex min-h-[470px] flex-col rounded-b-[64px] bg-white px-6 pb-7 pt-6 shadow-[0_18px_0_rgba(188,197,205,0.98)]">
-          <div className="flex items-start justify-between">
-            <h1 className="text-[26px] font-[790] leading-none tracking-[-0.02em]">
-              Todays Burn
-            </h1>
+        {/* 70% big text — centered */}
+        <div className="relative flex items-center justify-center my-6">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full opacity-14 pointer-events-none" style={{ background: '#ea234b', filter: 'blur(60px)' }} />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full opacity-15 pointer-events-none" style={{ background: '#0095ff', filter: 'blur(60px)' }} />
+          <div className="relative text-center">
+            <span className="text-[88px] font-bold leading-none tracking-tight text-black" style={{ color: '#c1d5e1', position: 'absolute', top: 0, left: 4, zIndex: 0 }}>
+              {percent}%
+            </span>
+            <span className="text-[88px] font-bold leading-none tracking-tight text-black relative z-10">
+              {percent}%
+            </span>
+          </div>
+        </div>
 
-            <button className="h-[31px] rounded-full bg-black px-7 text-[17px] font-[760] leading-none text-white active:scale-95">
-              Log
+        {/* Stats row */}
+        <div className="flex items-end justify-between pt-2">
+          <div className="flex flex-col items-center">
+            <span className="text-base font-medium text-black tracking-tight">Exercises</span>
+            <span className="text-3xl font-light text-black">{exercises.length}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-base font-medium text-black tracking-tight">Burned</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-light text-black">{totalBurned}</span>
+              <span className="text-sm font-medium text-black">Kcal</span>
+            </div>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-base font-medium text-black tracking-tight">Remaining</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-light text-black">{remaining}</span>
+              <span className="text-sm font-medium text-black">Kcal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Add section */}
+      <div className="flex-1 px-4 pt-5">
+        <h3 className="text-xl font-bold text-black mb-4 ml-2">Quick Add</h3>
+
+        <div className="flex flex-col items-center gap-3">
+          {QUICK_EXERCISES.map((ex, i) => {
+            const opacity = 1 - i * 0.18;
+            const widthPct = 100 - i * 8;
+            const height = 72 - i * 8;
+
+            return (
+              <motion.button
+                key={ex.name}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity, y: 0 }}
+                transition={{ delay: i * 0.07, duration: 0.4 }}
+                onClick={() => openLog(ex)}
+                className="flex items-center justify-between px-5 cursor-pointer"
+                style={{
+                  width: `${widthPct}%`,
+                  height,
+                  background: 'linear-gradient(90deg, #fff 20%, #d5d2d2 100%)',
+                  borderRadius: 50,
+                  border: '3px solid #fff',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                  opacity,
+                }}
+              >
+                <div className="flex flex-col items-start">
+                  <span className="font-bold text-black" style={{ fontSize: Math.max(14, 18 - i * 1.5) }}>
+                    {ex.name}
+                  </span>
+                  <span className="text-black font-light" style={{ fontSize: Math.max(10, 13 - i * 1), opacity: 0.45 }}>
+                    Approx {ex.kcalRange}
+                  </span>
+                </div>
+                <span className="text-black font-medium" style={{ fontSize: 28 - i * 2 }}>+</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Log sheet */}
+      {showLog && selectedExercise && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLog(false)} />
+          <div className="relative bg-white rounded-t-[32px] w-full p-6 pb-12">
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-6" />
+            <h2 className="text-xl font-bold text-gray-900 mb-1">{selectedExercise.name}</h2>
+            <p className="text-sm text-gray-400 mb-5">{selectedExercise.kcalRange}</p>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+              Duration: {duration} min
+            </label>
+            <input type="range" min="5" max="120" step="5" value={duration}
+              onChange={e => setDuration(Number(e.target.value))}
+              className="w-full accent-gray-900 mb-4" />
+            <div className="rounded-2xl bg-gray-50 p-4 text-center mb-6">
+              <p className="text-xs text-gray-400 mb-1">Estimated Calories</p>
+              <p className="text-3xl font-black text-gray-900">{calcCalories(selectedExercise.met, weight, duration)} kcal</p>
+            </div>
+            <button
+              onClick={() => handleAdd(selectedExercise)}
+              className="w-full h-14 rounded-full bg-gray-900 text-white font-semibold text-base"
+            >
+              Log Exercise
             </button>
           </div>
-
-          <div className="flex flex-1 items-center justify-center pt-12">
-            <div className="relative">
-              <div className="absolute left-3 top-3 select-none text-[116px] font-[860] leading-none tracking-[-0.08em] text-[#d8eef8]">
-                {progress}%
-              </div>
-              <div className="relative select-none text-[116px] font-[860] leading-none tracking-[-0.08em] text-black">
-                {progress}%
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 items-end text-center">
-            <div>
-              <div className="text-[24px] font-[720] leading-none tracking-[-0.04em]">Exercises</div>
-              <div className="mt-2 text-[42px] font-[360] leading-none">{exerciseCount}</div>
-            </div>
-
-            <div>
-              <div className="text-[24px] font-[720] leading-none tracking-[-0.04em]">Burned</div>
-              <div className="mt-2 flex items-end justify-center gap-1">
-                <span className="text-[42px] font-[360] leading-none">{burned}</span>
-                <span className="pb-1 text-[17px] font-[500]">Kcal</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[24px] font-[720] leading-none tracking-[-0.04em]">Remaining</div>
-              <div className="mt-2 flex items-end justify-center gap-1">
-                <span className="text-[42px] font-[360] leading-none">{remaining}</span>
-                <span className="pb-1 text-[17px] font-[500]">Kcal</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex flex-1 flex-col bg-[linear-gradient(180deg,#bfc8d0_0%,#eef1f4_54%,#f9f9f9_100%)] px-6 pb-5 pt-9">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[25px] font-[800] leading-none text-white">Quick Add</h2>
-            {lastAdded ? (
-              <span className="rounded-full bg-white/65 px-3 py-1 text-xs font-bold text-[#6b737c]">
-                {lastAdded}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="grid gap-3">
-            {quickExercises.map((exercise, index) => (
-              <QuickAddRow
-                key={exercise.name}
-                exercise={exercise}
-                faded={index === 2}
-                onAdd={addExercise}
-              />
-            ))}
-          </div>
-
-          <div className="mx-auto mt-4 h-[28px] w-[156px] rounded-full bg-white/65" />
-
-          <div className="mt-auto grid grid-cols-[1fr_76px] gap-3 pt-5">
-            <nav className="grid h-[66px] grid-cols-3 items-center rounded-full bg-[#e6e1e6]/90 px-4 backdrop-blur-xl">
-              <button className="grid place-items-center text-white active:scale-95">
-                <Icon name="home" className="h-8 w-8" />
-              </button>
-              <button className="mx-auto grid h-[58px] w-[58px] place-items-center rounded-[22px] bg-white text-white shadow-[0_0_24px_rgba(127,157,255,0.52)] active:scale-95">
-                <Icon name="bag" className="h-8 w-8 text-white drop-shadow-[0_1px_0_rgba(120,150,255,0.75)]" />
-              </button>
-              <span />
-            </nav>
-
-            <button className="grid h-[66px] place-items-center rounded-full bg-[#e7e2e8]/90 text-black backdrop-blur-xl active:scale-95">
-              <Icon name="plus" className="h-10 w-10" />
-            </button>
-          </div>
-
-          <div className="mx-auto mt-3 h-1 w-28 rounded-full bg-black/80" />
-        </section>
-      </section>
-    </main>
+        </div>
+      )}
+    </div>
   );
 }

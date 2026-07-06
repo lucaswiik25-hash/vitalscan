@@ -28,6 +28,7 @@ import Frame6 from './pages/Frame6';
 import Frame8 from './pages/Frame8';
 import Frame82 from './pages/Frame82';
 import Frame3 from './pages/Frame3';
+import Frame83 from './pages/Frame83';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -77,6 +78,7 @@ const AuthenticatedApp = () => {
       <Route path="/Frame8" element={<Frame8 />} />
       <Route path="/Frame82" element={<Frame82 />} />
       <Route path="/Frame3" element={<Frame3 />} />
+      <Route path="/Frame83" element={<Frame83 />} />
     </Routes>
   );
 };

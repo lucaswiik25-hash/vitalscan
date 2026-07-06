@@ -1,265 +1,242 @@
-import React, { useState, useEffect } from 'react';
+import React from "react";
 
-export default function SleepTracker() {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [sleepDebt, setSleepDebt] = useState({ hours: 2, minutes: 30 });
-  const [isSleeping, setIsSleeping] = useState(false);
-  const [sleepStartTime, setSleepStartTime] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [logHours, setLogHours] = useState('');
-  const [logMinutes, setLogMinutes] = useState('');
+const stages = [
+  { label: "Light", value: "3h 06m" },
+  { label: "Deep", value: "1h 42m" },
+  { label: "REM", value: "1h 28m" },
+  { label: "Awake", value: "14m" },
+];
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+const depthBars = ["h-8", "h-14", "h-10", "h-20", "h-12", "h-16", "h-9"];
 
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayName = days[currentTime.getDay()];
-  const dayPrefix = dayName.slice(0, 3);
-  const daySuffix = dayName.slice(3);
-
-  const nextDayCode = days[(currentTime.getDay() + 1) % 7].slice(0, 2).toUpperCase();
-
-  const formatTimeUnit = (num) => num.toString().padStart(2, '0');
-
-  const handleStartSleep = () => {
-    if (!isSleeping) {
-      setIsSleeping(true);
-      setSleepStartTime(new Date());
-    } else {
-      const endTime = new Date();
-      const durationMs = endTime - sleepStartTime;
-      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-      const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-
-      setLogs(prev => [...prev, {
-        id: Date.now(),
-        start: sleepStartTime,
-        end: endTime,
-        duration: `${durationHours}h ${durationMinutes}min`
-      }]);
-      setIsSleeping(false);
-      setSleepStartTime(null);
-    }
-  };
-
-  const handleAddLog = () => {
-    const h = parseInt(logHours) || 0;
-    const m = parseInt(logMinutes) || 0;
-    if (h > 0 || m > 0) {
-      setLogs(prev => [...prev, {
-        id: Date.now(),
-        start: new Date(),
-        end: new Date(),
-        duration: `${h}h ${m}min`,
-        isManual: true
-      }]);
-      setLogHours('');
-      setLogMinutes('');
-      setShowLogModal(false);
-    }
-  };
-
-  const getElapsedTime = () => {
-    if (!sleepStartTime) return { hours: 0, minutes: 0 };
-    const diff = new Date() - sleepStartTime;
-    return {
-      hours: Math.floor(diff / (1000 * 60 * 60)),
-      minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-    };
-  };
-
-  const elapsed = getElapsedTime();
-  const displayHours = isSleeping ? elapsed.hours : 11;
-  const displayMinutes = isSleeping ? elapsed.minutes : 30;
-
+function Icon({ children, className = "h-5 w-5" }) {
   return (
-    <div className="min-h-screen flex items-start justify-center pt-6 pb-20">
-    <div className="w-full max-w-[390px] mx-auto bg-[#7a8fa3] rounded-[48px] p-3 pb-6 relative overflow-hidden shadow-2xl">
-      {/* Notch */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[120px] h-[30px] bg-black rounded-[20px] z-10" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {children}
+    </svg>
+  );
+}
 
-      {/* Status Bar */}
-      <div className="h-11 flex items-center justify-between px-2 relative z-[5]">
-        <div className="w-8 h-8 bg-[#1a1a1a] rounded-full flex items-center justify-center">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17.5 19c0-1.7-1.3-3-3-3h-5c-1.7 0-3 1.3-3 3" />
-            <path d="M13 13V9" />
-            <path d="M13 9a4 4 0 0 0-4-4" />
-            <path d="M13 9a4 4 0 0 1 4-4" />
-            <path d="M9 16v3" />
-            <path d="M15 16v3" />
-            <path d="M11 16v3" />
-            <path d="M17 16v3" />
-          </svg>
-        </div>
-      </div>
+function GlassButton({ children, className = "", active = false, ...props }) {
+  return (
+    <button
+      className={[
+        "group flex items-center justify-center gap-2 rounded-[22px] font-semibold tracking-normal",
+        "transition-all duration-300 ease-out active:scale-[0.98]",
+        "hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-violet-200/70",
+        active
+          ? "bg-white/80 text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_16px_36px_rgba(109,91,255,.14)]"
+          : "bg-white/48 text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,.8),0_14px_34px_rgba(24,24,27,.08)] ring-1 ring-white/70 backdrop-blur-2xl",
+        className,
+      ].join(" ")}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
 
-      {/* Main Card */}
-      <div className="bg-[#f0f0f0] rounded-[32px] p-7 pt-7 pb-5 mt-1">
+export default function SleepTrackingPage() {
+  return (
+    <div
+      className="min-h-screen w-full bg-[#f6f5fb] px-3 py-4 text-zinc-950"
+      style={{
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', Inter, system-ui, sans-serif",
+      }}
+    >
+      <style>{`
+        @keyframes sleepRise {
+          from { opacity: 0; transform: translateY(16px) scale(.985); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes softFloat {
+          50% { transform: translate3d(-18px, 18px, 0) scale(1.05); }
+        }
+        @keyframes barIn {
+          from { opacity: 0; transform: scaleY(.55); }
+          to { opacity: 1; transform: scaleY(1); }
+        }
+        .sleep-rise { animation: sleepRise .65s cubic-bezier(.2,.9,.2,1) both; }
+        .soft-float { animation: softFloat 8s ease-in-out infinite; }
+        .depth-bar { animation: barIn .62s cubic-bezier(.2,.9,.2,1) forwards; transform-origin: bottom; }
+      `}</style>
 
-        {/* Day Header */}
-        <div className="mb-6 leading-[0.9]">
-          <div className="text-[72px] font-bold text-black tracking-[-3px] leading-[0.85]">
-            {dayPrefix}-
-          </div>
-          <div className="text-[48px] font-normal text-black tracking-[-1px] ml-1 leading-none">
-            {daySuffix}
-          </div>
-        </div>
+      <main className="relative mx-auto min-h-[900px] w-full max-w-[430px] overflow-hidden rounded-[44px] bg-[linear-gradient(150deg,rgba(255,255,255,.96),rgba(243,240,255,.88)_48%,rgba(235,246,250,.92))] p-[18px] shadow-[0_28px_90px_rgba(111,105,140,.25)] ring-1 ring-white">
+        <div className="soft-float pointer-events-none absolute -right-28 -top-24 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(183,169,255,.62),rgba(244,197,255,.30)_48%,transparent_72%)] blur-sm" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-[42%] bg-[linear-gradient(135deg,rgba(154,236,220,.32),rgba(155,140,255,.18))] blur-2xl" />
 
-        {/* Clock Display */}
-        <div className="flex justify-center mb-5">
-          <div className="bg-[#f8f8f8] border-[5px] border-[#5a5a5a] rounded-[60px] px-9 pt-[18px] pb-[22px] relative shadow-[inset_0_2px_8px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.15)]">
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-[80px] font-medium text-[#555] leading-none tracking-[-4px]">
-                {displayHours}
-              </span>
-              <span className="text-2xl font-medium text-black ml-0.5 -mr-0.5">h</span>
-              <span className="text-[48px] font-semibold text-[#333] mx-1 leading-[0.8]">:</span>
-              <span className="text-[80px] font-medium text-[#555] leading-none tracking-[-4px]">
-                {formatTimeUnit(displayMinutes)}
-              </span>
-              <span className="text-2xl font-medium text-black ml-0.5">min</span>
+        <div className="relative z-10 flex h-7 items-center justify-between px-1.5 text-sm font-bold text-zinc-900">
+          <span>9:41</span>
+          <div className="flex items-center gap-2">
+            <div className="grid h-3 w-5 grid-cols-4 items-end gap-0.5">
+              <span className="h-1 rounded-full bg-zinc-900/45" />
+              <span className="h-1.5 rounded-full bg-zinc-900/60" />
+              <span className="h-2 rounded-full bg-zinc-900/75" />
+              <span className="h-3 rounded-full bg-zinc-900" />
             </div>
-            {/* Clock Feet */}
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-20">
-              <div className="w-7 h-3.5 bg-[#5a5a5a] rounded-b-md" />
-              <div className="w-7 h-3.5 bg-[#5a5a5a] rounded-b-md" />
+            <Icon className="h-4 w-4 text-zinc-900">
+              <path d="M1 8c5.2-4.2 11.8-4.2 17 0M4.4 11.2c3.1-2.3 7.1-2.3 10.2 0M7.7 14.2c1.1-.7 2.5-.7 3.6 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </Icon>
+            <div className="relative h-3 w-6 rounded border border-zinc-900/80 after:absolute after:-right-1 after:top-1 after:h-1.5 after:w-0.5 after:rounded-r after:bg-zinc-900/70">
+              <div className="m-0.5 h-1.5 w-3.5 rounded-sm bg-zinc-900" />
             </div>
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex flex-col gap-2.5 mb-4">
-          <button
-            onClick={handleStartSleep}
-            className={`w-full py-4 border-[3px] border-[#b0b0b0] rounded-[28px] text-[26px] font-normal cursor-pointer transition-all duration-200 active:scale-[0.98] ${
-              isSleeping 
-                ? 'bg-red-50 text-red-600 border-red-300' 
-                : 'bg-[#f5f5f5] text-black'
-            }`}
-          >
-            {isSleeping ? 'stop sleep' : 'start sleep'}
+        <header className="relative z-10 mt-5 flex items-center justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_12px_30px_rgba(111,105,140,.14)] ring-1 ring-white/80 backdrop-blur-2xl">
+              <div className="h-6 w-6 rotate-[-35deg] rounded-[9px_16px_9px_16px] bg-[linear-gradient(135deg,#9282ff,#f2bfff)] shadow-[8px_0_0_rgba(112,102,255,.82),-4px_5px_0_rgba(255,255,255,.65)]" />
+            </div>
+            <div>
+              <p className="m-0 text-[13px] font-semibold text-zinc-500">Tonight's recovery</p>
+              <h1 className="m-0 text-[26px] font-extrabold leading-none tracking-normal text-zinc-950">Sleep Tracker</h1>
+            </div>
+          </div>
+          <button className="grid h-11 w-11 place-items-center rounded-full bg-white/58 text-zinc-800 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_16px_34px_rgba(111,105,140,.14)] ring-1 ring-white/80 backdrop-blur-2xl transition duration-300 hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-violet-200/70" aria-label="Open sleep settings">
+            <Icon>
+              <path d="M12 3v2.2M12 18.8V21M4.2 12H2M22 12h-2.2M6.5 6.5 5 5M19 19l-1.5-1.5M17.5 6.5 19 5M5 19l1.5-1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.8" />
+            </Icon>
           </button>
-          <button
-            onClick={() => setShowLogModal(true)}
-            className="w-full py-4 border-[3px] border-[#b0b0b0] rounded-[28px] bg-[#f5f5f5] text-[26px] font-normal text-black cursor-pointer transition-all duration-200 active:scale-[0.98]"
-          >
-            Log
-          </button>
-        </div>
+        </header>
 
-        {/* Bottom Cards Row */}
-        <div className="flex gap-2.5">
-          {/* Debt Card */}
-          <div className="flex-[1.2] bg-[#e8e8e8] rounded-[24px] p-4 px-[18px]">
-            <div className="text-[32px] font-normal text-black mb-1">Dept</div>
-            <div className="flex items-baseline gap-px">
-              <span className="text-[64px] font-medium text-[#555] leading-none tracking-[-3px]">
-                {sleepDebt.hours}
-              </span>
-              <span className="text-xl font-medium text-black">h</span>
-              <span className="text-[64px] font-medium text-[#555] leading-none tracking-[-3px]">
-                {formatTimeUnit(sleepDebt.minutes)}
-              </span>
-              <span className="text-xl font-medium text-black">min</span>
-            </div>
+        <section className="sleep-rise relative z-10 mt-5 overflow-hidden rounded-[34px] bg-white/58 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.92),0_24px_65px_rgba(111,105,140,.18)] ring-1 ring-white/80 backdrop-blur-3xl">
+          <div className="pointer-events-none absolute -right-16 -top-14 h-56 w-56 rounded-full bg-[conic-gradient(from_210deg,rgba(155,140,255,0),rgba(155,140,255,.72),rgba(242,194,255,.62),rgba(155,140,255,0))] opacity-80" />
+          <div className="relative z-10 flex items-center justify-between gap-3">
+            <span className="text-sm font-bold text-zinc-600">Exact sleep duration</span>
+            <span className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/62 px-3 text-sm font-bold text-zinc-700 shadow-inner ring-1 ring-white/80 backdrop-blur-xl">
+              <Icon className="h-4 w-4 text-violet-500">
+                <path d="M19 15.2A7.5 7.5 0 0 1 8.8 5 8.5 8.5 0 1 0 19 15.2Z" fill="currentColor" />
+              </Icon>
+              92% quality
+            </span>
           </div>
 
-          {/* Calendar Card */}
-          <div className="flex-1 bg-[#e8e8e8] rounded-[24px] p-4 px-[18px] relative">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xl font-normal text-black">Calender</span>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </div>
-            <div className="text-[72px] font-bold text-[#555] leading-[0.9] tracking-[-4px] mt-2">
-              {nextDayCode}
-            </div>
+          <div className="relative z-10 mt-4 flex items-end gap-2 whitespace-nowrap">
+            <strong className="text-[88px] font-black leading-[.9] tracking-normal text-zinc-950 tabular-nums max-[380px]:text-[72px]">7:42</strong>
+            <span className="pb-2.5 text-lg font-bold text-zinc-500">slept</span>
           </div>
-        </div>
+          <p className="relative z-10 m-0 mt-3 text-[15px] leading-relaxed text-zinc-600">
+            You slept exactly 7 hours and 42 minutes, from 23:18 to 07:00.
+          </p>
 
-        {/* Bottom Bar */}
-        <div className="flex items-center justify-between mt-3 px-1">
-          <div className="w-10 h-10 bg-[#c5d4e8] rounded-full opacity-60" />
-          <button className="w-10 h-10 border-[3px] border-[#b0b0b0] rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-90">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
+          <div className="relative z-10 mt-5 h-20 overflow-hidden rounded-3xl bg-white/45 shadow-inner ring-1 ring-zinc-900/5">
+            <svg className="h-full w-full" viewBox="0 0 390 82" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sleepWave" x1="0" x2="1">
+                  <stop stopColor="#7de1cb" />
+                  <stop offset=".52" stopColor="#9b8cff" />
+                  <stop offset="1" stopColor="#e99cff" />
+                </linearGradient>
+              </defs>
+              <path d="M0 53 C35 22, 61 78, 96 45 S152 26, 185 48 S236 75, 268 42 S330 18, 390 50" fill="none" stroke="url(#sleepWave)" strokeWidth="5" strokeLinecap="round" />
+              <path d="M0 70 C36 37, 67 82, 104 56 S156 42, 196 61 S251 77, 291 50 S344 37, 390 57" fill="none" stroke="rgba(24,24,27,.14)" strokeWidth="2" strokeLinecap="round" />
             </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Log Modal */}
-      {showLogModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[32px] p-6 w-full max-w-[320px]">
-            <h3 className="text-2xl font-bold text-black mb-4">Add Sleep Log</h3>
-            <div className="flex gap-3 mb-4">
-              <div className="flex-1">
-                <label className="text-sm text-gray-500 block mb-1">Hours</label>
-                <input
-                  type="number"
-                  value={logHours}
-                  onChange={(e) => setLogHours(e.target.value)}
-                  placeholder="0"
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl text-2xl text-center"
-                  min="0"
-                  max="24"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-sm text-gray-500 block mb-1">Minutes</label>
-                <input
-                  type="number"
-                  value={logMinutes}
-                  onChange={(e) => setLogMinutes(e.target.value)}
-                  placeholder="0"
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl text-2xl text-center"
-                  min="0"
-                  max="59"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowLogModal(false)}
-                className="flex-1 py-3 border-2 border-gray-300 rounded-xl text-lg font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddLog}
-                className="flex-1 py-3 bg-black text-white rounded-xl text-lg font-medium"
-              >
-                Add
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* Logs List (collapsible) */}
-      {logs.length > 0 && (
-        <div className="mt-4 bg-white/10 rounded-[24px] p-4">
-          <h4 className="text-white text-lg font-medium mb-2">Recent Logs</h4>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {logs.slice(-5).map((log) => (
-              <div key={log.id} className="bg-white/20 rounded-xl p-3 flex justify-between items-center">
-                <span className="text-white text-sm">
-                  {log.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <span className="text-white font-medium">{log.duration}</span>
-              </div>
-            ))}
-          </div>
+        <div className="relative z-10 mt-3 grid grid-cols-2 gap-3">
+          <GlassButton className="h-[58px] bg-zinc-950 text-white shadow-[0_18px_38px_rgba(24,24,27,.18)] ring-0">
+            <Icon className="h-5 w-5">
+              <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+            </Icon>
+            Start Sleep
+          </GlassButton>
+          <GlassButton className="h-[58px]">
+            <Icon className="h-5 w-5">
+              <path d="M7 3v3M17 3v3M4.5 9.5h15M6.8 5h10.4a2.3 2.3 0 0 1 2.3 2.3v10.4a2.3 2.3 0 0 1-2.3 2.3H6.8a2.3 2.3 0 0 1-2.3-2.3V7.3A2.3 2.3 0 0 1 6.8 5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </Icon>
+            Log Sleep
+          </GlassButton>
         </div>
-      )}
-    </div>
+
+        <section className="relative z-10 mt-3 grid grid-cols-[1.05fr_.95fr] gap-3 max-[380px]:grid-cols-1">
+          <article className="sleep-rise rounded-[28px] bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_18px_48px_rgba(111,105,140,.15)] ring-1 ring-white/80 backdrop-blur-3xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="m-0 text-xl font-extrabold leading-none tracking-normal">Sleep Debt</h2>
+              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-white/54 text-zinc-600 ring-1 ring-white/80">
+                <Icon className="h-5 w-5">
+                  <path d="M12 7v5l3.2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+                </Icon>
+              </span>
+            </div>
+            <div className="mt-5 flex items-baseline gap-1.5">
+              <strong className="text-5xl font-black leading-none tabular-nums">2:18</strong>
+              <span className="font-bold text-zinc-500">debt</span>
+            </div>
+            <div className="mt-5 h-3 overflow-hidden rounded-full bg-zinc-950/8">
+              <div className="h-full w-[42%] rounded-full bg-[linear-gradient(90deg,#88ead5,#ffe58f,#b9a8ff)]" />
+            </div>
+            <p className="m-0 mt-4 text-[13px] leading-snug text-zinc-600">
+              Recover with a 22:45 bedtime for the next two nights.
+            </p>
+          </article>
+
+          <article className="sleep-rise rounded-[28px] bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_18px_48px_rgba(111,105,140,.15)] ring-1 ring-white/80 backdrop-blur-3xl [animation-delay:70ms]">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="m-0 text-xl font-extrabold leading-none tracking-normal">Sleep Depth</h2>
+              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-white/54 text-zinc-600 ring-1 ring-white/80">
+                <Icon className="h-5 w-5">
+                  <path d="M5 17c2.2-5.8 4.5-8.8 7-8.8s4.8 3 7 8.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M8.2 17c1.1-3.2 2.4-4.8 3.8-4.8s2.7 1.6 3.8 4.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity=".58" />
+                </Icon>
+              </span>
+            </div>
+            <div className="mt-4 flex h-24 items-end gap-2">
+              {depthBars.map((height, index) => (
+                <span
+                  key={height + index}
+                  className={`depth-bar flex-1 rounded-full bg-[linear-gradient(180deg,#b9a8ff,#8e7cff)] opacity-0 shadow-[0_8px_18px_rgba(142,124,255,.22)] ${height}`}
+                  style={{ animationDelay: `${90 + index * 50}ms` }}
+                />
+              ))}
+            </div>
+            <p className="m-0 mt-2 text-[13px] leading-snug text-zinc-600">Deep sleep peaked around 03:10.</p>
+          </article>
+
+          <article className="sleep-rise col-span-full rounded-[28px] bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_18px_48px_rgba(111,105,140,.15)] ring-1 ring-white/80 backdrop-blur-3xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="m-0 text-xl font-extrabold leading-none tracking-normal">Sleep Stage Timeline</h2>
+              <span className="rounded-full bg-white/54 px-3 py-2 text-sm font-semibold text-zinc-600 ring-1 ring-white/80">23:18 - 07:00</span>
+            </div>
+            <div className="mt-4 grid grid-cols-4 gap-2 max-[380px]:grid-cols-2">
+              {stages.map((stage) => (
+                <div key={stage.label} className="min-h-[62px] rounded-2xl bg-white/45 p-3 shadow-inner ring-1 ring-zinc-900/5">
+                  <strong className="block text-[15px] font-extrabold leading-none">{stage.label}</strong>
+                  <span className="mt-1.5 block text-xs font-bold text-zinc-500">{stage.value}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+
+        <nav className="relative z-10 mt-3 grid grid-cols-3 gap-2.5 rounded-[30px] bg-white/64 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_20px_55px_rgba(111,105,140,.18)] ring-1 ring-white/80 backdrop-blur-3xl" aria-label="Sleep page navigation">
+          <GlassButton active className="h-[58px] flex-col gap-1 text-[11px]">
+            <Icon>
+              <path d="M4 10.7 12 4l8 6.7v7.1a2.2 2.2 0 0 1-2.2 2.2H6.2A2.2 2.2 0 0 1 4 17.8v-7.1Z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" />
+              <path d="M9.2 20v-6h5.6v6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+            </Icon>
+            Home
+          </GlassButton>
+          <GlassButton className="h-[58px] flex-col gap-1 text-[11px]">
+            <Icon>
+              <path d="M12 3.5 13.7 9l5.6 1.7-5.6 1.7L12 18l-1.7-5.6-5.6-1.7L10.3 9 12 3.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              <path d="m18 15 .7 2.3L21 18l-2.3.7L18 21l-.7-2.3L15 18l2.3-.7L18 15Z" fill="currentColor" />
+            </Icon>
+            AI Analysis
+          </GlassButton>
+          <GlassButton className="h-[58px] flex-col gap-1 text-[11px]">
+            <Icon>
+              <path d="M7 3.5v3M17 3.5v3M4.5 9.5h15M7 5h10a2.5 2.5 0 0 1 2.5 2.5V17A2.5 2.5 0 0 1 17 19.5H7A2.5 2.5 0 0 1 4.5 17V7.5A2.5 2.5 0 0 1 7 5Z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+            </Icon>
+            Calendar
+          </GlassButton>
+        </nav>
+      </main>
     </div>
   );
 }
+ 

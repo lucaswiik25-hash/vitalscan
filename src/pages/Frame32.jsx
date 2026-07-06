@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 export default function Frame32() {
   return (
-    <main className="w-full min-h-screen flex items-center justify-center bg-black">
+    <main className="w-full min-h-screen flex items-center justify-center" style={{ background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8' }}>
       {/* Full-screen phone frame — no black rim, image fills everything */}
       <div
         className="relative w-full max-w-[390px] mx-auto overflow-hidden"

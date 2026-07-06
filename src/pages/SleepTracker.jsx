@@ -76,6 +76,7 @@ export default function SleepTracker() {
   const displayMinutes = isSleeping ? elapsed.minutes : 30;
 
   return (
+    <div className="min-h-screen flex items-start justify-center pt-6 pb-20">
     <div className="w-full max-w-[390px] mx-auto bg-[#7a8fa3] rounded-[48px] p-3 pb-6 relative overflow-hidden shadow-2xl">
       {/* Notch */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[120px] h-[30px] bg-black rounded-[20px] z-10" />
@@ -258,6 +259,7 @@ export default function SleepTracker() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

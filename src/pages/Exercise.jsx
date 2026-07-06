@@ -60,7 +60,7 @@ export default function Exercise() {
   };
 
   return (
-    <div className="min-h-screen pb-32 flex flex-col" style={{ background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8' }}>
+    <div className="min-h-screen pb-32 flex flex-col">
       {/* Top White Card — fills top corners flush */}
       <div
         className="w-full flex flex-col pt-14 px-6 pb-8 relative shrink-0"

@@ -55,7 +55,7 @@ export default function WaterTracker() {
   const maxMl = Math.max(...last5.map(d => d.ml), dailyTarget);
 
   return (
-    <main className="max-w-[447px] w-full mx-auto relative flex flex-col items-center pb-10">
+    <main className="min-h-screen max-w-[447px] w-full mx-auto relative flex flex-col items-start pb-10">
       {/* Top Card — flush to top corners */}
       <div
         className="relative w-full bg-[#e7edf1] overflow-hidden shadow-sm"

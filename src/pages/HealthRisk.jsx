@@ -177,13 +177,10 @@ Identify ALL health risks based on the actual numbers above. For each risk:
     dangerous: { icon: ShieldAlert, color: '#dc2626', bg: '#fee2e2', label: 'Dangerous' },
   };
 
-  const pageStyle = {
-    background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8',
-  };
   const cardCls = "rounded-[30px] bg-white/80 p-6 shadow-[0_24px_70px_rgba(20,20,25,.08)] backdrop-blur-2xl";
 
   return (
-    <div className="min-h-screen pb-10 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]" style={pageStyle}>
+    <div className="min-h-screen pb-10 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]">
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-[28px] font-extrabold text-[#101114]">{profile.diet_mode === 'appearance_mode' ? 'Appearance Score' : 'Health Risk Analysis'}</h1>
         <p className="text-sm text-[#6d7079] mt-1">{profile.diet_mode === 'appearance_mode' ? 'How your diet is affecting your face & skin' : 'AI-powered diet risk assessment'}</p>

@@ -402,7 +402,7 @@ export default function ScannerHub() {
   return (
     <div
       className="min-h-screen pb-20 overflow-y-auto font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]"
-      style={{ background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8' }}
+      style={{}}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-6 pb-2">

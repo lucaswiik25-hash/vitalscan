@@ -113,12 +113,8 @@ export default function Settings() {
     </div>
   );
 
-  const pageStyle = {
-    background: 'radial-gradient(circle at 10% 0%, rgba(255,228,155,.28), transparent 27rem), radial-gradient(circle at 92% 8%, rgba(182,164,255,.25), transparent 29rem), #f6f5f8',
-  };
-
   return (
-    <div className="min-h-screen pb-10 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]" style={pageStyle}>
+    <div className="min-h-screen pb-10 font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]">
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-[28px] font-extrabold text-[#101114]">Settings</h1>
       </div>

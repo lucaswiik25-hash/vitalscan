@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
-import { Home, ScanLine, Leaf, Pill, Clock, Smile, PersonStanding, Search, Plus, Loader2, Check, RefreshCw } from 'lucide-react';
+import { Home, Search, Plus, Loader2, Check, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { animCard, usePageVisible, pageRevealStyle } from '@/lib/animHelpers';
+import { animCard, usePageVisible } from '@/lib/animHelpers';
 import { createFoodLog, listScanHistory, createScanHistory } from '@/lib/db';
 import { invokeLLM } from '@/lib/ai';
+import { motion } from 'framer-motion';
 
 async function registerScan(type, productName, brand, imageUrl, safetyScore, qualityScore, verdict) {
   try {
@@ -26,17 +26,22 @@ async function registerScan(type, productName, brand, imageUrl, safetyScore, qua
 
 export { registerScan };
 
-// ─── Scanner card gradients & icons ───────────────────────────────────────────
-const CARD_CONFIGS = {
-  food:         { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Food Scanner',        description: 'Scan any food or barcode for full nutrition info',      path: '/food-scanner' },
-  skincare:     { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Skincare Analyzer',   description: 'Analyze ingredients in any cosmetic product',           path: '/skincare-scanner' },
-  supplement:   { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Supplement Scanner',  description: 'Check quality and dosage of any supplement',           path: '/supplement-scanner' },
-  face:         { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Face Analyser',       description: 'AI skin & facial analysis linked to your food intake', path: '/face-scanner' },
-  body:         { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Body Analyser',       description: 'Find the areas you need to work on most',              path: '/body-scanner' },
-  exerciseform: { titleColor: '#ffffff', descColor: 'rgba(255,255,255,0.75)', title: 'Form Analyzer',       description: 'Score your exercise form and get your #1 fix cue',     path: '/exercise-form-scanner' },
+const SCAN_PATHS = { food: '/food-scanner', skincare: '/skincare-scanner', supplement: '/supplement-scanner' };
+const typeLabels = { food: 'Food', skincare: 'Skincare', supplement: 'Supplement' };
+
+const SCANNER_TITLES = {
+  food: 'Nutrition',
+  skincare: 'Skincare',
+  supplement: 'Supplement',
 };
 
-// ─── Food search ──────────────────────────────────────────────────────────────
+const SCANNER_ROUTES = {
+  food: '/food-scanner',
+  skincare: '/skincare-scanner',
+  supplement: '/supplement-scanner',
+};
+
+// Food search (kept from original ScannerHub)
 function FoodSearch() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
@@ -83,37 +88,36 @@ function FoodSearch() {
   };
 
   return (
-    <div className="px-5 mt-5">
-      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Forgot to log something?</p>
+    <div className="px-5 mt-4">
+      <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Quick food log</p>
       <div className="flex gap-2">
-        <div className="flex-1 flex items-center gap-2 bg-white border border-border rounded-2xl px-3.5 py-2.5 shadow-sm">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+        <div className="flex-1 flex items-center gap-2 bg-white/70 backdrop-blur border border-white/60 rounded-2xl px-3.5 py-2.5 shadow-sm">
+          <Search className="w-4 h-4 text-zinc-400 shrink-0" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
-            placeholder="e.g. hamburger, oats, salmon..."
+            placeholder="e.g. oats, salmon, burger..."
             inputMode="search"
-            className="flex-1 text-sm focus:outline-none bg-transparent text-foreground placeholder:text-muted-foreground/60"
+            className="flex-1 text-sm focus:outline-none bg-transparent text-zinc-900 placeholder:text-zinc-400"
           />
-          {query && <button onClick={() => { setQuery(''); setResults(null); }} className="text-muted-foreground/40 text-xs">✕</button>}
+          {query && <button onClick={() => { setQuery(''); setResults(null); }} className="text-zinc-400 text-xs">✕</button>}
         </div>
         <button
           onClick={search}
           disabled={loading || !query.trim()}
-          className="w-11 h-11 rounded-2xl bg-foreground flex items-center justify-center shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
+          className="w-11 h-11 rounded-2xl bg-zinc-900 flex items-center justify-center shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
         >
           {loading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Search className="w-4 h-4 text-white" />}
         </button>
       </div>
-
       {results && results.length > 0 && (
         <div className="mt-3 space-y-2">
           {results.map((item, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-3 glow-card">
+            <div key={i} className="bg-white/80 backdrop-blur rounded-2xl p-4 flex items-center gap-3 border border-white/60 shadow-sm">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{query}</p>
-                <p className="text-xs text-muted-foreground">{item.serving_label} · {item.calories} kcal · {item.protein}g prot · {item.carbs}g carbs</p>
+                <p className="text-sm font-semibold text-zinc-900 truncate">{query}</p>
+                <p className="text-xs text-zinc-500">{item.serving_label} · {item.calories} kcal · {item.protein}g prot</p>
               </div>
               <button
                 onClick={() => addMeal(item)}
@@ -133,297 +137,241 @@ function FoodSearch() {
   );
 }
 
-// ─── Scanner card carousel ────────────────────────────────────────────────────
-function ScannerCarousel({ cardKeys }) {
-  const [active, setActive] = useState(0);
-  const touchStartX = useRef(null);
-  const trackRef = useRef(null);
-
-  const CARD_W = 275;
-  const CARD_GAP = 12;
-  const PEEK = 20;
-
-  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const onTouchEnd = (e) => {
-    if (touchStartX.current === null) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 40 && active < cardKeys.length - 1) setActive(a => a + 1);
-    if (diff < -40 && active > 0) setActive(a => a - 1);
-    touchStartX.current = null;
-  };
-
-  return (
-    <div className="mt-5">
-      <div className="px-5 mb-3 flex items-center justify-between">
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scanners</p>
-        <div className="flex gap-1.5">
-          {cardKeys.map((_, i) => (
-            <button key={i} onClick={() => setActive(i)}
-              className="rounded-full transition-all"
-              style={{ width: i === active ? 16 : 6, height: 6, background: i === active ? '#1a1a1a' : '#d1d5db' }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Overflow visible so adjacent cards peek */}
-      <div
-        className="overflow-hidden"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        <div
-          ref={trackRef}
-          className="flex transition-transform duration-300 ease-out"
-          style={{
-            paddingLeft: PEEK,
-            paddingRight: PEEK,
-            gap: CARD_GAP,
-            transform: `translateX(calc(${PEEK}px - ${active} * (${CARD_W}px + ${CARD_GAP}px)))`,
-          }}
-        >
-          {cardKeys.map((key, i) => {
-            const c = CARD_CONFIGS[key];
-            const isActive = i === active;
-            return (
-              <Link
-                key={key}
-                to={c.path}
-                onClick={(e) => { if (!isActive) { e.preventDefault(); setActive(i); } }}
-                className="shrink-0 overflow-hidden relative transition-all duration-300 active:scale-[0.97]"
-                style={{
-                  width: CARD_W,
-                  height: 320,
-                  background: 'rgba(255,255,255,0.15)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255,255,255,0.6)',
-                  boxShadow: isActive ? '0 0 20px rgba(255,255,255,0.2), 0 8px 28px rgba(0,0,0,0.10)' : '0 0 20px rgba(255,255,255,0.1)',
-                  opacity: isActive ? 1 : 0.6,
-                  transform: isActive ? 'scale(1)' : 'scale(0.94)',
-                  borderRadius: 24,
-                  overflow: 'hidden',
-                  transition: 'all 0.3s',
-                }}
-              >
-                <div className="relative z-10 p-6 h-full flex flex-col justify-end">
-                  <div>
-                    <p className="text-xl font-extrabold leading-tight" style={{ color: c.titleColor }}>{c.title}</p>
-                    <p className="text-sm mt-1 leading-snug" style={{ color: c.descColor }}>{c.description}</p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Recent scans ─────────────────────────────────────────────────────────────
-const typeLabels = { food: 'Food', skincare: 'Skincare', supplement: 'Supplement' };
-
-const SCAN_PATHS = { food: '/food-scanner', skincare: '/skincare-scanner', supplement: '/supplement-scanner' };
-
+// Recent scans section
 function RecentScans() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState('food');
   const touchStartX = useRef(null);
-  const touchStartY = useRef(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [pullDelta, setPullDelta] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: scans = [] } = useQuery({
     queryKey: ['scanResults'],
     queryFn: () => listScanHistory({}, { sort: '-created_at', limit: 50 }),
   });
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e) => {
-    if (touchStartY.current === null) return;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
-    if (dy > 0 && dy > dx && window.scrollY === 0) {
-      setPullDelta(Math.min(60, dy * 0.4));
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    if (pullDelta >= 50) {
-      setRefreshing(true);
-      await queryClient.invalidateQueries({ queryKey: ['scanResults'] });
-      setTimeout(() => setRefreshing(false), 600);
-    }
-    setPullDelta(0);
-    touchStartY.current = null;
-  };
-
   const tabs = ['food', 'skincare', 'supplement'];
-  const filtered = scans
-    .filter(s => s.type === tabs[activeTab])
-    .filter(s => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (s.product_name || '').toLowerCase().includes(q) || (s.brand || '').toLowerCase().includes(q);
-    });
+  const filtered = scans.filter(s => s.type === activeTab);
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
     if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 50 && activeTab < tabs.length - 1) setActiveTab(t => t + 1);
-    if (diff < -50 && activeTab > 0) setActiveTab(t => t - 1);
+    const idx = tabs.indexOf(activeTab);
+    if (diff > 50 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
+    if (diff < -50 && idx > 0) setActiveTab(tabs[idx - 1]);
     touchStartX.current = null;
   };
 
-
   const handleScanClick = (scan) => {
     const path = SCAN_PATHS[scan.type] || '/food-scanner';
-    // Store full scan including result_data so verdict page can be shown directly
     sessionStorage.setItem('replayScan', JSON.stringify({ scan, fromHistory: true }));
     navigate(path + '?replay=1');
   };
 
-  const cardStyle = {
-    background: 'rgba(255,255,255,0.65)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(0, 0, 0, 0.13)',
-  };
-
   return (
-    <div className="mt-6 px-5"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Pull-to-refresh indicator */}
-      {(pullDelta > 0 || refreshing) && (
-        <div className="flex justify-center items-center mb-2 transition-all"
-          style={{ height: refreshing ? 32 : pullDelta * 0.6 }}>
-          <Loader2 className={`w-5 h-5 text-muted-foreground ${refreshing ? 'animate-spin' : ''}`}
-            style={{ opacity: refreshing ? 1 : pullDelta / 60 }} />
-        </div>
-      )}
-      <h2 className="text-sm font-bold text-foreground mb-3">Recent Scans</h2>
-      <input
-        type="search"
-        value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
-        placeholder="Search by food or product name..."
-        className="w-full mb-3 h-10 rounded-xl border border-border bg-white/60 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
-      />
-      <div className="flex gap-1 mb-3 rounded-2xl p-1"
-        style={{
-          background: 'rgba(255,255,255,0.35)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid rgba(0, 0, 0, 0.13)',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
-        }}>
-        {tabs.map((t, i) => (
-          <button key={t} onClick={() => setActiveTab(i)}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+    <div className="px-5 mt-5" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <p className="text-[22px] font-[590] tracking-tight text-zinc-900 mb-3">Recent</p>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 bg-zinc-100/80 backdrop-blur rounded-full p-1 mb-3">
+        {tabs.map(t => (
+          <button key={t} onClick={() => setActiveTab(t)}
+            className="flex-1 py-2 rounded-full text-sm font-semibold transition-all"
             style={{
-              background: activeTab === i ? 'rgba(255,255,255,0.75)' : 'transparent',
-              backdropFilter: activeTab === i ? 'blur(12px)' : 'none',
-              WebkitBackdropFilter: activeTab === i ? 'blur(12px)' : 'none',
-              color: activeTab === i ? '#1a1a1a' : 'hsl(var(--muted-foreground))',
-              boxShadow: activeTab === i ? '0 1px 6px rgba(0,0,0,0.08)' : 'none',
+              background: activeTab === t ? 'white' : 'transparent',
+              color: activeTab === t ? '#111' : '#6b7280',
+              boxShadow: activeTab === t ? '0 1px 6px rgba(0,0,0,0.08)' : 'none',
             }}>
             {typeLabels[t]}
           </button>
         ))}
       </div>
-      <div onTouchStart={e => { onTouchStart(e); }} onTouchEnd={e => { onTouchEnd(e); }}>
-        {filtered.length === 0 ? (
-          <div className="rounded-[20px] p-6 text-center glow-card" style={cardStyle}>
-            <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No {typeLabels[tabs[activeTab]].toLowerCase()} scans yet</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {filtered.slice(0, 6).map((scan) => {
-              const score = scan.safety_score ?? scan.quality_score ?? null;
-              const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
-              return (
-                <button
-                  key={scan.id}
-                  className="w-full rounded-[20px] p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform glow-card"
-                  style={cardStyle}
-                  onClick={() => handleScanClick(scan)}
-                >
+
+      {filtered.length === 0 ? (
+        <div className="bg-white/70 backdrop-blur rounded-[20px] p-6 text-center border border-white/60">
+          <Clock className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
+          <p className="text-sm text-zinc-500">No {typeLabels[activeTab].toLowerCase()} scans yet</p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-1">
+          {filtered.slice(0, 4).map((scan, i) => {
+            const score = scan.safety_score ?? scan.quality_score ?? null;
+            const scoreColor = score === null ? '#aaa' : score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
+            const widthPct = 100 - i * 5;
+            const opacity = 1 - i * 0.12;
+            return (
+              <motion.button
+                key={scan.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity, y: 0 }}
+                transition={{ delay: i * 0.06 }}
+                onClick={() => handleScanClick(scan)}
+                className="relative flex items-center justify-between px-4 h-[70px] cursor-pointer active:scale-[0.98] transition-transform"
+                style={{ width: `${widthPct}%` }}
+              >
+                <div className="absolute inset-0 bg-white rounded-[200px] opacity-[0.74] z-0 shadow-sm" />
+                <div className="relative z-10 flex items-center gap-3">
                   {scan.image_url
-                    ? <img src={scan.image_url} className="w-14 h-14 rounded-2xl object-cover shrink-0" alt="" />
-                    : <div className="w-14 h-14 rounded-2xl bg-secondary shrink-0 flex items-center justify-center text-2xl">
-                        {tabs[activeTab] === 'food' ? '🍽️' : tabs[activeTab] === 'skincare' ? '🧴' : '💊'}
+                    ? <img src={scan.image_url} className="w-12 h-12 rounded-2xl object-cover shrink-0" alt="" />
+                    : <div className="w-12 h-12 rounded-2xl bg-zinc-100 shrink-0 flex items-center justify-center text-xl">
+                        {activeTab === 'food' ? '🍽️' : activeTab === 'skincare' ? '🧴' : '💊'}
                       </div>
                   }
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{scan.product_name || 'Unknown'}</p>
-                    {scan.brand && <p className="text-xs text-muted-foreground">{scan.brand}</p>}
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(scan.created_at), 'MMM d, h:mm a')}</p>
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-[590] text-zinc-800 truncate">{scan.product_name || 'Unknown'}</p>
+                    {scan.brand && <p className="text-xs text-zinc-500">{scan.brand}</p>}
                   </div>
-                  <div className="text-right shrink-0">
-                    {score !== null && (
-                      <p className="text-xl font-extrabold" style={{ color: scoreColor }}>{score}</p>
-                    )}
-                    {scan.verdict && <p className="text-[10px] capitalize mt-0.5" style={{ color: scoreColor }}>{scan.verdict}</p>}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+                </div>
+                {score !== null && (
+                  <p className="relative z-10 text-[28px] font-[590] tracking-tight mr-2" style={{ color: scoreColor }}>{score}</p>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Hero scanner card
+function ScannerHero({ activeScanner, onScannerChange }) {
+  const navigate = useNavigate();
+  const scanners = ['food', 'skincare', 'supplement'];
+  const title = SCANNER_TITLES[activeScanner];
+  const touchStartX = useRef(null);
+
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    const idx = scanners.indexOf(activeScanner);
+    if (diff > 50 && idx < scanners.length - 1) onScannerChange(scanners[idx + 1]);
+    if (diff < -50 && idx > 0) onScannerChange(scanners[idx - 1]);
+    touchStartX.current = null;
+  };
+
+  return (
+    <div
+      className="relative w-full overflow-hidden"
+      style={{ borderRadius: '0 0 44px 44px', minHeight: 340 }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Background: dark blurred gradient */}
+      <div className="absolute inset-0 z-0" style={{
+        background: 'linear-gradient(160deg, #2a2a3a 0%, #1a1a2e 40%, #3a2a4a 100%)',
+      }} />
+
+      {/* Coconut water bottle image — behind glass card */}
+      <div className="absolute inset-0 z-[1] flex items-end justify-center overflow-hidden">
+        <img
+          src="https://media.base44.com/images/public/69fd7fe9e1c61305baf8f1b9/fa53f96a8_generated_image.png"
+          alt="Product"
+          className="object-contain w-[65%] max-w-[240px]"
+          style={{ marginBottom: -20, opacity: 0.92 }}
+        />
+      </div>
+
+      {/* Liquid glass frosted card — full width, stops just above Analyse button area */}
+      <div
+        className="absolute z-[2]"
+        style={{
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 80, // stops above the Analyse button
+          background: 'rgba(180,185,220,0.22)',
+          backdropFilter: 'blur(28px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+          borderRadius: '0 0 36px 36px',
+        }}
+      />
+
+      {/* Content above glass — texts & back button */}
+      <div className="relative z-[10] pt-8 px-5">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/')}
+          className="w-[42px] h-[42px] flex items-center justify-center rounded-full mb-3"
+          style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)' }}
+        >
+          <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+            <path d="M7 1L1 7L7 13M1 7H17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        {/* Title */}
+        <div className="mt-1">
+          <motion.h1
+            key={title}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-[clamp(52px,16vw,80px)] font-[590] leading-[1.05] tracking-[-0.02em] text-white"
+            style={{ textShadow: '0 2px 20px rgba(0,0,0,0.4)' }}
+          >
+            {title}
+          </motion.h1>
+          <p className="text-[clamp(26px,8vw,40px)] font-[590] tracking-[-0.015em] text-white/90 leading-tight"
+            style={{ textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
+            Scanner
+          </p>
+        </div>
+      </div>
+
+      {/* Analyse button — above glass layer */}
+      <div className="relative z-[10] px-5 pb-6 mt-2">
+        <button
+          onClick={() => navigate(SCANNER_ROUTES[activeScanner])}
+          className="w-full h-[54px] rounded-full flex items-center justify-center font-[590] text-[18px] tracking-[-0.01em] text-zinc-900 active:scale-[0.98] transition-transform"
+          style={{
+            background: 'rgba(255,255,255,0.88)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: '0 4px 40px rgba(60,60,180,0.3)',
+          }}
+        >
+          Analyse
+        </button>
+      </div>
+
+      {/* Pagination dots */}
+      <div className="relative z-[10] flex justify-center gap-1.5 pb-4">
+        {scanners.map((s, i) => (
+          <button key={s} onClick={() => onScannerChange(s)}
+            className="rounded-full transition-all"
+            style={{
+              width: activeScanner === s ? 20 : 8,
+              height: 8,
+              background: 'rgba(0,0,0,0.55)',
+            }}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
 export default function ScannerHub() {
-  const navigate = useNavigate();
+  const [activeScanner, setActiveScanner] = useState('food');
   const pageVisible = usePageVisible();
-
   const { profile } = useUserProfile();
-  const isAppearanceMode = profile.diet_mode === 'appearance_mode';
-
-  const cardKeys = isAppearanceMode
-    ? ['food', 'skincare', 'supplement', 'face', 'body', 'exerciseform']
-    : ['food', 'skincare', 'supplement', 'body', 'exerciseform'];
 
   return (
-    <div
-      className="min-h-screen pb-20 overflow-y-auto font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]"
-      style={{}}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-6 pb-2">
-        <h1 className="text-[28px] font-extrabold text-[#101114]">Scanner</h1>
-        <button onClick={() => navigate('/')} className="grid h-11 w-11 place-items-center rounded-full bg-white/80 shadow-[0_14px_38px_rgba(16,17,20,.05)] backdrop-blur-2xl">
-          <Home className="w-5 h-5 text-[#101114]" />
-        </button>
-      </div>
+    <div className="min-h-screen pb-28 overflow-y-auto font-[Inter,ui-sans-serif,system-ui,-apple-system,sans-serif]">
+      {/* Hero scanner area */}
+      <ScannerHero activeScanner={activeScanner} onScannerChange={setActiveScanner} />
 
-      {/* Food search bar */}
+      {/* Food search */}
       <div {...animCard(1, pageVisible)}>
         <FoodSearch />
       </div>
 
-      {/* Scanner cards carousel */}
-      <div {...animCard(2, pageVisible)}>
-        <ScannerCarousel cardKeys={cardKeys} />
-      </div>
-
       {/* Recent scans */}
-      <div {...animCard(3, pageVisible)}>
+      <div {...animCard(2, pageVisible)}>
         <RecentScans />
       </div>
     </div>
